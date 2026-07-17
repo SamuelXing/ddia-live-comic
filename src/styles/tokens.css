@@ -1,0 +1,57 @@
+/* ============================================================
+   Scale Lab design tokens — dark-first design system.
+   Every page consumes these; change the brand here, not in pages.
+   ============================================================ */
+:root {
+  /* surfaces */
+  --bg: #0d0f14;
+  --plane: #12151d;
+  --panel: #161922;
+  --panel-2: #1d212c;
+  --card: #1a1e28;
+  --card-2: #1d212c;
+
+  /* ink */
+  --ink: #f2f4f8;
+  --ink-2: #aab2c5;
+  --muted: #6b7488;
+  --line: #2a2f3d;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* brand */
+  --accent: #3987e5;
+  --accent-2: #5aa2f0;
+
+  /* component-role palette — dataviz-validated for the dark surface.
+     Keep in sync with src/styles/viz.ts (same hexes). */
+  --stateless: #3987e5;
+  --data: #9085e9;
+  --cache: #e5533b;
+  --queue: #c98500;
+  --store: #1aa46e;
+  --edge: #0f9fc2;
+
+  /* status */
+  --good: #1aa46e;
+  --warn: #c98500;
+  --hot: #e5533b;
+  --crit: #e5533b;
+  --good-fill: #10251b;
+  --warn-fill: #241d0f;
+  --crit-fill: #2c1717;
+
+  /* shape & type */
+  --radius: 16px;
+  --radius-sm: 10px;
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.35);
+
+  /* spacing scale (8px base) — use instead of ad-hoc paddings */
+  --sp-1: 6px;
+  --sp-2: 12px;
+  --sp-3: 20px;
+  --sp-4: 32px;
+  --sp-5: 52px;
+  --sp-6: 80px;
+}
