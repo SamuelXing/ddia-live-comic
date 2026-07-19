@@ -1,4 +1,5 @@
 import type { TraceSpec } from '../../components/TracePlayer'
+import type { MetricCard } from '../../components/MetricRunbook'
 import { VIZ } from '../../styles/viz'
 
 /* ============================================================
@@ -6,23 +7,6 @@ import { VIZ } from '../../styles/viz'
    spike means, what breaks, and what you do about it.
    This is the "3am pager" view, not the happy path.
    ============================================================ */
-
-export type Severity = 'page' | 'watch'
-
-export interface MetricCard {
-  metric: string
-  /** JMX / client metric name. */
-  jmx: string
-  severity: Severity
-  healthy: string
-  means: string
-  breaks: string
-  causes: string[]
-  /** Ordered response — what an engineer does, cheapest/safest first. */
-  respond: string[]
-  /** Optional cross-reference to another chapter. */
-  tie?: string
-}
 
 export const METRICS: MetricCard[] = [
   {

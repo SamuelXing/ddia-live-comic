@@ -1,8 +1,25 @@
 import { useState } from 'react'
-import type { MetricCard } from '../deepdives/kafka/ops'
 
 /* Scannable "3am pager" runbook cards. Each opens to reveal the
-   full spike → means → breaks → causes → response runbook. */
+   full spike → means → breaks → causes → response runbook.
+   Reused by every flagship deep-dive (Kafka, Postgres, …). */
+
+export type Severity = 'page' | 'watch'
+
+export interface MetricCard {
+  metric: string
+  /** The metric's source name — JMX bean, catalog view, etc. */
+  jmx: string
+  severity: Severity
+  healthy: string
+  means: string
+  breaks: string
+  causes: string[]
+  /** Ordered response — what an engineer does, cheapest/safest first. */
+  respond: string[]
+  /** Optional cross-reference to another chapter. */
+  tie?: string
+}
 
 function Card({ card, open, onToggle }: { card: MetricCard; open: boolean; onToggle: () => void }) {
   return (
