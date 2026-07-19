@@ -99,7 +99,8 @@ export const produceTrace: TraceSpec = {
         'The leader tracks every replica’s log-end-offset. The <b>high watermark</b> = the minimum across the ISR: everything below it is <em>committed</em> and survives any single-broker loss. When the HW passes our batch, purgatory completes the produce request. Consumers may only ever read up to the HW.',
       focus: ['hw', 'purg', 'f1', 'f2'],
       particles: [
-        { from: 'f1', to: 'hw', color: C.repl },
+        // f1's report routes down the channel left of the followers, not through f2
+        { from: 'f1', to: 'hw', color: C.repl, via: [{ x: 74, y: 12 }, { x: 74, y: 36.75 }] },
         { from: 'f2', to: 'hw', color: C.repl },
       ],
     },

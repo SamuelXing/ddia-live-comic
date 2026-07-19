@@ -11,9 +11,12 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
     vacuum lifecycle trace, PG hardware envelope, read/write-asymmetry sandbox, pager
     runbook + idle-transaction cascade, Notion sharding reference + fleet trace)
   - Next: **Redis** / Web-tier / RabbitMQ / S3 upgraded to the flagship template.
-- **`scalelab-design` skill** — codify the hard-won UI/animation patterns (validated
-  palette, label shrink-to-fit, edge-port + waypoint routing, "nothing overlaps a label"
-  invariant, runbook/tile/meter/trace styles) so new pages inherit them by construction.
+- ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
+  hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
+  waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring
+  checklist). The "nothing overlaps a label" invariant is now *enforced*: a dev-mode
+  trace lint (`src/components/traceLint.ts`) console-warns any particle route that
+  cuts through a node, any overlapping/off-canvas node, or unknown ids.
 
 ## App simulations (gallery)
 
