@@ -7,8 +7,10 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
 - **Component deep-dives** — flagship, 9-chapter treatment per infra component.
   - ✅ Kafka (flagship template: abstraction → anatomy w/ animated traces → hardware
     envelope → scale up/out → ops runbook + failure cascade → large-cluster reference → papers)
-  - Next: **Postgres** (deepest anatomy — parser/planner/executor, buffer pool, WAL,
-    MVCC, vacuum), then Redis / Web-tier / RabbitMQ / S3 upgraded to the flagship template.
+  - ✅ Postgres (UPDATE trace through parser/planner/executor/buffer pool/WAL, MVCC +
+    vacuum lifecycle trace, PG hardware envelope, read/write-asymmetry sandbox, pager
+    runbook + idle-transaction cascade, Notion sharding reference + fleet trace)
+  - Next: **Redis** / Web-tier / RabbitMQ / S3 upgraded to the flagship template.
 - **`scalelab-design` skill** — codify the hard-won UI/animation patterns (validated
   palette, label shrink-to-fit, edge-port + waypoint routing, "nothing overlaps a label"
   invariant, runbook/tile/meter/trace styles) so new pages inherit them by construction.
