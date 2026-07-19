@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { nodeGradient, VIZ } from '../styles/viz'
+import { lintAndReport } from './traceLint'
 
 /* ============================================================
    TracePlayer — animated request-trace diagrams.
@@ -75,6 +76,10 @@ export default function TracePlayer({ spec }: { spec: TraceSpec }) {
     progRef.current = 0
     if (autoplay !== undefined) setPlaying(autoplay)
   }, [])
+
+  useEffect(() => {
+    if (import.meta.env.DEV) lintAndReport(spec)
+  }, [spec])
 
   useEffect(() => {
     const cvs = canvasRef.current
