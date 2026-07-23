@@ -1,6 +1,5 @@
 import type { ModuleDef } from './types'
 import { webModule } from './modules/web'
-import { rabbitmqModule } from './modules/rabbitmq'
 import { s3Module } from './modules/s3'
 
 /* ============================================================
@@ -28,7 +27,7 @@ export const CATALOG: CatalogEntry[] = [
   { key: 'postgres', name: 'PostgreSQL', emoji: '🐘', color: '#9085e9', status: 'flagship', desc: 'The relational anchor: one UPDATE traced from SQL text through parser, planner, executor, buffer pool, and WAL fsync; the MVCC row-version lifecycle with vacuum and the wraparound clock; hardware-envelope math; a production runbook with the idle-transaction cascade; and how Notion sharded past one primary.' },
   { key: 'redis', name: 'Redis', emoji: '⚡', color: '#e5533b', status: 'flagship', desc: 'The in-memory data-structure server: a command traced through the single-threaded event loop; fork, copy-on-write, and the persistence spike; the one-core hardware envelope; shard math with the hot key sharding can’t fix; a pager runbook with the whale-key cascade; and Redis Cluster walked slot by slot.' },
   { key: 'web', name: 'Web / App tier', emoji: '🖥️', color: '#3987e5', status: 'classic', desc: "Stateless scale-out, Little's Law, and the connection fan-out trap." },
-  { key: 'rabbitmq', name: 'RabbitMQ', emoji: '🐰', color: '#37b6c4', status: 'classic', desc: 'The smart-broker model: exchanges, prefetch, and the one-core-per-queue ceiling.' },
+  { key: 'rabbitmq', name: 'RabbitMQ', emoji: '🐰', color: '#37b6c4', status: 'flagship', desc: 'The smart broker: a message traced through exchange, bindings, queue process, and prefetch; the BEAM anatomy behind the one-core-per-queue ceiling and the memory watermark; two-ceiling scale-out math; a pager runbook with the slow-consumer freeze cascade; and the full production estate — quorum queues, dead-letter topologies, federation, and the honest Kafka handoff.' },
   { key: 's3', name: 'S3 / Object storage', emoji: '🪣', color: '#25b866', status: 'classic', desc: 'Per-prefix request limits, the latency floor, and the cost shape.' },
   { key: 'cassandra', name: 'Cassandra', emoji: '💍', color: '#5aa2f0', status: 'planned', desc: 'The Dynamo ring meets the Bigtable storage engine: consistent hashing, LSM trees, memtables → SSTables, compaction, tombstones, tunable consistency.', paper: 'Lakshman & Malik, LADIS ’09 + Dynamo ’07' },
   { key: 'dynamodb', name: 'DynamoDB', emoji: '🧿', color: '#e6a72a', status: 'planned', desc: 'Quorums (R+W>N), sloppy quorums & hinted handoff, adaptive capacity, and what a fully-managed Dynamo descendant changed.', paper: 'DeCandia et al. ’07 + USENIX ATC ’22' },
@@ -39,6 +38,5 @@ export const CATALOG: CatalogEntry[] = [
 
 export const CLASSIC_MODULES: Record<string, ModuleDef> = {
   web: webModule,
-  rabbitmq: rabbitmqModule,
   s3: s3Module,
 }

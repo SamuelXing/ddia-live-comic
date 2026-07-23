@@ -13,7 +13,11 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   - ✅ Redis (event-loop trace, fork/COW persistence trace, one-core hardware envelope,
     hot-key shard sandbox, whale-key cascade + runbook, Redis Cluster fleet trace —
     first page built from the `scalelab-design` skill)
-  - Next: Web-tier / RabbitMQ / S3 upgraded to the flagship template.
+  - ✅ RabbitMQ (publish→exchange→queue→ack trace, BEAM/watermark anatomy trace,
+    per-node envelope with the alarm line, two-ceiling scale-out sandbox,
+    slow-consumer-freeze cascade + runbook, production-estate trace with the
+    Kafka handoff)
+  - Next: Web-tier / S3 upgraded to the flagship template.
 - ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
   hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
   waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring

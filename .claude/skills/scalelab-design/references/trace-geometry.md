@@ -55,6 +55,14 @@ flag. A silent console is necessary but not sufficient: still eyeball a
 screenshot of each step (zone labels sit at the zone's top-left; a top-channel
 route can graze them without touching any node).
 
+## Labels are plain text, and short
+
+- Step `title`s render as plain text — HTML entities (`&apos;`) appear
+  literally. Use real apostrophes; save HTML for `prose`.
+- Zone labels draw at the zone's top-left with no clipping guard. For the
+  right zone (x 76, w 22) keep the label ≤ ~15 characters ("Disk",
+  "Data in RAM", "Rest of cluster") or it runs off the canvas edge.
+
 ## Step & prose conventions
 
 - 6–9 steps. Each step: a strong claim as `title`, 40–90 words of `prose`
