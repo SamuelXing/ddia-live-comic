@@ -10,7 +10,10 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   - ✅ Postgres (UPDATE trace through parser/planner/executor/buffer pool/WAL, MVCC +
     vacuum lifecycle trace, PG hardware envelope, read/write-asymmetry sandbox, pager
     runbook + idle-transaction cascade, Notion sharding reference + fleet trace)
-  - Next: **Redis** / Web-tier / RabbitMQ / S3 upgraded to the flagship template.
+  - ✅ Redis (event-loop trace, fork/COW persistence trace, one-core hardware envelope,
+    hot-key shard sandbox, whale-key cascade + runbook, Redis Cluster fleet trace —
+    first page built from the `scalelab-design` skill)
+  - Next: Web-tier / RabbitMQ / S3 upgraded to the flagship template.
 - ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
   hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
   waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring

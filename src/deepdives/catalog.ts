@@ -1,7 +1,6 @@
 import type { ModuleDef } from './types'
 import { webModule } from './modules/web'
 import { rabbitmqModule } from './modules/rabbitmq'
-import { redisModule } from './modules/redis'
 import { s3Module } from './modules/s3'
 
 /* ============================================================
@@ -27,7 +26,7 @@ export interface CatalogEntry {
 export const CATALOG: CatalogEntry[] = [
   { key: 'kafka', name: 'Apache Kafka', emoji: '📨', color: '#e6a72a', status: 'flagship', desc: 'The distributed log: broker anatomy with animated produce/consume traces, hardware-envelope math, partition scaling, a production metrics runbook with a failure-cascade animation, and what a 4,000-broker cluster really looks like.' },
   { key: 'postgres', name: 'PostgreSQL', emoji: '🐘', color: '#9085e9', status: 'flagship', desc: 'The relational anchor: one UPDATE traced from SQL text through parser, planner, executor, buffer pool, and WAL fsync; the MVCC row-version lifecycle with vacuum and the wraparound clock; hardware-envelope math; a production runbook with the idle-transaction cascade; and how Notion sharded past one primary.' },
-  { key: 'redis', name: 'Redis', emoji: '⚡', color: '#e5533b', status: 'classic', desc: 'One core, RAM ceiling, Cluster hash slots, and the hot-key problem.' },
+  { key: 'redis', name: 'Redis', emoji: '⚡', color: '#e5533b', status: 'flagship', desc: 'The in-memory data-structure server: a command traced through the single-threaded event loop; fork, copy-on-write, and the persistence spike; the one-core hardware envelope; shard math with the hot key sharding can’t fix; a pager runbook with the whale-key cascade; and Redis Cluster walked slot by slot.' },
   { key: 'web', name: 'Web / App tier', emoji: '🖥️', color: '#3987e5', status: 'classic', desc: "Stateless scale-out, Little's Law, and the connection fan-out trap." },
   { key: 'rabbitmq', name: 'RabbitMQ', emoji: '🐰', color: '#37b6c4', status: 'classic', desc: 'The smart-broker model: exchanges, prefetch, and the one-core-per-queue ceiling.' },
   { key: 's3', name: 'S3 / Object storage', emoji: '🪣', color: '#25b866', status: 'classic', desc: 'Per-prefix request limits, the latency floor, and the cost shape.' },
@@ -41,6 +40,5 @@ export const CATALOG: CatalogEntry[] = [
 export const CLASSIC_MODULES: Record<string, ModuleDef> = {
   web: webModule,
   rabbitmq: rabbitmqModule,
-  redis: redisModule,
   s3: s3Module,
 }
