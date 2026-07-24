@@ -72,6 +72,35 @@ export interface StageControls {
   repl?: boolean
 }
 
+/** What goal predicates can see: live node stats + current knob values. */
+export interface GoalCtx {
+  util: (id: string) => number
+  qdepth: (id: string) => number
+  dropPct: number
+  regions: number
+  regionsAlive: number
+  c: {
+    traffic: number
+    writeShare: number
+    cacheHit: number
+    web: number
+    replicas: number
+    partitions: number
+    pgShards: number
+    redisShards: number
+    celeb: boolean
+    regions: number
+    repl: number
+  }
+}
+
+/** A mission objective. Once observed true it stays checked (latched by the page). */
+export interface Goal {
+  id: string
+  label: string
+  done: (g: GoalCtx) => boolean
+}
+
 export interface StageDef {
   n: number
   title: string
@@ -83,6 +112,7 @@ export interface StageDef {
   map?: boolean
   controls: StageControls
   routes: (s: { cacheHit: number }) => Partial<Record<ReqType, string[]>>
+  goals: Goal[]
   tip: { h: string; p: string; try: string }
 }
 
@@ -100,6 +130,11 @@ export const STAGES: StageDef[] = [
       like: ['users', 'mono'],
       media: ['users', 'mono'],
     }),
+    goals: [
+      { id: 'push', label: 'Push traffic past 10k req/s', done: (g) => g.c.traffic >= 170 },
+      { id: 'sat', label: 'Saturate the box (≥ 95% busy)', done: (g) => g.util('mono') >= 0.95 },
+      { id: 'drop', label: 'Watch requests start dropping', done: (g) => g.dropPct >= 2 },
+    ],
     tip: {
       h: 'The vertical wall',
       p: 'One host means shared fate: reads, writes and uploads all compete for the same CPU. You can only make the box bigger, and there is a biggest box. It is also a single point of failure — hit “Fail a node”.',
@@ -120,6 +155,10 @@ export const STAGES: StageDef[] = [
       like: ['users', 'lb', 'gw', 'svcInt', 'pgP'],
       media: ['users', 'lb', 'gw', 'svcInt', 'pgP'],
     }),
+    goals: [
+      { id: 'maxweb', label: 'Max out web instances (16+)', done: (g) => g.c.web >= 16 },
+      { id: 'wall', label: 'Postgres pegged ≥ 90% while the gateway idles under 50%', done: (g) => g.util('pgP') >= 0.9 && g.util('gw') <= 0.5 },
+    ],
     tip: {
       h: 'Cloning the web tier stops helping',
       p: 'Adding API-gateway instances scales compute linearly — but every request still funnels into one Postgres primary. Once the DB is the bottleneck, more web instances just pile up in its queue.',
@@ -143,6 +182,11 @@ export const STAGES: StageDef[] = [
       like: ['users', 'lb', 'gw', 'svcInt', 'redis', 'pgP'],
       media: ['users', 'lb', 'gw', 'svcInt', 'pgP'],
     }),
+    goals: [
+      { id: 'starve', label: 'Starve the cache (hit rate ≤ 60%)', done: (g) => g.c.cacheHit <= 60 },
+      { id: 'absorb', label: 'Replicas absorb the misses (≥ 55% busy)', done: (g) => g.util('pgR') >= 0.55 },
+      { id: 'writes', label: 'Writes to 40%+ — the primary reddens anyway', done: (g) => g.c.writeShare >= 40 && g.util('pgP') >= 0.85 },
+    ],
     tip: {
       h: 'Reads scale, writes don’t',
       p: 'Cache hits never touch the DB; misses hit a replica. Reads now scale with cache-hit-rate and replica count. But posts and likes still write to the single primary — that path is untouched.',
@@ -163,6 +207,11 @@ export const STAGES: StageDef[] = [
       like: ['users', 'lb', 'gw', 'svcInt', 'redis', 'pgP'],
       media: ['users', 'lb', 'gw', 'svcInt', 'redis'],
     }),
+    goals: [
+      { id: 'celeb', label: 'Turn on celebrity posts', done: (g) => g.c.celeb },
+      { id: 'erupt', label: 'Fan-out lag erupts past 40', done: (g) => g.qdepth('svcFan') > 40 },
+      { id: 'drain', label: 'Drain it: 32+ partitions, lag back under 10', done: (g) => g.c.partitions >= 32 && g.qdepth('svcFan') < 10 },
+    ],
     tip: {
       h: 'Fan-out & the celebrity problem',
       p: 'Each post explodes into many timeline writes. Too few Kafka partitions caps the fan-out service and lag piles up. A celebrity’s post fans out to a huge audience at once — a burst no partition count fully tames.',
@@ -183,6 +232,11 @@ export const STAGES: StageDef[] = [
       like: ['users', 'lb', 'gw', 'svcInt', 'redis', 'pgP'],
       media: ['users', 'lb', 'gw', 'svcInt', 'redis'],
     }),
+    goals: [
+      { id: 'shard', label: 'Shard Postgres ×4 or more', done: (g) => g.c.pgShards >= 4 },
+      { id: 'hold', label: 'Push traffic past 15k — the write path holds', done: (g) => g.c.traffic >= 250 && g.c.pgShards >= 4 && g.util('pgP') <= 0.8 },
+      { id: 'hotkey', label: 'Celebrity on: the hot shard still spikes', done: (g) => g.c.celeb && (g.util('redis') >= 0.75 || g.util('pgP') >= 0.75) },
+    ],
     tip: {
       h: 'Writes scale — with caveats',
       p: 'Sharding multiplies write capacity by spreading user_ids across primaries. But a viral post is one key on one shard: the hot-key problem sharding can’t divide. And any query spanning shards loses single-node transactions.',
@@ -198,6 +252,11 @@ export const STAGES: StageDef[] = [
     map: true,
     controls: { regions: true, repl: true },
     routes: () => ({}),
+    goals: [
+      { id: 'lag', label: 'Stretch replication lag past 60', done: (g) => g.c.repl >= 60 },
+      { id: 'fail', label: 'Fail a region — users reroute', done: (g) => g.regionsAlive < g.regions },
+      { id: 'five', label: 'Run all 5 regions', done: (g) => g.c.regions >= 5 },
+    ],
     tip: {
       h: 'The speed of light is the limit',
       p: 'Now the wall is physics: cross-region replication takes tens to hundreds of ms, so regions are eventually-consistent. You trade strong consistency for latency and availability — the CAP theorem, made visible.',

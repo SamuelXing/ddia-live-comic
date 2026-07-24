@@ -20,6 +20,11 @@ export interface Particle {
   route: string[]
   hop: number
   born: number
+  /** Simulated latency actually accrued: queue wait + service, per hop.
+      Travel animation is presentation only and never counted. */
+  workMs: number
+  /** When this particle entered its current node's queue. */
+  qAt: number
   x: number
   y: number
   traveling: boolean
@@ -32,6 +37,9 @@ export interface Particle {
   fanout: boolean
   done: boolean
 }
+
+/** Fixed per-hop network cost added to reported latency (ms). */
+const HOP_NET_MS = 5
 
 interface Busy {
   p: Particle
@@ -298,18 +306,22 @@ export class FeedEngine {
     })
     const colKeys = Object.keys(cols).map(Number).sort((a, b) => a - b)
     if (!colKeys.length) return
-    const padX = 90
-    const usableW = Math.max(300, this.W - padX * 2)
-    const nCols = Math.max(...colKeys) + 1
-    colKeys.forEach((c) => {
+    // Content is capped, centered, and sized by how many columns this stage
+    // actually uses — two nodes sit near each other, not at opposite walls.
+    const padX = 70
+    const span = colKeys.length - 1
+    const cap = Math.min(1180, Math.max(260, span * 250))
+    const usableW = Math.min(Math.max(260, this.W - padX * 2), cap)
+    const x0 = (this.W - usableW) / 2
+    colKeys.forEach((c, ci) => {
       const ids = cols[c]
-      const x = padX + (nCols <= 1 ? usableW / 2 : (c / (nCols - 1)) * usableW)
+      const x = x0 + (span < 1 ? usableW / 2 : (ci / span) * usableW)
       const n = ids.length
       ids.forEach((id, k) => {
-        const y = this.H * 0.16 + (n === 1 ? this.H * 0.34 : (k / (n - 1)) * this.H * 0.62)
+        const y = this.H * 0.14 + (n === 1 ? this.H * 0.36 : (k / (n - 1)) * this.H * 0.66)
         this.nodes[id].x = x
         this.nodes[id].y = y
-        this.nodes[id].r = id === 'mono' ? 42 : this.nodes[id].role === 'src' ? 20 : 26
+        this.nodes[id].r = id === 'mono' ? 48 : this.nodes[id].role === 'src' ? 23 : 31
       })
     })
   }
@@ -440,6 +452,8 @@ export class FeedEngine {
       route,
       hop: 0,
       born: this.now,
+      workMs: 0,
+      qAt: 0,
       x: src ? src.x : 60,
       y: src ? src.y + (Math.random() * 40 - 20) : this.H / 2,
       traveling: true,
@@ -475,7 +489,10 @@ export class FeedEngine {
   private complete(p: Particle) {
     p.done = true
     if (p.fanout) return // fan-out writes are internal, not user requests
-    const lat = this.now - p.born
+    // Reported latency = queue wait + service + a small per-hop network cost.
+    // The travel animation is deliberately excluded: it is pacing for the eye,
+    // and counting it drowned the queueing signal this sim exists to show.
+    const lat = p.workMs + (p.route.length - 1) * HOP_NET_MS
     this.compl.push(lat)
     if (this.compl.length > 240) this.compl.shift()
     this.servedWin.push(this.now)
@@ -530,6 +547,7 @@ export class FeedEngine {
             this.dropP(p)
             continue
           }
+          p.qAt = this.now
           nd.queue.push(p)
         } else {
           p.x = p.fromX + (p.toX - p.fromX) * ease(p.tprog)
@@ -555,6 +573,7 @@ export class FeedEngine {
         if (this.now >= b.doneAt) {
           nd.busy.splice(i, 1)
           const p = b.p
+          p.workMs += b.doneAt - p.qAt // queue wait + service at this hop
           // kafka: spawn fan-out burst
           if (nd.kind === 'kafka' && p.type === 'post') {
             const celebHit = this.celeb && Math.random() < 0.14
@@ -567,6 +586,8 @@ export class FeedEngine {
                 route: ['svcFan', 'redis'],
                 hop: 0,
                 born: this.now,
+                workMs: 0,
+                qAt: 0,
                 x: nd.x,
                 y: nd.y,
                 traveling: true,
@@ -591,7 +612,7 @@ export class FeedEngine {
       // start service
       while (nd.busy.length < S && nd.queue.length > 0) {
         const p = nd.queue.shift()!
-        let sm = nd.serviceMs
+        let sm = nd.serviceMs * (0.65 + Math.random() * 0.7) // service-time jitter → honest p95 > p50
         // hot key: viral like/post traffic concentrates on one shard
         if (nd.kind === 'redis' && this.celeb && Math.random() < 0.14) sm *= 6
         if (nd.kind === 'pgP' && this.celeb && p.type === 'post' && Math.random() < 0.1) sm *= 4
@@ -688,13 +709,36 @@ export class FeedEngine {
     for (const p of this.particles) {
       if (p.done) continue
       ctx.beginPath()
-      ctx.arc(p.x, p.y, p.fanout ? 2.6 : 3.4, 0, 7)
+      ctx.arc(p.x, p.y, p.fanout ? 3.2 : 4.4, 0, 7)
       ctx.fillStyle = p.color
-      ctx.globalAlpha = p.traveling ? 0.95 : 0.6
+      ctx.globalAlpha = p.traveling ? 0.95 : 0.55
       ctx.fill()
       ctx.globalAlpha = 1
     }
     for (const id of this.order) this.drawNode(this.nodes[id])
+    this.drawBottleneckTag()
+  }
+
+  /** Auto-label the hottest node so the eye lands on the lesson. */
+  private drawBottleneckTag() {
+    let hot: SimNode | null = null
+    for (const id of this.order) {
+      const nd = this.nodes[id]
+      if (nd.role === 'src' || nd.role === 'net' || nd.dead) continue
+      if (nd.util >= 0.85 && (!hot || nd.util > hot.util)) hot = nd
+    }
+    if (!hot) return
+    const ctx = this.ctx
+    const label = 'BOTTLENECK'
+    ctx.font = '800 10px system-ui,sans-serif'
+    const w = ctx.measureText(label).width + 16
+    const x = hot.x - w / 2
+    const y = hot.y - hot.r * 0.72 - 26
+    ctx.fillStyle = 'rgba(229,83,59,.16)'
+    ctx.strokeStyle = this.colors.hot
+    ctx.lineWidth = 1
+    this.roundRect(x, y, w, 16, 8, true, true)
+    this.txt(label, hot.x, y + 8.5, '#f08a76', 10, 'center', true)
   }
 
   private roleColor(role: Role): string {
@@ -720,8 +764,8 @@ export class FeedEngine {
 
   private drawEdges() {
     const ctx = this.ctx
-    ctx.strokeStyle = 'rgba(255,255,255,.07)'
-    ctx.lineWidth = 1.3
+    ctx.strokeStyle = 'rgba(255,255,255,.1)'
+    ctx.lineWidth = 1.6
     for (const [aId, bId] of this.edgeCache) {
       const a = this.nodes[aId]
       const b = this.nodes[bId]
@@ -769,14 +813,14 @@ export class FeedEngine {
       this.txt(
         ln,
         nd.x,
-        nd.y - 4 + i * 12 - (lines.length - 1) * 6,
+        nd.y - 4 + i * 13 - (lines.length - 1) * 6.5,
         nd.dead ? '#6b7488' : '#eef1f7',
-        11.5,
+        12.5,
         'center',
         true,
       ),
     )
-    this.txt(this.subLabel(nd), nd.x, nd.y + nd.r * 0.72 + 13, nd.dead ? '#5a6072' : '#8b93a6', 10.5, 'center')
+    this.txt(this.subLabel(nd), nd.x, nd.y + nd.r * 0.72 + 14, nd.dead ? '#5a6072' : '#9aa3b6', 11, 'center')
     if (nd.dead) this.txt('✕ FAILED', nd.x, nd.y + 2, this.colors.hot, 11, 'center', true)
   }
 
@@ -792,25 +836,21 @@ export class FeedEngine {
     return uP
   }
 
+  /** Queue depth as a growing bar beside the node — legible at any zoom. */
   private drawQueue(nd: SimNode) {
     const ctx = this.ctx
-    const q = Math.min(nd.qdepth, 60)
-    if (q <= 0) return
-    const perRow = 6
-    const dotR = 2.2
-    const gap = 5
-    ctx.fillStyle = nd.qdepth > this.slots(nd) * 4 ? this.colors.hot : this.colors.warn
-    for (let i = 0; i < q; i++) {
-      const row = Math.floor(i / perRow)
-      const c = i % perRow
-      const qx = nd.x - nd.r - 12 - c * gap
-      const qy = nd.y - nd.r * 0.5 + row * gap
-      ctx.globalAlpha = 0.85
-      ctx.beginPath()
-      ctx.arc(qx, qy, dotR, 0, 7)
-      ctx.fill()
-    }
+    if (nd.qdepth <= 0) return
+    const maxH = nd.r * 1.9
+    const h = Math.max(5, Math.min(1, nd.qdepth / 60) * maxH)
+    const hot = nd.qdepth > this.slots(nd) * 4
+    const x = nd.x - nd.r - 15
+    const y = nd.y + nd.r * 0.72 - h
+    ctx.fillStyle = hot ? this.colors.hot : this.colors.warn
+    ctx.globalAlpha = 0.85
+    this.roundRect(x, y, 8, h, 3, true, false)
     ctx.globalAlpha = 1
+    if (nd.qdepth >= 5)
+      this.txt(String(Math.min(nd.qdepth, 999)), x + 4, y - 9, hot ? '#f08a76' : '#f0be5a', 10.5, 'center', true)
   }
 
   private drawMap() {
