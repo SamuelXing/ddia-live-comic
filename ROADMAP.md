@@ -21,6 +21,10 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
 ## App simulations (gallery)
 
 - ✅ Social Feed (`/sims/feed`) — local → global, fan-out, hot keys, sharding.
+  Reworked as a **guided mission lab**: capped/centered topology, per-stage goal
+  checklists that latch as you trigger each lesson, KPI strip, bottleneck auto-tag,
+  and an honest latency model (queue+service only — travel animation no longer
+  counted, which had been drowning the queueing signal).
 - E-commerce checkout — inventory contention, flash sales, sagas.
 - Food delivery (FTGO) — choreographed multi-service sagas.
 - Chat / messaging — websockets, connection scaling, ordering.

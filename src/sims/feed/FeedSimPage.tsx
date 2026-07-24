@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FeedEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
 import { REQ, STAGES } from './model'
+import type { GoalCtx } from './model'
 import '../../styles/sim.css'
 
 interface Controls {
@@ -77,28 +78,12 @@ function Ctl({
   )
 }
 
-function Bar({ name, util, dead, extra }: { name: string; util: number; dead: boolean; extra?: string }) {
-  const pct = Math.min(100, Math.round((dead ? 0 : util) * 100))
-  const col = dead ? '#3a3f4d' : util >= 0.95 ? 'var(--hot)' : util >= 0.7 ? 'var(--warn)' : 'var(--good)'
+function Kpi({ k, v, u, cls }: { k: string; v: string; u: string; cls?: string }) {
   return (
-    <div className="cbar">
-      <div className="cbar-top">
-        <span className="cbar-name">{name}</span>
-        <span className="cbar-val">{dead ? 'DOWN' : pct + '%' + (extra ?? '')}</span>
-      </div>
-      <div className="cbar-track">
-        <div className="cbar-fill" style={{ width: pct + '%', background: col }} />
-      </div>
-    </div>
-  )
-}
-
-function Tile({ k, v, u, cls, wide }: { k: string; v: string | number; u: string; cls?: string; wide?: boolean }) {
-  return (
-    <div className={'mt' + (wide ? ' wide' : '')}>
-      <div className="k">{k}</div>
-      <div className={'v ' + (cls ?? '')}>{v}</div>
-      <div className="u">{u}</div>
+    <div className="kpi">
+      <span className="k">{k}</span>
+      <span className={'v ' + (cls ?? '')}>{v}</span>
+      <span className="u">{u}</span>
     </div>
   )
 }
@@ -111,7 +96,12 @@ export default function FeedSimPage() {
   const [running, setRunning] = useState(true)
   const [speed, setSpeed] = useState(6)
   const [snap, setSnap] = useState<Snapshot | null>(null)
+  const [achieved, setAchieved] = useState<Record<number, Set<string>>>({})
   const spikeTimer = useRef<number | null>(null)
+  const controlsRef = useRef(controls)
+  controlsRef.current = controls
+  const stageRef = useRef(stageIdx)
+  stageRef.current = stageIdx
 
   // engine lifecycle
   useEffect(() => {
@@ -123,7 +113,31 @@ export default function FeedSimPage() {
     engine.start()
     const onResize = () => engine.resize()
     window.addEventListener('resize', onResize)
-    const poll = window.setInterval(() => setSnap(engine.getSnapshot()), 200)
+    const poll = window.setInterval(() => {
+      const s = engine.getSnapshot()
+      setSnap(s)
+      // evaluate + latch mission goals against the live snapshot
+      const idx = stageRef.current
+      const stage = STAGES[idx]
+      const c = controlsRef.current
+      const ctx: GoalCtx = {
+        util: (id) => s.bars.find((b) => b.id === id)?.util ?? 0,
+        qdepth: (id) => s.bars.find((b) => b.id === id)?.qdepth ?? 0,
+        dropPct: s.dropPct,
+        regions: s.regions,
+        regionsAlive: s.regionsAlive,
+        c,
+      }
+      const fresh = stage.goals.filter((g) => g.done(ctx)).map((g) => g.id)
+      if (fresh.length)
+        setAchieved((prev) => {
+          const cur = prev[idx] ?? new Set<string>()
+          if (fresh.every((id) => cur.has(id))) return prev
+          const next = new Set(cur)
+          fresh.forEach((id) => next.add(id))
+          return { ...prev, [idx]: next }
+        })
+    }, 200)
     return () => {
       window.removeEventListener('resize', onResize)
       window.clearInterval(poll)
@@ -191,6 +205,12 @@ export default function FeedSimPage() {
 
   const stage = STAGES[stageIdx]
   const c = stage.controls
+  const got = achieved[stageIdx] ?? new Set<string>()
+  const stageDone = stage.goals.length > 0 && stage.goals.every((g) => got.has(g.id))
+  const isStageComplete = (i: number) => {
+    const a = achieved[i]
+    return !!a && STAGES[i].goals.every((g) => a.has(g.id))
+  }
 
   return (
     <div className="sim-page">
@@ -240,239 +260,247 @@ export default function FeedSimPage() {
         </button>
       </div>
 
-      <div className="ladder">
-        {STAGES.map((s, i) => (
-          <span key={s.n} style={{ display: 'contents' }}>
-            {i > 0 && <span className="arrow">▸</span>}
-            <button className="rung" aria-current={i === stageIdx} onClick={() => selectStage(i)}>
-              <span className="num">{s.n}</span>
+      <div className="stepper">
+        {STAGES.map((s, i) => {
+          const done = isStageComplete(i)
+          return (
+            <button
+              key={s.n}
+              className={'srung' + (done ? ' done' : '')}
+              aria-current={i === stageIdx}
+              onClick={() => selectStage(i)}
+            >
+              <span className="num">{done ? '✓' : s.n}</span>
               {s.title}
             </button>
-          </span>
-        ))}
+          )
+        })}
       </div>
 
-      <div className="main">
-        <div className="stage-wrap">
-          <canvas ref={canvasRef} id="viz" />
-          <div className="overlay-hint">
-            <div className="st">
-              Stage {stage.n} · {stage.kicker}
+      <div className="labwrap">
+        <div className="lab">
+          <div className="viz-col">
+            <div className="kpis">
+              {snap && snap.map ? (
+                <>
+                  <Kpi k="Regions live" v={`${snap.regionsAlive}/${snap.regions}`} u="serving traffic" cls={snap.regionsAlive < snap.regions ? 'hot' : 'good'} />
+                  <Kpi k="Replication lag" v={String(snap.replLagMs)} u="ms cross-region" cls={controls.repl > 60 ? 'warn' : 'good'} />
+                  <Kpi k="Consistency" v={controls.repl > 40 ? 'eventual' : 'near-strong'} u="read-your-writes" cls={controls.repl > 40 ? 'warn' : 'good'} />
+                </>
+              ) : snap ? (
+                <>
+                  <Kpi k="Offered" v={fmtRps(snap.offeredRps)} u="req/s in" />
+                  <Kpi
+                    k="Served"
+                    v={fmtRps(snap.servedRps)}
+                    u="req/s done"
+                    cls={snap.dropPct > 5 ? 'warn' : 'good'}
+                  />
+                  <Kpi
+                    k="Dropped"
+                    v={snap.dropPct < 0.1 ? '0' : snap.dropPct.toFixed(1) + '%'}
+                    u={fmtRps(snap.dropRps) + ' req/s'}
+                    cls={snap.dropPct > 5 ? 'hot' : snap.dropPct > 0.5 ? 'warn' : 'good'}
+                  />
+                  <Kpi
+                    k="Latency"
+                    v={Math.round(snap.p95) + ' ms'}
+                    u={'p95 · p50 ' + Math.round(snap.p50) + ' ms'}
+                    cls={snap.p95 > 900 ? 'hot' : snap.p95 > 400 ? 'warn' : 'good'}
+                  />
+                  <Kpi k="In flight" v={String(snap.inflight)} u="requests" />
+                </>
+              ) : null}
+            </div>
+
+            <div className="canvas-card">
+              <canvas ref={canvasRef} id="viz" />
+              <div className={'overload' + (snap?.overloaded ? ' show' : '')}>
+                ⚠ OVERLOADED — requests dropping
+              </div>
+              <div className="legend">
+                {stage.map ? (
+                  <>
+                    <span><i style={{ background: 'var(--good)' }} />region healthy</span>
+                    <span><i style={{ background: 'var(--warn)' }} />region busy</span>
+                    <span><i style={{ background: '#9085e9' }} />replication pulse</span>
+                    <span><i style={{ background: 'var(--hot)' }} />region down</span>
+                  </>
+                ) : (
+                  <>
+                    {(Object.keys(REQ) as Array<keyof typeof REQ>).map((k) => (
+                      <span key={k}>
+                        <i style={{ background: REQ[k].color }} />
+                        {REQ[k].label}
+                      </span>
+                    ))}
+                    <span><i style={{ background: '#c07fe0' }} />fan-out write</span>
+                    <span><i style={{ background: 'var(--warn)' }} />queue</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <aside className="mission">
+            <div className="m-kicker">
+              Mission · Stage {stage.n} — {stage.kicker}
             </div>
             <h2>{stage.title}</h2>
-            <p>{stage.desc}</p>
-          </div>
-          <div className={'overload' + (snap?.overloaded ? ' show' : '')}>
-            ⚠ OVERLOADED — requests dropping
-          </div>
-          <div className="legend">
-            {stage.map ? (
+            <p className="m-desc">{stage.desc}</p>
+
+            <div className="goals">
+              {stage.goals.map((g) => {
+                const ok = got.has(g.id)
+                return (
+                  <div key={g.id} className={'goal' + (ok ? ' ok' : '')}>
+                    <span className="g-dot">{ok ? '✓' : ''}</span>
+                    <span className="g-label">{g.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {stageDone && stageIdx < STAGES.length - 1 && (
+              <button className="next-btn" onClick={() => selectStage(stageIdx + 1)}>
+                Stage complete — next: {STAGES[stageIdx + 1].title} →
+              </button>
+            )}
+            {stageDone && stageIdx === STAGES.length - 1 && (
+              <div className="next-btn done-all">You&apos;ve scaled the feed, end to end 🎉</div>
+            )}
+
+            <div className="m-sec">Controls</div>
+            {!stage.map && (
               <>
-                <span><i style={{ background: 'var(--good)' }} />region healthy</span>
-                <span><i style={{ background: 'var(--warn)' }} />region busy</span>
-                <span><i style={{ background: '#9085e9' }} />replication pulse</span>
-                <span><i style={{ background: 'var(--hot)' }} />region down</span>
-              </>
-            ) : (
-              <>
-                {(Object.keys(REQ) as Array<keyof typeof REQ>).map((k) => (
-                  <span key={k}>
-                    <i style={{ background: REQ[k].color }} />
-                    {REQ[k].label}
-                  </span>
-                ))}
-                <span><i style={{ background: '#c07fe0' }} />fan-out write</span>
-                <span><i style={{ background: 'var(--warn)' }} />queued</span>
-                <span><i style={{ background: 'var(--hot)' }} />saturated</span>
+                <Ctl
+                  label="Traffic"
+                  value={controls.traffic}
+                  valueText={fmtRps(controls.traffic) + ' req/s'}
+                  min={8}
+                  max={420}
+                  step={2}
+                  onChange={(v) => update({ traffic: v })}
+                />
+                <Ctl
+                  label="Write share"
+                  value={controls.writeShare}
+                  valueText={controls.writeShare + '% writes'}
+                  min={2}
+                  max={60}
+                  step={1}
+                  onChange={(v) => update({ writeShare: v })}
+                />
               </>
             )}
-          </div>
-        </div>
-
-        <aside className="rail">
-          <div className="sec-t">Live metrics</div>
-          <div className="mgrid">
-            {snap && snap.map ? (
+            {c.web && (
+              <Ctl
+                label="Web / service instances"
+                value={controls.web}
+                valueText={String(controls.web)}
+                min={1}
+                max={24}
+                step={1}
+                onChange={(v) => update({ web: v })}
+              />
+            )}
+            {c.cache && (
+              <Ctl
+                label="Cache hit rate"
+                value={controls.cacheHit}
+                valueText={controls.cacheHit + '%'}
+                min={30}
+                max={99}
+                step={1}
+                onChange={(v) => update({ cacheHit: v })}
+              />
+            )}
+            {c.replica && (
+              <Ctl
+                label="Read replicas"
+                value={controls.replicas}
+                valueText={String(controls.replicas)}
+                min={1}
+                max={12}
+                step={1}
+                onChange={(v) => update({ replicas: v })}
+              />
+            )}
+            {c.partitions && (
+              <Ctl
+                label="Kafka partitions"
+                value={controls.partitions}
+                valueText={String(controls.partitions)}
+                min={1}
+                max={64}
+                step={1}
+                onChange={(v) => update({ partitions: v })}
+              />
+            )}
+            {c.shards && (
               <>
-                <Tile k="Regions live" v={`${snap.regionsAlive}/${snap.regions}`} u="serving traffic" cls="good" wide />
-                <Tile k="Replication lag" v={snap.replLagMs} u="ms cross-region" cls={controls.repl > 60 ? 'warn' : 'good'} />
-                <Tile k="Consistency" v={controls.repl > 40 ? 'eventual' : 'near-strong'} u="read-your-writes" cls={controls.repl > 40 ? 'warn' : 'good'} />
-              </>
-            ) : snap ? (
-              <>
-                <Tile k="Offered" v={fmtRps(snap.offeredRps)} u="req/s in" />
-                <Tile k="Served" v={fmtRps(snap.servedRps)} u="req/s done" cls="good" />
-                <Tile
-                  k="Dropped"
-                  v={snap.dropPct < 0.1 ? '0' : snap.dropPct.toFixed(1) + '%'}
-                  u={fmtRps(snap.dropRps) + ' req/s'}
-                  cls={snap.dropPct > 5 ? 'hot' : snap.dropPct > 0.5 ? 'warn' : 'good'}
+                <Ctl
+                  label="Postgres shards"
+                  value={controls.pgShards}
+                  valueText={String(controls.pgShards)}
+                  min={1}
+                  max={16}
+                  step={1}
+                  hot
+                  onChange={(v) => update({ pgShards: v })}
                 />
-                <Tile k="In flight" v={snap.inflight} u="requests" />
-                <Tile k="p50 latency" v={Math.round(snap.p50)} u="ms" />
-                <Tile k="p95 latency" v={Math.round(snap.p95)} u="ms" cls={snap.p95 > 1200 ? 'hot' : snap.p95 > 500 ? 'warn' : 'good'} />
+                <Ctl
+                  label="Redis shards"
+                  value={controls.redisShards}
+                  valueText={String(controls.redisShards)}
+                  min={1}
+                  max={16}
+                  step={1}
+                  hot
+                  onChange={(v) => update({ redisShards: v })}
+                />
               </>
-            ) : null}
-          </div>
-
-          <div className="sec-t">Component load</div>
-          <div>
-            {snap?.bars.map((b) => (
-              <Bar
-                key={b.id}
-                name={b.label}
-                util={b.util}
-                dead={b.dead}
-                extra={b.kind === 'fanout' && b.qdepth > 0 ? ` · lag ${b.qdepth}` : undefined}
-              />
-            ))}
-          </div>
-
-          {!stage.map && (
-            <>
-              <div className="sec-t">Traffic</div>
+            )}
+            {c.celeb && (
+              <div className="toggle-row">
+                <button
+                  className={'tbtn' + (controls.celeb ? ' on' : '')}
+                  onClick={() => update({ celeb: !controls.celeb })}
+                >
+                  🌟 Celebrity posts: {controls.celeb ? 'on' : 'off'}
+                </button>
+              </div>
+            )}
+            {c.regions && (
               <Ctl
-                label="Traffic"
-                value={controls.traffic}
-                valueText={fmtRps(controls.traffic) + ' req/s'}
-                min={8}
-                max={420}
-                step={2}
-                hint={`Requests per second hitting the system (${fmtRps(controls.traffic)} req/s).`}
-                onChange={(v) => update({ traffic: v })}
+                label="Regions"
+                value={controls.regions}
+                valueText={String(controls.regions)}
+                min={1}
+                max={5}
+                step={1}
+                onChange={(v) => update({ regions: v })}
               />
+            )}
+            {c.repl && (
               <Ctl
-                label="Write share"
-                value={controls.writeShare}
-                valueText={controls.writeShare + '% writes'}
+                label="Replication lag"
+                value={controls.repl}
+                valueText={String(controls.repl)}
                 min={2}
-                max={60}
-                step={1}
-                hint="Portion of traffic that writes (posts + likes) vs reads."
-                onChange={(v) => update({ writeShare: v })}
-              />
-            </>
-          )}
-
-          <div className="sec-t">Scaling controls</div>
-          {c.web && (
-            <Ctl
-              label="Web / service instances"
-              value={controls.web}
-              valueText={String(controls.web)}
-              min={1}
-              max={24}
-              step={1}
-              hint="Clone the stateless API gateway + services. Near-linear — until the DB is the wall."
-              onChange={(v) => update({ web: v })}
-            />
-          )}
-          {c.cache && (
-            <Ctl
-              label="Cache hit rate"
-              value={controls.cacheHit}
-              valueText={controls.cacheHit + '%'}
-              min={30}
-              max={99}
-              step={1}
-              hint="Share of reads served from Redis instead of Postgres."
-              onChange={(v) => update({ cacheHit: v })}
-            />
-          )}
-          {c.replica && (
-            <Ctl
-              label="Read replicas"
-              value={controls.replicas}
-              valueText={String(controls.replicas)}
-              min={1}
-              max={12}
-              step={1}
-              hint="Postgres read replicas absorbing read queries (they lag the primary)."
-              onChange={(v) => update({ replicas: v })}
-            />
-          )}
-          {c.partitions && (
-            <Ctl
-              label="Kafka partitions"
-              value={controls.partitions}
-              valueText={String(controls.partitions)}
-              min={1}
-              max={64}
-              step={1}
-              hint="Caps fan-out consumer parallelism. Too few → fan-out lag piles up."
-              onChange={(v) => update({ partitions: v })}
-            />
-          )}
-          {c.shards && (
-            <>
-              <Ctl
-                label="Postgres shards"
-                value={controls.pgShards}
-                valueText={String(controls.pgShards)}
-                min={1}
-                max={16}
+                max={100}
                 step={1}
                 hot
-                hint="Shard the write primary by user_id — the only way writes scale out."
-                onChange={(v) => update({ pgShards: v })}
+                onChange={(v) => update({ repl: v })}
               />
-              <Ctl
-                label="Redis shards"
-                value={controls.redisShards}
-                valueText={String(controls.redisShards)}
-                min={1}
-                max={16}
-                step={1}
-                hot
-                hint="Redis Cluster shards for cache memory + throughput."
-                onChange={(v) => update({ redisShards: v })}
-              />
-            </>
-          )}
-          {c.celeb && (
-            <div className="toggle-row">
-              <button
-                className={'tbtn' + (controls.celeb ? ' on' : '')}
-                onClick={() => update({ celeb: !controls.celeb })}
-              >
-                🌟 Celebrity posts: {controls.celeb ? 'on' : 'off'}
-              </button>
-            </div>
-          )}
-          {c.regions && (
-            <Ctl
-              label="Regions"
-              value={controls.regions}
-              valueText={String(controls.regions)}
-              min={1}
-              max={5}
-              step={1}
-              hint="More regions = closer to users, more replication traffic."
-              onChange={(v) => update({ regions: v })}
-            />
-          )}
-          {c.repl && (
-            <Ctl
-              label="Replication lag"
-              value={controls.repl}
-              valueText={String(controls.repl)}
-              min={2}
-              max={100}
-              step={1}
-              hot
-              hint="Cross-region propagation delay. Higher = more eventual, weaker consistency."
-              onChange={(v) => update({ repl: v })}
-            />
-          )}
+            )}
 
-          <div className="tip">
-            <b>{stage.tip.h}</b>
-            <p>{stage.tip.p}</p>
-            <div className="try">
-              ▸ Try: <span dangerouslySetInnerHTML={{ __html: stage.tip.try }} />
+            <div className="tip">
+              <b>{stage.tip.h}</b>
+              <p>{stage.tip.p}</p>
             </div>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </div>
     </div>
   )
