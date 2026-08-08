@@ -88,12 +88,34 @@ export const partitioning: Comic = {
         big: '≈ 1/N',
         text: 'of keys relocate when you add the Nᵗʰ node. Compare that to **~80%**. This is the whole reason the ring exists.',
       },
+      think: {
+        q: 'You spread a million users evenly across the ring — perfectly balanced. Then one celebrity posts, and half your traffic hits the single key holding their profile. The ring is balanced. Why is one machine on fire?',
+        a: '**Consistent hashing balances *keys*, not *traffic*.** It spreads a million *different* keys evenly — but it can’t split the load of *one* key, because that key lives on exactly one node no matter how you slice the ring. Every one of the celebrity’s readers hashes to the same place. Balancing keys and balancing load are different problems: you fix a **hot key** with something else — cache it, replicate it to several nodes, or split it into sub-keys. The ring solved “add a machine cheaply,” never “one key is too popular.”',
+      },
     },
   ],
   bubbles: [
     { term: 'Clockwise rule.', body: 'Walk clockwise from a key; the first node you hit owns it.' },
     { term: 'Virtual nodes.', body: 'Each machine placed at many points so no single node gets a fat slice.' },
   ],
+  inTheWild: {
+    note: 'where a perfectly balanced ring still tips over',
+    points: [
+      'Adding a node moves only ~1/N of the keys — but that’s still gigabytes streaming across the network while the cluster serves live traffic. Do it at peak and rebalancing competes with users for the same bandwidth; big clusters deliberately *throttle* it so it doesn’t cause an outage.',
+      'One key, one node is fast. But “give me all orders from last week” now has to ask *every* node and merge the answers (a **scatter-gather**). The more finely you split, the slower these whole-dataset questions get.',
+      'The ring routes by the *primary* key. Search by anything else — email, status — and that value lives on a different node than the row. You either ask every partition (slow) or keep a *second* index partitioned differently (and now must keep it in sync).',
+      'Partition by `user_id`, then later need to query by region? Too late — the data’s already scattered by user. The **partition key is one of the hardest things to change after launch**, because changing it means re-shuffling everything.',
+    ],
+  },
+  tradeoffs: {
+    title: 'how should you split the data?',
+    rows: [
+      { choose: 'By hash of the key', when: 'you want even spread and mostly look keys up one at a time — **user profiles, sessions, key-value**. (consistent hashing)' },
+      { choose: 'By key range', when: 'you often scan neighbours in order — **time-series, “orders from March,” anything sorted**. But watch for hot ranges like *today’s* date. (range partitioning)' },
+      { choose: 'Replicate the hot key', when: 'one key gets far more traffic than the rest — copy it to several nodes and spread the reads. **A celebrity profile, a global config row.**' },
+      { choose: 'Don’t partition yet', when: 'it all still fits on one machine — partitioning adds cross-node queries and rebalancing you don’t need yet. **Scale up before you scale out.**' },
+    ],
+  },
   misconception: {
     think: '“Consistent hashing means the keys never move.”',
     actually:
@@ -123,5 +145,5 @@ export const partitioning: Comic = {
     title: 'Watch the ring rebalance under load',
     body: 'You’ve got the idea. Now operate it at production scale: add a node and watch exactly which keys move — the mechanism inside Redis Cluster’s hash slots and Kafka’s partition assignment.',
   },
-  next: { slug: 'replication-leader', title: 'Leader & Followers' },
+  next: { slug: 'transactions', title: 'Isolation Levels' },
 }

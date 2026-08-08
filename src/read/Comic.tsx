@@ -65,6 +65,19 @@ function DeeperAside({ d }: { d: NonNullable<Step['deeper']> }) {
   )
 }
 
+function ThinkPrompt({ t }: { t: NonNullable<Step['think']> }) {
+  return (
+    <details className="gn-think">
+      <summary>
+        <span className="tag">Think it through</span>
+        <span className="q">{rich(t.q)}</span>
+        <span className="chev">Reveal ▸</span>
+      </summary>
+      <div className="gn-think-a">{rich(t.a)}</div>
+    </details>
+  )
+}
+
 function Panel({ step }: { step: Step }) {
   const wide = step.span === 2 || !!step.diagram
   const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
@@ -96,6 +109,7 @@ function Panel({ step }: { step: Step }) {
         body
       )}
       {step.deeper && <DeeperAside d={step.deeper} />}
+      {step.think && <ThinkPrompt t={step.think} />}
     </article>
   )
 }
@@ -179,6 +193,39 @@ export default function ComicView({ comic }: { comic: Comic }) {
           {comic.steps.map((s, i) => (
             <Panel key={i} step={s} />
           ))}
+
+          {comic.inTheWild && (
+            <details className="gn-wild gn-span2" data-obs>
+              <summary>
+                <span className="tag">In the wild</span>
+                <span className="lead">{comic.inTheWild.note ?? 'where the clean idea gets complicated'}</span>
+                <span className="chev">▸</span>
+              </summary>
+              <ul>
+                {comic.inTheWild.points.map((p, i) => (
+                  <li key={i}>{rich(p)}</li>
+                ))}
+              </ul>
+            </details>
+          )}
+
+          {comic.tradeoffs && (
+            <details className="gn-tradeoffs gn-span2" data-obs>
+              <summary>
+                <span className="tag">The call</span>
+                <span className="lead">{comic.tradeoffs.title ?? 'when to reach for which'}</span>
+                <span className="chev">▸</span>
+              </summary>
+              <div className="gn-to-rows">
+                {comic.tradeoffs.rows.map((r, i) => (
+                  <div className="gn-to-row" key={i}>
+                    <span className="choose">{rich(r.choose)}</span>
+                    <span className="when">{rich(r.when)}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
 
           {comic.misconception && (
             <div className="gn-misc gn-span2" data-obs>

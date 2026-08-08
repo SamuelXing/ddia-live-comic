@@ -34,7 +34,7 @@ const PARTS: Part[] = [
     ps: 'single node',
     ideas: [
       { no: 'Ch 1', title: 'Tail Latency', hook: 'Why the average hides the pain, and percentiles don’t.' },
-      { no: 'Ch 3', title: 'B-trees vs LSM-trees', hook: 'The two ways a database turns keys into bytes on disk.' },
+      { no: 'Ch 3', title: 'B-trees vs LSM-trees', hook: 'The two ways a database turns keys into bytes on disk.', slug: 'storage' },
     ],
   },
   {
@@ -46,9 +46,9 @@ const PARTS: Part[] = [
       { no: 'Ch 5', title: 'Replication Lag', hook: 'Async replication means your followers live a little in the past.', slug: 'replication-lag' },
       { no: 'Ch 5', title: 'Leaderless & Quorums', hook: 'No boss — just the inequality W + R > N.', slug: 'replication-quorum' },
       { no: 'Ch 6', title: 'Consistent Hashing', hook: 'Add a node and move ~1/N of the keys, not ~80%.', slug: 'partitioning', pill: 'first build' },
-      { no: 'Ch 7', title: 'Isolation Levels', hook: 'Dirty reads, write skew, phantoms — anomalies, frame by frame.' },
-      { no: 'Ch 8', title: 'Failure Detection', hook: 'How a healthy server gets declared dead.' },
-      { no: 'Ch 9', title: 'Raft, Illustrated', hook: 'Leader election and a replicated log that survives a split vote.' },
+      { no: 'Ch 7', title: 'Isolation Levels', hook: 'Dirty reads, write skew, phantoms — anomalies, frame by frame.', slug: 'transactions' },
+      { no: 'Ch 8', title: 'Why It’s Hard', hook: 'Unreliable clocks, timeouts, and how a healthy server gets declared dead.', slug: 'distributed-troubles' },
+      { no: 'Ch 9', title: 'Raft, Illustrated', hook: 'Leader election and a replicated log that survives a split vote.', slug: 'consensus' },
     ],
   },
   {
@@ -112,7 +112,7 @@ export default function IndexPage() {
             short comic, then follow it into the real machines and architectures where it actually lives.
           </p>
           <div className="gn-tags">
-            <span className="gn-tag">4 ideas live</span>
+            <span className="gn-tag">8 ideas live</span>
             <span className="gn-tag">More drawing</span>
           </div>
         </header>
