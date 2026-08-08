@@ -47,6 +47,24 @@ function CodeBlock({ code }: { code: CodeBlockT }) {
   )
 }
 
+function DeeperAside({ d }: { d: NonNullable<Step['deeper']> }) {
+  return (
+    <details className="gn-deeper">
+      <summary>
+        <span className="chev">▸</span>
+        <span className="tag">{d.tag ?? 'Go deeper'}</span>
+        {d.summary}
+      </summary>
+      <div className="gn-deeper-body">
+        {d.body?.map((p, i) => (
+          <p key={i}>{rich(p)}</p>
+        ))}
+        {d.code && <CodeBlock code={d.code} />}
+      </div>
+    </details>
+  )
+}
+
 function Panel({ step }: { step: Step }) {
   const wide = step.span === 2 || !!step.diagram
   const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
@@ -64,6 +82,7 @@ function Panel({ step }: { step: Step }) {
   )
   return (
     <article className={'gn-panel box lift' + accent + (wide ? ' gn-span2' : '')} data-obs>
+      {step.rung && <div className="gn-layertag">{step.rung}</div>}
       <div className="head">
         <span className="gn-step">{step.n}</span>
         <span className="ht">{step.title}</span>
@@ -76,6 +95,7 @@ function Panel({ step }: { step: Step }) {
       ) : (
         body
       )}
+      {step.deeper && <DeeperAside d={step.deeper} />}
     </article>
   )
 }
@@ -160,6 +180,14 @@ export default function ComicView({ comic }: { comic: Comic }) {
             <Panel key={i} step={s} />
           ))}
 
+          {comic.misconception && (
+            <div className="gn-misc gn-span2" data-obs>
+              <div className="ml">You might think&hellip;</div>
+              <div className="think">{rich(comic.misconception.think)}</div>
+              <div className="actually">{rich(comic.misconception.actually)}</div>
+            </div>
+          )}
+
           {comic.bubbles && comic.bubbles.length > 0 && (
             <aside className="gn-bubbles gn-span2" data-obs>
               {comic.bubbles.map((b, i) => (
@@ -170,18 +198,40 @@ export default function ComicView({ comic }: { comic: Comic }) {
             </aside>
           )}
 
-          <section className="gn-finale" data-obs>
-            <div className="k">See this for real</div>
+          {comic.sources && comic.sources.length > 0 && (
+            <div className="gn-sources gn-span2" data-obs>
+              <div className="sl">Primary sources — dive as deep as you like</div>
+              {comic.sources.map((s, i) => (
+                <div className="gn-src" key={i}>
+                  <span className="yr">{s.year ?? '·'}</span>
+                  {s.url ? (
+                    <a href={s.url} target="_blank" rel="noreferrer">
+                      {s.title}
+                    </a>
+                  ) : (
+                    <span className="t">{s.title}</span>
+                  )}
+                  {s.note && <span className="c">{s.note}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <section className="gn-continue gn-span2" data-obs>
+            <div className="k">↓ Continue deeper — see it in a real machine</div>
             <h3>{comic.finale.title}</h3>
             <p>{rich(comic.finale.body)}</p>
-            <div className="gn-seen">
+            <div className="rungs">
               {comic.seenIn.map((s, i) =>
                 s.to ? (
                   <Link key={i} className={s.live ? 'live' : ''} to={s.to}>
-                    {s.label}
+                    {s.label} →
                   </Link>
                 ) : (
-                  <span key={i}>{s.label}</span>
+                  <span key={i}>
+                    {s.label}
+                    {s.note ? ` (${s.note})` : ''}
+                  </span>
                 ),
               )}
             </div>
