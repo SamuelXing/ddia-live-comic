@@ -27,19 +27,8 @@
 .gn-progress > i { display: block; height: 100%; width: 0; background: var(--denim);
   border-right: 2px solid var(--ink-line); transition: width .1s linear; }
 
-/* slim paper reading-nav (this area does NOT use the dark SiteNav) */
-.gn-nav { position: sticky; top: 0; z-index: 40; background: color-mix(in srgb, var(--paper) 86%, transparent);
-  backdrop-filter: blur(8px); border-bottom: 2px solid var(--ink-line); }
-.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center; gap: 16px; }
-.gn-brand { font-family: var(--gn-display); font-weight: 800; font-size: 17px; letter-spacing: -.01em;
-  color: var(--ink); text-decoration: none; }
-.gn-brand b { color: var(--terra-ink); }
-.gn-brand .tl { font-family: var(--gn-body); font-style: italic; font-weight: 500; color: var(--ink-3); font-size: .78em; }
-@media (max-width: 560px) { .gn-brand .tl { display: none; } }
-.gn-nav .sp { flex: 1; }
-.gn-nav a.gn-link { font-family: var(--gn-mono); font-size: 12px; letter-spacing: .04em; color: var(--ink-2);
-  text-decoration: none; padding: 5px 9px; border: 2px solid transparent; }
-.gn-nav a.gn-link:hover { border-color: var(--ink-line); }
+/* the shared nav (.gn-nav) is defined in comic-theme.css so it loads globally
+   on every route — paper pages and token-flipped pages alike. */
 
 .gn-sheet { max-width: 1060px; margin: 0 auto; padding: 34px 22px 96px; }
 
@@ -249,6 +238,39 @@
 .gn-comp h4 { font-family: var(--gn-display); font-weight: 700; font-size: 16px; margin: 0 0 4px; display: flex; align-items: center; gap: 8px; }
 .gn-comp .dot { width: 10px; height: 10px; border: 2px solid var(--ink-line); display: inline-block; flex-shrink: 0; }
 .gn-comp p { font-size: 13px; color: var(--ink-2); margin: 0; }
+
+/* ===================== component catalog ===================== */
+/* equal-weight cards, no gradients, no floating pills. Status is shown by
+   grouping (Live vs Roadmap) plus one small inline tag. */
+.gn-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px; margin-top: 20px; }
+.gn .gn-cat { padding: 18px 19px 15px; display: flex; flex-direction: column; text-decoration: none; color: inherit;
+  box-shadow: 3px 3px 0 var(--denim); }
+.gn .gn-cat.lift:hover { box-shadow: 8px 8px 0 var(--denim); }
+.gn-cat-top { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.gn-cat-top .dot { width: 12px; height: 12px; border: 2px solid var(--ink-line); flex-shrink: 0; }
+.gn-cat-top h3 { font-family: var(--gn-display); font-weight: 800; font-size: 20px; letter-spacing: -.01em; margin: 0; color: var(--ink); }
+.gn-cat > p { font-size: 14px; line-height: 1.5; color: var(--ink-2); margin: 0 0 15px; flex: 1; }
+.gn-cat-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: auto; }
+.gn-cat-tag { font-family: var(--gn-mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase;
+  padding: 3px 8px; border: 2px solid var(--rule); color: var(--ink-3); }
+.gn-cat-tag.full { color: var(--denim-ink); border-color: var(--denim); }
+.gn-cat-tag.tool { color: var(--terra-ink); border-color: var(--terra); }
+.gn-cat-tag.soon { border-style: dashed; }
+.gn-cat .go { font-family: var(--gn-mono); font-size: 12px; color: var(--denim-ink); }
+/* roadmap = ghosted, unbuilt: dashed border, no shadow, quieter */
+.gn .gn-cat--soon { border: 2px dashed var(--rule); background: transparent; box-shadow: none; }
+.gn-cat--soon .gn-cat-top .dot { opacity: .55; }
+.gn-cat--soon .gn-cat-top h3 { color: var(--ink-2); }
+.gn-cat--soon .paper { font-family: var(--gn-mono); font-size: 11px; color: var(--ink-3); line-height: 1.4; }
+
+/* comic table */
+.gn-tbl-wrap { overflow-x: auto; margin-top: 18px; }
+.gn-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.gn-tbl th { text-align: left; font-family: var(--gn-mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); padding: 9px 12px; border-bottom: 2px solid var(--ink-line); white-space: nowrap; }
+.gn-tbl td { padding: 10px 12px; border-bottom: 1px solid var(--rule); color: var(--ink-2); vertical-align: top; }
+.gn-tbl td:first-child { font-family: var(--gn-display); font-weight: 700; color: var(--ink); white-space: nowrap; }
+.gn-tbl tr:last-child td { border-bottom: 0; }
 
 .gn-band { border: 2px solid var(--ink-line); background: var(--ink); color: #f3efe6; box-shadow: 5px 5px 0 var(--terra);
   padding: 30px 30px 32px; text-align: center; }

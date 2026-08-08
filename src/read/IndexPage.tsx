@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import SiteNav from '../components/SiteNav'
 
 import '@fontsource/playfair-display/700.css'
 import '@fontsource/playfair-display/800.css'
@@ -45,7 +46,7 @@ const PARTS: Part[] = [
       { no: 'Ch 5', title: 'Leader & Followers', hook: 'One writer, many readers — the scheme almost everything uses.', slug: 'replication-leader' },
       { no: 'Ch 5', title: 'Replication Lag', hook: 'Async replication means your followers live a little in the past.', slug: 'replication-lag' },
       { no: 'Ch 5', title: 'Leaderless & Quorums', hook: 'No boss — just the inequality W + R > N.', slug: 'replication-quorum' },
-      { no: 'Ch 6', title: 'Consistent Hashing', hook: 'Add a node and move ~1/N of the keys, not ~80%.', slug: 'partitioning', pill: 'first build' },
+      { no: 'Ch 6', title: 'Consistent Hashing', hook: 'Add a node and move ~1/N of the keys, not ~80%.', slug: 'partitioning' },
       { no: 'Ch 7', title: 'Isolation Levels', hook: 'Dirty reads, write skew, phantoms — anomalies, frame by frame.', slug: 'transactions' },
       { no: 'Ch 8', title: 'Why It’s Hard', hook: 'Unreliable clocks, timeouts, and how a healthy server gets declared dead.', slug: 'distributed-troubles' },
       { no: 'Ch 9', title: 'Raft, Illustrated', hook: 'Leader election and a replicated log that survives a split vote.', slug: 'consensus' },
@@ -90,18 +91,7 @@ export default function IndexPage() {
 
   return (
     <div className="gn">
-      <nav className="gn-nav">
-        <div className="gn-nav-in">
-          <Link className="gn-brand" to="/">
-            <b>DDIA</b>
-            <span className="tl">, as a live comic</span>
-          </Link>
-          <span className="sp" />
-          <Link className="gn-link" to="/">
-            Home ↗
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>

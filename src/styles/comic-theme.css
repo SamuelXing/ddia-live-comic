@@ -20,6 +20,29 @@
 @import '@fontsource/jetbrains-mono/400.css';
 @import '@fontsource/jetbrains-mono/500.css';
 
+/* ============================================================
+   The one shared nav (.gn-nav), used by SiteNav on every page and by the
+   comic reading pages. Palette is HARDCODED (not page-scoped vars) so it
+   renders identically on paper pages (.gn) and token-flipped pages
+   (.dd-page/.sim-page). Lives here because this sheet is imported globally
+   in main.tsx — so the nav is styled on every route in dev and prod.
+   ============================================================ */
+.gn-nav { position: sticky; top: 0; z-index: 40; background: #f7f4ef;
+  border-bottom: 2px solid #1a1a1a; }
+.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center; gap: 8px; }
+.gn-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; font-size: 17px; letter-spacing: -.01em;
+  color: #16130f; text-decoration: none; white-space: nowrap; }
+.gn-brand b { color: #97462a; }
+.gn-brand .tl { font-family: "Newsreader", Georgia, serif; font-style: italic; font-weight: 500; color: #8a8177; font-size: .78em; }
+@media (max-width: 560px) { .gn-brand .tl { display: none; } }
+.gn-nav .sp { flex: 1; }
+.gn-nav a.gn-link { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: .04em;
+  color: #45403a; text-decoration: none; padding: 6px 10px; border: 2px solid transparent; border-radius: 3px;
+  white-space: nowrap; transition: border-color .14s, color .14s, background .14s; }
+.gn-nav a.gn-link:hover { border-color: #1a1a1a; color: #16130f; }
+.gn-nav a.gn-link.active { color: #16130f; border-color: #1a1a1a; background: rgba(63, 97, 145, .12); }
+@media (max-width: 460px) { .gn-nav a.gn-link { padding: 6px 7px; font-size: 11px; } }
+
 /* ---- token flip (specificity of .dd-page/.sim-page beats :root) ---- */
 .dd-page,
 .sim-page {
@@ -169,14 +192,8 @@
   border-color: #3f6191;
 }
 
-/* ---- shared SiteNav, when it sits inside a themed page ---- */
-.dd-page[class] .site-nav {
-  background: color-mix(in srgb, var(--bg) 86%, transparent);
-  border-bottom: 2px solid #1a1a1a;
-}
-.dd-page[class] .brand { font-family: var(--gnf-display); font-weight: 800; }
-.dd-page[class] .nav-links a { font-family: var(--gnf-mono); font-size: 13px; }
-.dd-page[class] .nav-cta { font-family: var(--gnf-comic); font-weight: 700; border: 2px solid #1a1a1a; box-shadow: 2px 2px 0 #bd5f3d; }
+/* The shared nav (.gn-nav) styles itself; see comic.css. It renders identically
+   here because its palette is hardcoded, not page-scoped. */
 .dd-page[class] .site-footer { border-top: 2px solid #1a1a1a; }
 
 /* ---- dd-tabs (component sub-nav) → paper ---- */
