@@ -14,6 +14,7 @@ export const partitioning: Comic = {
     {
       n: 'Step 01',
       title: 'The naïve map',
+      rung: 'Rung 1 · Intuition',
       body: [
         'The obvious answer: hash the key, take it modulo the number of nodes. Even spread, one line of math, nothing to store.',
       ],
@@ -26,6 +27,7 @@ export const partitioning: Comic = {
       n: 'Step 02',
       title: 'The stampede',
       accent: 'terra',
+      rung: 'Rung 1 · Intuition',
       body: [
         'Grow from four nodes to five and the modulo shifts under **almost every key**. Data that never needed to move gets rehashed to a different node all at once.',
       ],
@@ -34,39 +36,52 @@ export const partitioning: Comic = {
         big: '~80%',
         text: 'of keys relocate on a single **4 → 5** resize. A live cluster spends the afternoon shuffling instead of serving.',
       },
+      deeper: {
+        summary: 'Why exactly ~80%? The counting argument.',
+        body: [
+          'A key stays put only if `hash(k) % 4 == hash(k) % 5`. For uniformly random hashes those agree for only about **1 in 5** keys — so roughly **80% move**. Bump N by one again and it happens *again*: modulo has no memory of where a key used to live.',
+        ],
+        code: {
+          file: 'why.py',
+          lines: [
+            { t: 'stayed = sum(h % 4 == h % 5 for h in hashes)' },
+            { t: '# stayed / total ≈ 0.20  → 80% relocate' },
+          ],
+        },
+      },
     },
     {
       n: 'Step 03',
       title: 'Put everything on a ring',
+      accent: 'denim',
+      rung: 'Rung 2 · Mechanism',
       diagram: <RingDiagram />,
       body: [
-        '**Consistent hashing** lays nodes *and* keys on the same circular hash space, `0 … 2³²−1`. A key belongs to the first node it meets travelling **clockwise**.',
-        'Nothing is stored in a lookup table — the owner is computed. The ring is just an ordering, and ordering barely changes when you add one node.',
+        '**Consistent hashing** lays nodes and keys on the same [[hash space|A fixed circle of values, 0 → 2³²−1. Both nodes and keys are hashed onto it; a value’s position on the circle is all that matters.]], and a key belongs to the first node it meets travelling **clockwise**.',
+        'Add a node and only the slice between it and its clockwise neighbour moves — **≈ 1/N** of the keys, not 80%.',
       ],
-    },
-    {
-      n: 'Detail',
-      title: 'The lookup, in full',
-      code: {
-        file: 'ring.py',
-        lines: [
-          { t: 'ring = sorted(hash(n) for n in nodes)' },
-          { t: '' },
-          { t: 'def owner(key):' },
-          { t: '    h = hash(key)' },
-          { t: '    for point in ring:      # first node,', hl: 'good' },
-          { t: '        if point >= h:      # …clockwise', hl: 'good' },
-          { t: '            return point' },
-          { t: '    return ring[0]          # wrap around' },
+      deeper: {
+        summary: 'The lookup, and why virtual nodes exist.',
+        body: [
+          'The owner is **computed, not stored** — binary-search the sorted ring for the first point ≥ `hash(key)`:',
         ],
+        code: {
+          file: 'ring.py',
+          lines: [
+            { t: 'ring = sorted(hash(n) for n in nodes)' },
+            { t: 'i = bisect_left(ring, hash(key))   # first node clockwise', hl: 'good' },
+            { t: 'owner = ring[i % len(ring)]        # wrap around' },
+          ],
+        },
       },
     },
     {
       n: 'Step 04',
       title: 'Add a node, calmly',
       accent: 'denim',
+      rung: 'Rung 2 · Mechanism',
       body: [
-        'Drop a new node onto the ring. Only the keys sitting between it and its **clockwise neighbour** move to it. One slice changes hands — the rest of the cluster never notices.',
+        'Naïvely, one point per node gives **lumpy** slices — one node can own a fat arc, and a lost node dumps all its keys on a single neighbour. Fix: place each machine at **many** points on the ring (**virtual nodes**), so load evens out and a departure spreads across *all* survivors.',
       ],
       callout: {
         kind: 'good',
@@ -76,9 +91,27 @@ export const partitioning: Comic = {
     },
   ],
   bubbles: [
-    { term: 'Hash space.', body: 'A fixed circle, 0 → 2³²−1. Nodes and keys both land somewhere on it.' },
     { term: 'Clockwise rule.', body: 'Walk clockwise from a key; the first node you hit owns it.' },
-    { term: 'Virtual nodes.', body: 'Place each machine at many points so no single node gets a fat slice.' },
+    { term: 'Virtual nodes.', body: 'Each machine placed at many points so no single node gets a fat slice.' },
+  ],
+  misconception: {
+    think: '“Consistent hashing means the keys never move.”',
+    actually:
+      'Actually — adding a node **always** moves some keys; that’s unavoidable if the new node is to hold any data. What consistent hashing guarantees is that it moves the **minimum**: about `1/N`, and only from neighbours — never a full reshuffle.',
+  },
+  sources: [
+    {
+      year: '1997',
+      title: 'Consistent Hashing and Random Trees — Karger et al. (STOC)',
+      url: 'https://dl.acm.org/doi/10.1145/258533.258660',
+      note: 'The original result: distributed caching for the early web; where the ring comes from.',
+    },
+    {
+      year: '2007',
+      title: 'Dynamo: Amazon’s Highly Available Key-value Store (SOSP)',
+      url: 'https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf',
+      note: 'Consistent hashing + virtual nodes in production; the design most modern stores copy.',
+    },
   ],
   seenIn: [
     { label: 'Kafka — topic partitions', to: '/components/kafka', live: true },
@@ -87,8 +120,8 @@ export const partitioning: Comic = {
     { label: 'DynamoDB', note: 'roadmap' },
   ],
   finale: {
-    title: 'Watch the ring rebalance',
-    body: 'This is the mechanism inside Redis Cluster’s hash slots and Kafka’s partition assignment. Open a component to see the same idea running at production scale.',
+    title: 'Watch the ring rebalance under load',
+    body: 'You’ve got the idea. Now operate it at production scale: add a node and watch exactly which keys move — the mechanism inside Redis Cluster’s hash slots and Kafka’s partition assignment.',
   },
   next: { slug: 'replication-leader', title: 'Leader & Followers' },
 }

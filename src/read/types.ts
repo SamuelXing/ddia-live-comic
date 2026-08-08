@@ -20,19 +20,49 @@ export interface Callout {
   text: string
 }
 
+/** A collapsible "▸ Go deeper" aside — the mechanism/proof for readers who want it.
+ *  Skimmers never see it; it stays folded by default. */
+export interface Deeper {
+  /** badge label, defaults to "Go deeper" */
+  tag?: string
+  /** the teaser shown on the closed summary line */
+  summary: string
+  body?: string[]
+  code?: CodeBlock
+}
+
 export interface Step {
   /** badge text, e.g. "Step 01" or "Detail" */
   n: string
   title: string
   accent?: Accent
-  /** paragraphs — each rendered through rich() for **bold** and `mono` */
+  /** a quiet "you are here" ladder tag, e.g. "Rung 1 · Intuition" */
+  rung?: string
+  /** paragraphs — each rendered through rich() for **bold**, *italic*, `mono`,
+   *  and [[term|definition]] glossary popovers */
   body?: string[]
   code?: CodeBlock
   callout?: Callout
   /** an optional inline diagram (SVG); when present the panel spans full width */
   diagram?: ReactNode
+  /** a collapsible depth aside for this step */
+  deeper?: Deeper
   /** force a full-width panel */
   span?: 1 | 2
+}
+
+/** "You might think… — Actually…" — names the wrong model to make the right one stick. */
+export interface Misconception {
+  think: string
+  actually: string
+}
+
+/** A primary source, cited at the point of use — the "dive infinitely deep" hatch. */
+export interface Source {
+  year?: string
+  title: string
+  url?: string
+  note?: string
 }
 
 export interface Bubble {
@@ -61,6 +91,10 @@ export interface Comic {
   caption: string
   steps: Step[]
   bubbles?: Bubble[]
+  /** a misconception callout, rendered after the steps */
+  misconception?: Misconception
+  /** primary sources rail */
+  sources?: Source[]
   seenIn: SeenIn[]
   finale: { title: string; body: string }
   next?: { slug: string; title: string }
