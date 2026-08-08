@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import SiteNav from '../components/SiteNav'
 import ThumbCanvas from '../components/ThumbCanvas'
 import { SIMS, STATUS_META } from '../sims/registry'
 
@@ -54,35 +55,18 @@ export default function Home() {
 
   return (
     <div className="gn">
-      <nav className="gn-nav">
-        <div className="gn-nav-in">
-          <Link className="gn-brand" to="/">
-            <b>DDIA</b>
-            <span className="tl">, as a live comic</span>
-          </Link>
-          <span className="sp" />
-          <Link className="gn-link" to="/read">
-            Read the Ideas
-          </Link>
-          <Link className="gn-link" to="/components">
-            Deep-Dives
-          </Link>
-          <a className="gn-link" href="#apps">
-            Simulations
-          </a>
-        </div>
-      </nav>
+      <SiteNav />
 
       <div className="gn-sheet">
         {/* ---- hero ---- */}
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">Reading Designing Data-Intensive Applications</div>
-          <h1>DDIA, as a live comic.</h1>
+          <div className="gn-kicker">An illustrated guide to distributed systems</div>
+          <h1>Read the idea. Meet the machine. Watch it break.</h1>
           <p className="dek">
-            The arcane ideas in <em>Designing Data-Intensive Applications</em> — replication,
-            partitioning, consensus — drawn as short comics you can actually read. Then watch each
-            idea come alive inside real machines like Kafka and Postgres, and the hyperscale systems
-            built on them.
+            The hard ideas behind every backend — replication, partitioning, consensus — drawn as
+            short comics inspired by <em>Designing Data-Intensive Applications</em>. Then meet the
+            real machines built from them — Kafka, Postgres, Redis — and push whole systems until
+            they break under live traffic.
           </p>
           <div className="gn-cta">
             <Link className="gn-btn primary" to="/read">
@@ -97,11 +81,11 @@ export default function Home() {
         {/* ---- three ways in ---- */}
         <div className="gn-sechead" data-obs>
           <div className="eb">Three ways in</div>
-          <h2>Read the idea, meet the machine, watch it at scale</h2>
+          <h2>The same idea, at three scales</h2>
           <p>
             Every backend is the same handful of ideas arranged differently. Read each idea as a comic,
             meet the real component built from it, then watch a whole application lean on it under live
-            traffic — the same concept, at three scales.
+            traffic — one concept, seen at three scales.
           </p>
         </div>
         <div className="gn-idx-lenses">
