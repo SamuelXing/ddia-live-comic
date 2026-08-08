@@ -56,6 +56,10 @@ export const distributedTroubles: Comic = {
         big: 'fencing',
         text: 'Truth is defined by the **majority**, and a monotonic **fencing token** turns “we might be wrong about who’s alive” into “a stale leader simply can’t do damage.”',
       },
+      think: {
+        q: 'You guard a shared resource with a lock: “only whoever holds the lock may write.” A node grabs the lock, then freezes for 8 seconds in a GC pause. What breaks — even though your locking is perfectly correct?',
+        a: '**While it’s frozen, its lease expires, the lock service hands the lock to someone else, and that node starts writing.** Then the first node wakes up — with no idea any time passed — still believing it holds the lock, and writes too. Two nodes wrote, and neither one ever “broke” the rule from its own point of view. A lock can’t stop a paused process from acting *after* it wakes. The fix isn’t a better lock — it’s a **fencing token**: every grant carries a number that only goes up, the write carries it, and the storage rejects any write with an old number. The zombie’s write bounces because its token is stale.',
+      },
       deeper: {
         summary: 'Why a fencing token is the whole trick.',
         body: [
@@ -69,6 +73,24 @@ export const distributedTroubles: Comic = {
     { term: 'Clock skew.', body: 'Two machines’ wall clocks disagreeing. Ordering events by timestamp is a trap.' },
     { term: 'Fencing token.', body: 'A number that only goes up; the resource rejects any write carrying an old one.' },
   ],
+  inTheWild: {
+    note: 'why perfectly healthy systems get declared dead',
+    points: [
+      'A garbage-collection pause, or a hypervisor pausing your VM, can freeze a *healthy* process for hundreds of milliseconds — sometimes seconds. To everyone else it looks dead; to itself, no time passed. Big heaps and noisy-neighbour clouds make this routine, not rare.',
+      'The “declare it dead” timeout is a trap. Too short and normal network jitter triggers false failovers that thrash the cluster. Too long and a real failure leaves you down that whole window. No value is right for both — and the right value drifts as your load changes.',
+      'It’s tempting to order events across machines by their timestamps. But wall clocks drift, and NTP can jump one *backwards* — so a “later” timestamp can belong to an *earlier* event. Systems that trusted timestamps for ordering have silently dropped the newer write.',
+      'The scary failures aren’t clean deaths. A node can reach some peers but not others, or serve reads but not writes, or be slow for just one client. Half the cluster thinks it’s alive, half thinks it’s dead — and both are right from where they stand. (a **gray failure**)',
+    ],
+  },
+  tradeoffs: {
+    title: 'how do you handle a node you can’t reach?',
+    rows: [
+      { choose: 'Wait longer', when: 'a false alarm is worse than slow recovery — a needless failover costs more than a few seconds of patience. (a longer timeout)' },
+      { choose: 'Declare it dead fast', when: 'downtime is the enemy and you can absorb the occasional wrong guess — **user-facing systems that must stay responsive**. (a shorter timeout)' },
+      { choose: 'Decide by majority', when: 'you can’t let one node’s opinion trigger chaos — enough peers must agree it’s gone before anyone acts. (quorum failure detection)' },
+      { choose: 'Assume you’ll be wrong — and fence', when: 'correctness can’t rest on detecting death perfectly — make a stale actor’s writes *bounce* with a fencing token. The only real safety.' },
+    ],
+  },
   misconception: {
     think: '“A timeout means the node is down.”',
     actually:

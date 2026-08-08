@@ -43,6 +43,10 @@ export const replicationQuorum: Comic = {
         big: 'W + R > N',
         text: 'The quorum condition. Overlap guarantees a fresh read without any node being the leader.',
       },
+      think: {
+        q: 'You set **N=3, W=1, R=1** to make reads and writes as fast as possible. One replica says “got it” for your write, then crashes before copying it to anyone. What did you just give up?',
+        a: '**Both durability and freshness.** Only one machine ever had that write, and it’s gone — so the write is simply **lost**. And `W + R = 2`, which isn’t more than `3`, so your reads never had the overlap that guarantees a fresh answer anyway. `W=1, R=1` is “fire and hope”: as fast as it gets, with almost no promise. Every knob you turn down is a guarantee you’re spending.',
+      },
     },
     {
       n: 'Step 03',
@@ -74,6 +78,25 @@ export const replicationQuorum: Comic = {
     { term: 'Read repair.', body: 'On a read, notice a replica is behind and write the fresh value back to it.' },
     { term: 'Sloppy quorum.', body: 'Under failure, accept writes on stand-in nodes — more available, weaker guarantee.' },
   ],
+  inTheWild: {
+    note: '5 ways the math still bites in production',
+    points: [
+      'Ask for the freshest read and you wait for the **slowest** of your R replicas. One slow machine slows *every* read — so in real clusters, tail latency (not correctness) is what quietly pushes teams to accept slightly staler reads.',
+      'Delete a key while one replica happens to be offline. It comes back later still holding the old value, and hands it right back — **the thing you deleted reappears.** (This is why a delete leaves a little “was-deleted” marker, a *tombstone*, that lingers a while.)',
+      'When two people write the same key at the same moment, many systems just keep the one with the newer **clock timestamp** and throw the other away — no error, no warning. And if the two clocks disagree, the “winner” might even be the *older* write. **Someone’s change silently vanishes.**',
+      'During a network split, some systems take your write on **whatever nodes they can still reach** instead of the key’s real replicas, just to stay up. The write “succeeds” — but a normal read later asks the real replicas, which never got it, so it looks lost. (This stand-in trick is a *sloppy quorum*.)',
+      'Databases advertise strong guarantees; a famous test suite called **Jepsen** keeps catching them break those promises under network trouble. When it really matters, trust the test results, not the datasheet.',
+    ],
+  },
+  tradeoffs: {
+    title: 'when two writes collide, who wins?',
+    rows: [
+      { choose: 'Keep the newest', when: 'collisions are rare and losing one now and then is fine — **metrics, caches, session data**. (a.k.a. last-write-wins)' },
+      { choose: 'Keep both, merge later', when: 'you **can’t lose a write** and your app knows how to combine them — **shopping carts, shared docs**. (the bookkeeping is called *version vectors*)' },
+      { choose: 'Merge automatically', when: 'you want the system to combine concurrent writes with **no app code** — **counters, sets, presence**. (these data types are *CRDTs*)' },
+      { choose: 'Just elect a leader', when: 'you truly need **one correct answer, every time**. Quorums won’t give it — stop tuning W/R and go to consensus **(Ch 9)**.' },
+    ],
+  },
   misconception: {
     think: '“W + R > N gives me strong (linearizable) consistency.”',
     actually:
@@ -84,7 +107,19 @@ export const replicationQuorum: Comic = {
       year: '2007',
       title: 'Dynamo: Amazon’s Highly Available Key-value Store (SOSP)',
       url: 'https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf',
-      note: 'The origin of tunable quorums, version vectors, and read repair.',
+      note: 'The origin of tunable quorums, version vectors, and read repair — read §4 for exactly how the guarantees soften under failure.',
+    },
+    {
+      year: '2013',
+      title: 'Quantifying Eventual Consistency with PBS — Bailis et al. (VLDB)',
+      url: 'http://www.bailis.org/papers/pbs-vldb2012.pdf',
+      note: 'Puts numbers on “how stale, how often” for a given W/R — turns hand-waving into a distribution.',
+    },
+    {
+      year: 'Jepsen',
+      title: 'Jepsen analyses — Cassandra, Riak, and friends (aphyr.com)',
+      url: 'https://jepsen.io/analyses',
+      note: 'What actually breaks under partition. The antidote to trusting a system’s own consistency claims.',
     },
   ],
   seenIn: [

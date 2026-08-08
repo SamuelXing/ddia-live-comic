@@ -59,6 +59,10 @@ export const replicationLeader: Comic = {
         big: 'the catch',
         text: 'Async replication is the default — which means followers are always a little behind. That gap has a name, and its own comic.',
       },
+      think: {
+        q: 'Your leader runs async replication (the fast default) and suddenly dies. A follower is promoted to leader. A user who got a “payment saved” confirmation two seconds ago reloads — and it’s gone. How did a *confirmed* write vanish?',
+        a: '**Async tells the client “done” before any follower has a copy.** Those last couple of seconds of writes lived *only* on the old leader. When it died and a follower took over, that follower had never received them — so they’re simply lost, even though the user saw a success message. That’s the real cost of async: the confirmation is a promise the followers hadn’t yet backed up. Synchronous replication closes the gap, but then every write waits on a follower — and one slow follower stalls everyone.',
+      },
     },
   ],
   bubbles: [
@@ -66,6 +70,24 @@ export const replicationLeader: Comic = {
     { term: 'Follower.', body: 'A read-only replica that replays the leader’s log. Also: replica, secondary, standby.' },
     { term: 'Failover.', body: 'When the leader dies, a follower is promoted to leader. Easy to say, full of sharp edges.' },
   ],
+  inTheWild: {
+    note: 'failover — where the simple design gets its sharp edges',
+    points: [
+      'If the old leader isn’t really dead — just unreachable for a moment — you can end up with **two leaders** both taking writes. Now two nodes disagree about the truth, and merging them later means someone’s writes get thrown away. This is why promotion should need a *majority* to agree, not one node’s hunch. (a **split brain**)',
+      'When the leader dies, *which* follower takes over? Under async, every follower is missing something — and promoting the one that’s furthest behind throws away the most data. Systems try to pick the most caught-up follower, but “most caught-up” still isn’t “caught up.”',
+      'How long do you wait before declaring the leader dead? Too short and a brief network hiccup triggers a needless, disruptive failover. Too long and you’re simply down for that whole window. **No single timeout is right for both.**',
+      'The instant failover happens, every read that was spread across followers piles onto the brand-new leader while the others catch up. A failover meant to save you can trigger a load spike that knocks you over *again*.',
+    ],
+  },
+  tradeoffs: {
+    title: 'how safe should each write be?',
+    rows: [
+      { choose: 'Async to everyone', when: 'speed matters most and losing the last second of writes in a rare crash is survivable — **most web apps, social, analytics**. (the common default)' },
+      { choose: 'Sync to one follower', when: 'you can’t lose a confirmed write but can’t wait on *all* replicas — keep one in lockstep, the rest async. (**semi-synchronous**)' },
+      { choose: 'Sync to a majority', when: 'a confirmed write must survive any single failure, latency be damned — **payments, orders, anything you can’t replay**. (this is really consensus, **Ch 9**)' },
+      { choose: 'Many leaders', when: 'users span the globe and each region needs a *local* writer — **collaborative, multi-region apps**. But now two regions can edit the same thing, and you’re back to merging conflicts.' },
+    ],
+  },
   misconception: {
     think: '“Adding followers makes my database faster.”',
     actually:

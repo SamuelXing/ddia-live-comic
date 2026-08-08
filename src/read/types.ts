@@ -31,6 +31,13 @@ export interface Deeper {
   code?: CodeBlock
 }
 
+/** A Socratic prompt: pose a genuine question, hide the answer so the reader
+ *  actually reasons before revealing it. Makes them think, not memorize. */
+export interface Think {
+  q: string
+  a: string
+}
+
 export interface Step {
   /** badge text, e.g. "Step 01" or "Detail" */
   n: string
@@ -47,8 +54,27 @@ export interface Step {
   diagram?: ReactNode
   /** a collapsible depth aside for this step */
   deeper?: Deeper
+  /** a "think it through" prompt attached to this step */
+  think?: Think
   /** force a full-width panel */
   span?: 1 | 2
+}
+
+/** "In the wild" — where the clean idea gets complicated in production: the
+ *  variance, the failure modes, the caveats textbooks skip. The point is to make
+ *  the reader confront that the model is the easy 20%. */
+export interface InTheWild {
+  /** defaults to "where the clean idea gets complicated" */
+  note?: string
+  points: string[]
+}
+
+/** A real decision framework — the axes engineers actually weigh, and when to
+ *  reach for which option. Turns "I know the idea" into "I can make the call." */
+export interface Tradeoffs {
+  /** defaults to "The call" */
+  title?: string
+  rows: { choose: string; when: string }[]
 }
 
 /** "You might think… — Actually…" — names the wrong model to make the right one stick. */
@@ -91,6 +117,10 @@ export interface Comic {
   caption: string
   steps: Step[]
   bubbles?: Bubble[]
+  /** production complications — the messy 80% the clean model skips */
+  inTheWild?: InTheWild
+  /** a decision framework — when to reach for which option */
+  tradeoffs?: Tradeoffs
   /** a misconception callout, rendered after the steps */
   misconception?: Misconception
   /** primary sources rail */

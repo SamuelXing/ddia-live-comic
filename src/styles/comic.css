@@ -303,6 +303,47 @@
 .gn-src a:hover { border-color: var(--terra); }
 .gn-src .c { grid-column: 2; font-size: 13px; color: var(--ink-3); margin-top: 2px; }
 
+/* "Think it through" — a Socratic prompt with a hidden answer */
+.gn-think { margin-top: 14px; border: 2px solid var(--ink-line); background: #f4efe0; box-shadow: 3px 3px 0 var(--gold, #c9a24e); }
+.gn-think > summary { list-style: none; cursor: pointer; padding: 12px 15px; display: grid;
+  grid-template-columns: auto 1fr auto; gap: 4px 10px; align-items: baseline; }
+.gn-think > summary::-webkit-details-marker { display: none; }
+.gn-think .tag { grid-row: 1; font-family: var(--gn-mono); font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase;
+  color: #6b5410; background: #e6cf8a; border: 1.5px solid var(--ink-line); padding: 1px 7px; align-self: center; }
+.gn-think .q { grid-column: 2; font-family: var(--gn-comic); font-weight: 700; font-size: 14.5px; color: var(--ink); }
+.gn-think .chev { grid-column: 3; grid-row: 1; font-family: var(--gn-mono); font-size: 11px; color: #6b5410; align-self: center; white-space: nowrap; }
+.gn-think[open] .chev { visibility: hidden; }
+.gn-think-a { padding: 0 15px 15px; font-size: 14.5px; color: var(--ink-2); border-top: 1px dashed var(--rule); margin-top: 2px; padding-top: 12px; }
+.gn-think-a b { color: var(--ink); font-weight: 600; }
+
+/* shared summary line for the collapsible depth sections */
+.gn-wild > summary, .gn-tradeoffs > summary { list-style: none; cursor: pointer; padding: 13px 16px;
+  display: flex; align-items: center; gap: 10px; }
+.gn-wild > summary::-webkit-details-marker, .gn-tradeoffs > summary::-webkit-details-marker { display: none; }
+.gn-wild > summary .tag, .gn-tradeoffs > summary .tag { font-family: var(--gn-mono); font-size: 9.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: #fff; border: 1.5px solid var(--ink-line); padding: 1px 7px; }
+.gn-wild > summary .lead, .gn-tradeoffs > summary .lead { font-family: var(--gn-comic); font-weight: 700; font-size: 14px; color: var(--ink); }
+.gn-wild > summary .chev, .gn-tradeoffs > summary .chev { margin-left: auto; font-family: var(--gn-mono); font-size: 13px; transition: transform .15s; }
+.gn-wild[open] > summary .chev, .gn-tradeoffs[open] > summary .chev { transform: rotate(90deg); }
+
+/* "In the wild" — the production complications the model skips */
+.gn-wild { margin-top: 2px; border: 2px solid var(--ink-line); box-shadow: 3px 3px 0 var(--terra); background: #fbf1ea; }
+.gn-wild > summary .tag { background: var(--terra); }
+.gn-wild ul { margin: 0; padding: 0 20px 16px 38px; }
+.gn-wild li { font-size: 14.5px; color: var(--ink-2); line-height: 1.55; margin: 9px 0; }
+.gn-wild li::marker { color: var(--terra); }
+.gn-wild li b { color: var(--ink); font-weight: 600; }
+
+/* "The call" — a decision framework */
+.gn-tradeoffs { margin-top: 2px; border: 2px solid var(--ink-line); box-shadow: 3px 3px 0 var(--denim); background: var(--paper-2); }
+.gn-tradeoffs > summary .tag { background: var(--denim); }
+.gn-to-rows { padding: 0 20px 10px; }
+.gn-to-row { display: grid; grid-template-columns: minmax(150px, 0.9fr) 1.6fr; gap: 4px 16px; padding: 11px 0; border-top: 1px solid var(--rule); align-items: baseline; }
+@media (max-width: 560px) { .gn-to-row { grid-template-columns: 1fr; gap: 2px; } }
+.gn-to-row .choose { font-family: var(--gn-display); font-weight: 700; font-size: 15px; color: var(--ink); }
+.gn-to-row .when { font-size: 14px; color: var(--ink-2); }
+.gn-to-row .when b { color: var(--ink); font-weight: 600; }
+
 /* continue-deeper band (down the ladder to the real machine) */
 .gn-continue { margin-top: 2px; border: 2px solid var(--ink-line); background: var(--ink); color: #f3efe6; box-shadow: 4px 4px 0 var(--denim); padding: 20px 22px; }
 .gn-continue .k { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--denim); }

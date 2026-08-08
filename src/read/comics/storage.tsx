@@ -61,6 +61,10 @@ export const storage: Comic = {
         big: 'amplification',
         text: 'Write, read, and space amplification are the three dials. Every engine picks a point on that triangle — there is no free storage engine.',
       },
+      think: {
+        q: 'You’re ingesting millions of sensor readings a second and almost never read them back. You reach for a B-tree because it’s the default. What’s going to hurt?',
+        a: '**One write becomes many writes to disk.** A B-tree edits a page in place — and to survive a crash it first writes the whole change to a log, *then* the page itself, and a full page has to split into two. At millions of writes a second, that pile-up (**write amplification**) is what melts the disk. An LSM just appends to memory and flushes in big sorted batches, doing the rearranging later in the background — far less disk work per write. Write-heavy, read-rarely is the exact workload it was built for.',
+      },
     },
   ],
   bubbles: [
@@ -68,6 +72,24 @@ export const storage: Comic = {
     { term: 'Compaction.', body: 'Merging SSTables in the background, dropping overwritten keys to bound file count.' },
     { term: 'Write amplification.', body: 'Bytes written to disk per byte of logical data — the cost LSM pays in compaction.' },
   ],
+  inTheWild: {
+    note: '4 ways the clean tradeoff gets messy on a real disk',
+    points: [
+      'An LSM does its cleanup — **compaction** — in the background, but that cleanup reads and rewrites gigabytes while your app is also trying to work. On a busy night you get sudden latency spikes not because a query is slow, but because compaction is hogging the disk *right then*.',
+      'A B-tree deletes a row by marking space free *inside* a page, not by shrinking the file. Delete a lot and the file stays big, full of holes — your 10 GB of live data can sit inside a 40 GB file until you rebuild the index.',
+      'An LSM delete doesn’t erase anything either — it writes a little “deleted” marker (a **tombstone**). Until compaction runs, the dead key still costs disk space *and* read time. Delete a million keys and reads can actually get **slower** for a while.',
+      '“Use an LSM for writes” hides a dozen dials — how hard to compact, how big the memory buffer, how many levels. Set them wrong and you either burn the disk rewriting constantly or let files pile up until reads crawl. RocksDB’s famously huge config exists for exactly this.',
+    ],
+  },
+  tradeoffs: {
+    title: 'which storage engine for this workload?',
+    rows: [
+      { choose: 'Reach for a B-tree', when: 'reads dominate and you need steady, predictable latency — **an app’s main database, transactions**. (Postgres, MySQL/InnoDB)' },
+      { choose: 'Reach for an LSM', when: 'writes pour in far faster than reads — **logs, metrics, event ingest, time-series**. (Cassandra, RocksDB)' },
+      { choose: 'Go columnar', when: 'you scan huge ranges for analytics, not single rows — **dashboards, reporting**. (ClickHouse, Parquet)' },
+      { choose: 'Just use the default', when: 'you’re unsure and load is modest — the engine your database ships with is tuned for the common case. **Measure before you switch.**' },
+    ],
+  },
   misconception: {
     think: '“LSM-trees are just the newer, better B-tree.”',
     actually:

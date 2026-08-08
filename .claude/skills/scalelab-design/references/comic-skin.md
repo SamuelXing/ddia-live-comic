@@ -86,6 +86,39 @@ export const myIdea: Comic = {
 - **Always `seenIn`.** A comic that doesn't land in a real machine is incomplete — that
   down-link is the whole point of the layered model.
 
+## Depth without density — make readers *think*, not memorize
+
+A comic must clear **two bars at once**: the concept is easy to understand, *and* the reader
+is pushed to reason about the messy real-engineering problem (variance, failure modes, the
+call an engineer actually makes) — not just remember the idea. The governing rule:
+
+> **Depth of thinking ≠ density of prose.** Provoke hard thinking with plain, story-first
+> language. Name the jargon *last*, once the reader already feels the problem.
+
+Three optional fields on `Comic` / `Step` carry the depth. All are authored in the same plain
+voice as the body, and the two heavy ones are **collapsible so the default read stays the easy
+story** (progressive disclosure — skimmers see one inviting teaser line, the curious click):
+
+- **`Step.think?: { q, a }`** — a Socratic prompt on a key step. Pose a *genuine* question the
+  reader can chew on, hide the answer (`Reveal ▸`). Renders with the **gold** "Think it through"
+  accent (a third accent, used *only* here — distinct from denim/terra). Put it on the step
+  where the idea is most temptingly over-trusted.
+- **`Comic.inTheWild?: { note, points }`** — collapsed by default. 4 production complications,
+  each a *story first* ("Delete a key while one replica is offline; it comes back holding the
+  old value and hands it right back — the thing you deleted reappears"), the term named gently
+  at the end in parens (`a tombstone`). One idea per bullet. `note` is the teaser line.
+- **`Comic.tradeoffs?: { title, rows[] }`** — collapsed by default. A real decision framework:
+  each row is `{ choose, when }` where `choose` is a **plain-language verb phrase** ("Keep both,
+  merge later"), and the jargon lives quietly in the `when` clause ("…the bookkeeping is called
+  *version vectors*"). Turns "I know the idea" into "I can make the call."
+
+**The readability test (apply to every depth edit):** read the expanded content cold. If a
+sentence stacks two-plus unexplained terms, or a `choose` label *is* the jargon, rewrite it —
+concrete scenario first, term last. The reference implementation is
+[replication-quorum.tsx](../../../src/read/comics/replication-quorum.tsx); match its register.
+Renderer + styles: `think`/`wild`/`tradeoffs` in [Comic.tsx](../../../src/read/Comic.tsx) and
+`.gn-think` / `.gn-wild` / `.gn-tradeoffs` in [comic.css](../../../src/styles/comic.css).
+
 ## Verifying
 
 Same bar as the rest of the system: `npm run build` clean, then headless-Chrome screenshots

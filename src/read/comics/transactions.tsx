@@ -56,6 +56,10 @@ export const transactions: Comic = {
         'Two doctors are on call. Each opens a transaction, both **read** “on-call = 2”, both reason “the other covers me”, and each takes themselves off. Both commit against their own snapshot. Result: **nobody is on call.**',
         'This is **write skew** — two transactions read the same thing and write to *different* rows, so nothing directly conflicts, yet together they break an invariant snapshot isolation can’t see.',
       ],
+      think: {
+        q: 'You switch to `SERIALIZABLE` to kill write skew for good. Correctness solved. What just changed about the code your app has to run?',
+        a: '**Your transactions can now be aborted and told to retry** — not from a bug, but because the database caught two of them on a collision course and killed one to keep the history clean. If your app fires a transaction once and assumes it worked, those aborts become errors users see. Serializable moves the cost from “reason about every anomaly” to “wrap every transaction in a retry loop.” Cheap safety — but only if you built for the retries. And under heavy contention on the *same* rows, the retries pile up and throughput drops. That’s the price of never having to think about write skew again.',
+      },
     },
     {
       n: 'Step 05',
@@ -84,6 +88,24 @@ export const transactions: Comic = {
     { term: 'Write skew.', body: 'Two txns read the same data, write different rows, and jointly break an invariant.' },
     { term: 'Phantom.', body: 'A write in one txn changes the *set of rows* another txn’s query matches.' },
   ],
+  inTheWild: {
+    note: 'why isolation levels bite in real databases',
+    points: [
+      'The standard’s level *names* lie. Oracle’s “Serializable” is actually snapshot isolation; one database’s “Repeatable Read” differs from the next. You can’t trust the label — you have to check what your *specific* database does under it.',
+      'Most databases default to **Read Committed**, not something stronger. So unless you changed it, two reads in the same transaction can already return different values — and most apps never notice until a subtle bug surfaces in production.',
+      'Write skew is nasty because nothing *looks* wrong: two transactions each read, each check a rule (“at least one doctor on call”), each write a different row. No conflict, both commit, rule broken. Any *check-then-act* across rows — booking the last seat, enforcing a limit — can hide this and pass every test that runs the transactions one at a time.',
+      'MVCC keeps old row versions so your snapshot stays stable — but one long-running transaction forces the database to keep *every* old version alive that whole time, bloating storage and slowing everyone until it finishes. A single forgotten open transaction can quietly degrade the whole database.',
+    ],
+  },
+  tradeoffs: {
+    title: 'which isolation level for this transaction?',
+    rows: [
+      { choose: 'Read Committed', when: 'you just need to not see half-written data, and stale-within-a-transaction is fine — **most CRUD, reads for display**. (the common default)' },
+      { choose: 'Snapshot / Repeatable Read', when: 'a transaction reads many rows that must all agree with each other — **reports, exports, anything that needs one consistent picture**.' },
+      { choose: 'Serializable', when: 'a check-then-act rule must hold no matter what runs alongside it — **booking the last seat, enforcing a balance or limit**. Build the retry loop. (write-skew-proof)' },
+      { choose: 'Explicit row locks', when: 'you want to force one transaction to *wait* for another on specific rows — a surgical `SELECT … FOR UPDATE` instead of raising the whole level.' },
+    ],
+  },
   misconception: {
     think: '“Repeatable Read (snapshot isolation) means my transactions are serializable.”',
     actually:

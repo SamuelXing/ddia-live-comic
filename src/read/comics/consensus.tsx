@@ -46,6 +46,10 @@ export const consensus: Comic = {
           'A **quorum** is any subset larger than half. The key property: **any two majorities overlap** in at least one node. So a value committed by one majority can never be contradicted by another majority — the overlapping node remembers it. That single fact gives you at most one leader per term *and* durable commits, and it’s why a 5-node cluster survives 2 failures but a 6-node one still only survives 2 (you always need ⌊n/2⌋+1).',
         ],
       },
+      think: {
+        q: 'You want to survive more failures, so you grow your Raft cluster from **5 nodes to 6**. How many failures can each survive — and did the extra node help?',
+        a: '**Both survive exactly 2 failures.** A majority of 5 is 3, so you can lose 2; a majority of 6 is 4, so you can *still* only lose 2 — but now every commit must reach *four* nodes instead of three, so it’s slower. The sixth node bought zero extra fault tolerance and made every decision more expensive. That’s why Raft clusters are almost always **odd** — 3, 5, 7. An even node just adds the cost of a bigger quorum without the benefit of surviving one more failure.',
+      },
     },
     {
       n: 'Step 04',
@@ -68,6 +72,24 @@ export const consensus: Comic = {
     { term: 'Quorum.', body: 'Any majority. Any two majorities share a node — the whole safety argument.' },
     { term: 'Split brain.', body: 'Two nodes both think they lead. Majority rule + terms prevent both from committing.' },
   ],
+  inTheWild: {
+    note: 'what consensus really costs in production',
+    points: [
+      'A committed write has to reach a majority and hear back *before* it counts — at least one round-trip to other machines on every write. Fine inside one datacenter; brutal across regions, where that’s tens of milliseconds each time. Consensus trades latency for agreement.',
+      'All writes funnel through **one leader**, and each write fans out to the followers. You can’t speed writes up by adding nodes — more nodes means *more* messages per commit, not fewer. Consensus is for agreement, not throughput.',
+      'Adding or removing a node from a *live* group is one of the trickiest things you can do. Do it naively and you can briefly have two overlapping majorities that each elect a leader — a split brain. Raft has a careful “joint consensus” dance precisely because this is where real clusters have corrupted themselves.',
+      'You rarely *implement* Raft — but you run it: **etcd, ZooKeeper, Kafka’s controller, Consul**. When one gets slow, it’s often consensus latency (a slow disk on the leader, a far-away follower) showing up as mysterious slowness in everything that depends on it.',
+    ],
+  },
+  tradeoffs: {
+    title: 'do you actually need consensus here?',
+    rows: [
+      { choose: 'Yes — use Raft/Paxos', when: 'several nodes must agree on one answer and never disagree — **leader election, config, distributed locks, metadata**.' },
+      { choose: 'No — eventual is fine', when: 'replicas can disagree briefly and converge, and availability beats a single truth — **shopping carts, caches, feeds**. (Ch 5 leaderless)' },
+      { choose: 'Buy it, don’t build it', when: 'you need consensus but not to *write* it — lean on a proven system instead of rolling your own. **etcd, ZooKeeper, Consul.**' },
+      { choose: 'Single leader, no quorum', when: 'one machine deciding is acceptable and you’ll tolerate downtime when it fails — simpler and cheaper, and fine for plenty of internal tools.' },
+    ],
+  },
   misconception: {
     think: '“Consensus means every node has to agree.”',
     actually:

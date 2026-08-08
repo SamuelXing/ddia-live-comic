@@ -35,6 +35,10 @@ export const replicationLag: Comic = {
         big: 'guarantee',
         text: 'Others may still see the old value briefly — but *you* never see your own write disappear.',
       },
+      think: {
+        q: 'The simplest fix for *all* of this staleness: just send every read to the leader too. No follower, no lag, no anomalies. Why doesn’t everyone do that?',
+        a: '**Because the whole reason you added followers was to take read load off the leader.** Send every read back to the leader and you’ve thrown that away — it now serves every read *and* every write, and becomes the exact bottleneck you were escaping. The craft is reading from the leader only for the few things that truly need to be fresh — your own just-made edit — and letting everything else read from followers. You don’t remove lag; you spend freshness only where it’s worth paying for.',
+      },
     },
     {
       n: 'Step 02',
@@ -60,6 +64,24 @@ export const replicationLag: Comic = {
     { term: 'Read-your-writes.', body: 'You always see your own updates. A per-user promise, not a global one.' },
     { term: 'Monotonic reads.', body: 'Time never runs backwards for a reader — no jumping to a more-stale replica.' },
   ],
+  inTheWild: {
+    note: 'why “just add a guarantee” is harder than it sounds',
+    points: [
+      '“Show users their own writes” sounds simple until they post on their phone and read on their laptop. The laptop doesn’t know the phone just posted, reads a stale follower, and the post is missing. Now you have to track writes per *user*, not per device.',
+      'Pinning a user to one replica (so time doesn’t run backwards) works — until that replica dies or gets overloaded and you have to move them. They may land on a *more*-stale one, and time runs backwards anyway. The guarantee is only as stable as the routing under it.',
+      'You’d like to route around lagging followers, but measuring lag is slippery: a follower can report “caught up” overall and still be seconds behind on the *one* partition you care about. Averages hide the replica that’s badly stale.',
+      'In the demo, lag is milliseconds. In production a burst of writes, a slow disk, or a long query on a follower can stretch it to seconds or minutes — usually right when traffic is highest and users are most likely to notice.',
+    ],
+  },
+  tradeoffs: {
+    title: 'which staleness guarantee does this feature need?',
+    rows: [
+      { choose: 'None — read any follower', when: 'a few seconds stale is invisible or harmless — **someone else’s post count, a trending list, analytics**.' },
+      { choose: 'Read-your-writes', when: 'users must see their *own* action immediately — **posting a comment, editing a profile, changing settings**.' },
+      { choose: 'Monotonic reads', when: 'a little behind is fine, but going *backwards* isn’t — **a feed that must not un-show things, a counter that must not drop**.' },
+      { choose: 'Full consistency', when: 'causally-linked events must appear in order, or you need the true latest — **chat, a bank balance**. (now you’re paying for consensus, **Ch 9**)' },
+    ],
+  },
   misconception: {
     think: '“Eventual consistency means the data will be right in a moment.”',
     actually:
