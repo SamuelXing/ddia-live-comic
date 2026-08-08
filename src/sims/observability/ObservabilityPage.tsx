@@ -7,34 +7,38 @@ import type { GoalCtx } from './model'
 import '../../styles/sim.css'
 
 interface Controls {
-  traffic: number
-  writeShare: number // percent
-  cacheHit: number // percent
-  web: number
-  replicas: number
-  partitions: number
-  pgShards: number
-  redisShards: number
-  celeb: boolean
-  regions: number
-  repl: number // percent
+  ingest: number // traffic units
+  queryShare: number // percent
+  indexers: number
+  cardinality: number // percent
+  hotShare: number // percent
+  retention: number // days
+  clusters: number
+  quota: boolean
 }
 
 function defaultsFor(stageIdx: number, prev?: Controls): Controls {
   const st = STAGES[stageIdx]
   return {
-    traffic: prev?.traffic ?? 48,
-    writeShare: prev?.writeShare ?? 18,
-    cacheHit: prev?.cacheHit ?? 85,
-    web: st.web ?? 2,
-    replicas: 2,
-    partitions: 8,
-    pgShards: 1,
-    redisShards: 1,
-    celeb: false,
-    regions: 3,
-    repl: 12,
+    ingest: prev?.ingest ?? 48,
+    queryShare: prev?.queryShare ?? 15,
+    indexers: st.idx ?? 2,
+    cardinality: 0,
+    hotShare: 85,
+    retention: 90,
+    clusters: 1,
+    quota: false,
   }
+}
+
+/** Rough monthly bill: ingest at ~$0.10/GB + tiered storage (hot dear, cold cheap). */
+function estCostUSD(eventsPerSec: number, retention: number, hotShare: number): number {
+  const gbPerDay = (eventsPerSec * 86400 * 500) / 1e9 // ~500 B/event
+  const ingestMo = gbPerDay * 30 * 0.1
+  const stored = gbPerDay * retention
+  const hotGB = (stored * hotShare) / 100
+  const coldGB = stored - hotGB
+  return ingestMo + hotGB * 0.03 + coldGB * 0.003
 }
 
 function Ctl({
@@ -44,7 +48,6 @@ function Ctl({
   min,
   max,
   step,
-  hint,
   hot,
   onChange,
 }: {
@@ -54,7 +57,6 @@ function Ctl({
   min: number
   max: number
   step: number
-  hint?: string
   hot?: boolean
   onChange: (v: number) => void
 }) {
@@ -73,7 +75,6 @@ function Ctl({
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
       />
-      {hint && <div className="ctl-hint">{hint}</div>}
     </div>
   )
 }
@@ -88,7 +89,7 @@ function Kpi({ k, v, u, cls }: { k: string; v: string; u: string; cls?: string }
   )
 }
 
-export default function FeedSimPage() {
+export default function ObservabilityPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const engineRef = useRef<FeedEngine | null>(null)
   const [stageIdx, setStageIdx] = useState(0)
@@ -103,7 +104,6 @@ export default function FeedSimPage() {
   const stageRef = useRef(stageIdx)
   stageRef.current = stageIdx
 
-  // engine lifecycle
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -116,7 +116,6 @@ export default function FeedSimPage() {
     const poll = window.setInterval(() => {
       const s = engine.getSnapshot()
       setSnap(s)
-      // evaluate + latch mission goals against the live snapshot
       const idx = stageRef.current
       const stage = STAGES[idx]
       const c = controlsRef.current
@@ -124,9 +123,17 @@ export default function FeedSimPage() {
         util: (id) => s.bars.find((b) => b.id === id)?.util ?? 0,
         qdepth: (id) => s.bars.find((b) => b.id === id)?.qdepth ?? 0,
         dropPct: s.dropPct,
-        regions: s.regions,
-        regionsAlive: s.regionsAlive,
-        c,
+        p95: s.p95,
+        c: {
+          ingest: c.ingest,
+          queryShare: c.queryShare,
+          indexers: c.indexers,
+          cardinality: c.cardinality,
+          hotShare: c.hotShare,
+          retention: c.retention,
+          clusters: c.clusters,
+          quota: c.quota,
+        },
       }
       const fresh = stage.goals.filter((g) => g.done(ctx)).map((g) => g.id)
       if (fresh.length)
@@ -147,21 +154,16 @@ export default function FeedSimPage() {
     }
   }, [])
 
-  // push controls into the engine
   const apply = useCallback((c: Controls) => {
     const e = engineRef.current
     if (!e) return
-    e.traffic = c.traffic
-    e.writeShare = c.writeShare / 100
-    e.cacheHit = c.cacheHit / 100
-    e.celeb = c.celeb
-    e.replLag = c.repl / 100
-    e.setWebInstances(c.web)
-    e.setReplicas(c.replicas)
-    e.setPartitions(c.partitions)
-    e.setPgShards(c.pgShards)
-    e.setRedisShards(c.redisShards)
-    if (e.regions !== c.regions) e.setRegions(c.regions)
+    e.traffic = c.ingest
+    e.writeShare = c.queryShare / 100
+    e.cacheHit = c.hotShare / 100
+    e.cardinality = c.cardinality
+    e.clusters = c.clusters
+    e.setIndexers(c.indexers)
+    e.setQuota(c.quota)
   }, [])
 
   const update = useCallback(
@@ -190,18 +192,12 @@ export default function FeedSimPage() {
     [apply],
   )
 
-  const spike = useCallback(() => {
-    const e = engineRef.current
-    if (!e) return
-    if (e.stage.map) {
-      e.spike()
-      return
-    }
-    const base = controls.traffic
-    update({ traffic: Math.min(420, Math.round(base * 2.6)) })
+  const storm = useCallback(() => {
+    const base = controls.ingest
+    update({ ingest: Math.min(420, Math.round(base * 2.6)) })
     if (spikeTimer.current) window.clearTimeout(spikeTimer.current)
-    spikeTimer.current = window.setTimeout(() => update({ traffic: base }), 3500)
-  }, [controls.traffic, update])
+    spikeTimer.current = window.setTimeout(() => update({ ingest: base }), 3500)
+  }, [controls.ingest, update])
 
   const stage = STAGES[stageIdx]
   const c = stage.controls
@@ -211,6 +207,8 @@ export default function FeedSimPage() {
     const a = achieved[i]
     return !!a && STAGES[i].goals.every((g) => a.has(g.id))
   }
+  const cost = snap ? estCostUSD(snap.offeredRps * 60, controls.retention, controls.hotShare) : 0
+  const costTxt = cost >= 1000 ? '$' + (cost / 1000).toFixed(1) + 'M' : '$' + Math.round(cost) + 'k'
 
   return (
     <div className="sim-page">
@@ -220,13 +218,10 @@ export default function FeedSimPage() {
         </Link>
         <span className="home-sep">/</span>
         <div className="logo">
-          <span className="d" /> Feed&nbsp;at&nbsp;Scale <small>social-feed simulation</small>
+          <span className="d" /> Observability&nbsp;at&nbsp;Scale <small>logs · metrics · traces pipeline</small>
         </div>
         <Link className="site-link" to="/components">
           Component Deep-Dives
-        </Link>
-        <Link className="site-link" to="/read" title="The ideas this simulation leans on: partitioning (sharding) and replication lag (read replicas)">
-          ◆ Ideas in play
         </Link>
         <div className="tb-spacer" />
         <div className="speed">
@@ -244,8 +239,8 @@ export default function FeedSimPage() {
             }}
           />
         </div>
-        <button className="tbtn" onClick={spike}>
-          ⚡ Traffic spike
+        <button className="tbtn" onClick={storm}>
+          ⚡ Log storm
         </button>
         <button className="tbtn danger" onClick={() => engineRef.current?.killNode()}>
           ✕ Fail a node
@@ -284,34 +279,32 @@ export default function FeedSimPage() {
         <div className="lab">
           <div className="viz-col">
             <div className="kpis">
-              {snap && snap.map ? (
+              {snap ? (
                 <>
-                  <Kpi k="Regions live" v={`${snap.regionsAlive}/${snap.regions}`} u="serving traffic" cls={snap.regionsAlive < snap.regions ? 'hot' : 'good'} />
-                  <Kpi k="Replication lag" v={String(snap.replLagMs)} u="ms cross-region" cls={controls.repl > 60 ? 'warn' : 'good'} />
-                  <Kpi k="Consistency" v={controls.repl > 40 ? 'eventual' : 'near-strong'} u="read-your-writes" cls={controls.repl > 40 ? 'warn' : 'good'} />
-                </>
-              ) : snap ? (
-                <>
-                  <Kpi k="Offered" v={fmtRps(snap.offeredRps)} u="req/s in" />
+                  <Kpi k="Ingest" v={fmtRps(snap.offeredRps)} u="events/s in" />
                   <Kpi
-                    k="Served"
+                    k="Indexed"
                     v={fmtRps(snap.servedRps)}
-                    u="req/s done"
+                    u="events/s done"
                     cls={snap.dropPct > 5 ? 'warn' : 'good'}
                   />
                   <Kpi
                     k="Dropped"
                     v={snap.dropPct < 0.1 ? '0' : snap.dropPct.toFixed(1) + '%'}
-                    u={fmtRps(snap.dropRps) + ' req/s'}
+                    u={fmtRps(snap.dropRps) + ' events/s'}
                     cls={snap.dropPct > 5 ? 'hot' : snap.dropPct > 0.5 ? 'warn' : 'good'}
                   />
                   <Kpi
-                    k="Latency"
+                    k="Query latency"
                     v={Math.round(snap.p95) + ' ms'}
                     u={'p95 · p50 ' + Math.round(snap.p50) + ' ms'}
                     cls={snap.p95 > 900 ? 'hot' : snap.p95 > 400 ? 'warn' : 'good'}
                   />
-                  <Kpi k="In flight" v={String(snap.inflight)} u="requests" />
+                  {c.tiering ? (
+                    <Kpi k="Est. cost" v={costTxt} u="/ month" cls={cost > 400 ? 'warn' : 'good'} />
+                  ) : (
+                    <Kpi k="In flight" v={String(snap.inflight)} u="events" />
+                  )}
                 </>
               ) : null}
             </div>
@@ -319,28 +312,16 @@ export default function FeedSimPage() {
             <div className="canvas-card">
               <canvas ref={canvasRef} id="viz" />
               <div className={'overload' + (snap?.overloaded ? ' show' : '')}>
-                ⚠ OVERLOADED — requests dropping
+                ⚠ OVERLOADED — events dropping
               </div>
               <div className="legend">
-                {stage.map ? (
-                  <>
-                    <span><i style={{ background: 'var(--good)' }} />region healthy</span>
-                    <span><i style={{ background: 'var(--warn)' }} />region busy</span>
-                    <span><i style={{ background: '#9085e9' }} />replication pulse</span>
-                    <span><i style={{ background: 'var(--hot)' }} />region down</span>
-                  </>
-                ) : (
-                  <>
-                    {(Object.keys(REQ) as Array<keyof typeof REQ>).map((k) => (
-                      <span key={k}>
-                        <i style={{ background: REQ[k].color }} />
-                        {REQ[k].label}
-                      </span>
-                    ))}
-                    <span><i style={{ background: '#c07fe0' }} />fan-out write</span>
-                    <span><i style={{ background: 'var(--warn)' }} />queue</span>
-                  </>
-                )}
+                {(Object.keys(REQ) as Array<keyof typeof REQ>).map((k) => (
+                  <span key={k}>
+                    <i style={{ background: REQ[k].color }} />
+                    {REQ[k].label}
+                  </span>
+                ))}
+                <span><i style={{ background: 'var(--warn)' }} />queue depth</span>
               </div>
             </div>
           </div>
@@ -370,132 +351,98 @@ export default function FeedSimPage() {
               </button>
             )}
             {stageDone && stageIdx === STAGES.length - 1 && (
-              <div className="next-btn done-all">You&apos;ve scaled the feed, end to end 🎉</div>
+              <div className="next-btn done-all">You&apos;ve scaled the pipeline, end to end 🎉</div>
             )}
 
             <div className="m-sec">Controls</div>
-            {!stage.map && (
-              <>
-                <Ctl
-                  label="Traffic"
-                  value={controls.traffic}
-                  valueText={fmtRps(controls.traffic) + ' req/s'}
-                  min={8}
-                  max={420}
-                  step={2}
-                  onChange={(v) => update({ traffic: v })}
-                />
-                <Ctl
-                  label="Write share"
-                  value={controls.writeShare}
-                  valueText={controls.writeShare + '% writes'}
-                  min={2}
-                  max={60}
-                  step={1}
-                  onChange={(v) => update({ writeShare: v })}
-                />
-              </>
-            )}
-            {c.web && (
+            {c.ingest && (
               <Ctl
-                label="Web / service instances"
-                value={controls.web}
-                valueText={String(controls.web)}
-                min={1}
-                max={24}
-                step={1}
-                onChange={(v) => update({ web: v })}
+                label="Ingest volume"
+                value={controls.ingest}
+                valueText={fmtRps(controls.ingest) + ' events/s'}
+                min={8}
+                max={420}
+                step={2}
+                onChange={(v) => update({ ingest: v })}
               />
             )}
-            {c.cache && (
+            {c.queryShare && (
               <Ctl
-                label="Cache hit rate"
-                value={controls.cacheHit}
-                valueText={controls.cacheHit + '%'}
-                min={30}
-                max={99}
-                step={1}
-                onChange={(v) => update({ cacheHit: v })}
-              />
-            )}
-            {c.replica && (
-              <Ctl
-                label="Read replicas"
-                value={controls.replicas}
-                valueText={String(controls.replicas)}
-                min={1}
-                max={12}
-                step={1}
-                onChange={(v) => update({ replicas: v })}
-              />
-            )}
-            {c.partitions && (
-              <Ctl
-                label="Kafka partitions"
-                value={controls.partitions}
-                valueText={String(controls.partitions)}
-                min={1}
-                max={64}
-                step={1}
-                onChange={(v) => update({ partitions: v })}
-              />
-            )}
-            {c.shards && (
-              <>
-                <Ctl
-                  label="Postgres shards"
-                  value={controls.pgShards}
-                  valueText={String(controls.pgShards)}
-                  min={1}
-                  max={16}
-                  step={1}
-                  hot
-                  onChange={(v) => update({ pgShards: v })}
-                />
-                <Ctl
-                  label="Redis shards"
-                  value={controls.redisShards}
-                  valueText={String(controls.redisShards)}
-                  min={1}
-                  max={16}
-                  step={1}
-                  hot
-                  onChange={(v) => update({ redisShards: v })}
-                />
-              </>
-            )}
-            {c.celeb && (
-              <div className="toggle-row">
-                <button
-                  className={'tbtn' + (controls.celeb ? ' on' : '')}
-                  onClick={() => update({ celeb: !controls.celeb })}
-                >
-                  🌟 Celebrity posts: {controls.celeb ? 'on' : 'off'}
-                </button>
-              </div>
-            )}
-            {c.regions && (
-              <Ctl
-                label="Regions"
-                value={controls.regions}
-                valueText={String(controls.regions)}
-                min={1}
-                max={5}
-                step={1}
-                onChange={(v) => update({ regions: v })}
-              />
-            )}
-            {c.repl && (
-              <Ctl
-                label="Replication lag"
-                value={controls.repl}
-                valueText={String(controls.repl)}
+                label="Query share"
+                value={controls.queryShare}
+                valueText={controls.queryShare + '% queries'}
                 min={2}
+                max={50}
+                step={1}
+                onChange={(v) => update({ queryShare: v })}
+              />
+            )}
+            {c.indexers && (
+              <Ctl
+                label="Indexer shards"
+                value={controls.indexers}
+                valueText={String(controls.indexers)}
+                min={1}
+                max={16}
+                step={1}
+                onChange={(v) => update({ indexers: v })}
+              />
+            )}
+            {c.cardinality && (
+              <Ctl
+                label="Label cardinality"
+                value={controls.cardinality}
+                valueText={controls.cardinality + '%'}
+                min={0}
                 max={100}
                 step={1}
                 hot
-                onChange={(v) => update({ repl: v })}
+                onChange={(v) => update({ cardinality: v })}
               />
+            )}
+            {c.tiering && (
+              <>
+                <Ctl
+                  label="Hot window (share in fast tier)"
+                  value={controls.hotShare}
+                  valueText={controls.hotShare + '%'}
+                  min={10}
+                  max={100}
+                  step={1}
+                  onChange={(v) => update({ hotShare: v })}
+                />
+                <Ctl
+                  label="Retention"
+                  value={controls.retention}
+                  valueText={controls.retention + ' days'}
+                  min={7}
+                  max={365}
+                  step={1}
+                  hot
+                  onChange={(v) => update({ retention: v })}
+                />
+              </>
+            )}
+            {c.clusters && (
+              <Ctl
+                label="Clusters (per-team)"
+                value={controls.clusters}
+                valueText={String(controls.clusters)}
+                min={1}
+                max={8}
+                step={1}
+                onChange={(v) => update({ clusters: v })}
+              />
+            )}
+            {c.quota && (
+              <div className="toggle-row">
+                <button
+                  className={'tbtn' + (controls.quota ? ' on' : '')}
+                  onClick={() => update({ quota: !controls.quota })}
+                >
+                  🎚 Per-team ingest quotas: {controls.quota ? 'on' : 'off'}
+                </button>
+              </div>
             )}
 
             <div className="tip">

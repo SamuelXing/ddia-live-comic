@@ -32,6 +32,12 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   checklists that latch as you trigger each lesson, KPI strip, bottleneck auto-tag,
   and an honest latency model (queue+service only — travel animation no longer
   counted, which had been drowning the queueing signal).
+- ✅ Observability at Scale (`/sims/observability`) — logs/metrics/traces pipeline as a
+  mission lab: single box → Kafka buffer → scale the index tier → **cardinality explosion**
+  (the wall horizontal scaling can't climb) → hot/cold storage tiering with a live cost
+  estimate → federate + per-team quotas. Reuses the Feed engine with observability hooks
+  (cardinality inflates index/query cost; clusters multiply index capacity). Pairs with a
+  planned **ClickHouse** flagship deep-dive (the storage box's spec sheet).
 - E-commerce checkout — inventory contention, flash sales, sagas.
 - Food delivery (FTGO) — choreographed multi-service sagas.
 - Chat / messaging — websockets, connection scaling, ordering.

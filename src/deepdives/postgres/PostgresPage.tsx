@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import SiteNav from '../../components/SiteNav'
 import SiteFooter from '../../components/SiteFooter'
+import IdeaStrip from '../../components/IdeaStrip'
 import TracePlayer from '../../components/TracePlayer'
 import MetricRunbook from '../../components/MetricRunbook'
 import { Sandbox } from '../ModulePanel'
@@ -86,6 +87,13 @@ export default function PostgresPage() {
             want it explained: <b>what one backend actually does with your UPDATE</b>, what
             hardware it consumes, and only then how it scales.
           </p>
+
+          <IdeaStrip
+            ideas={[
+              { slug: 'replication-leader', label: 'Leader & Followers' },
+              { slug: 'replication-lag', label: 'Replication Lag' },
+            ]}
+          />
 
           <Ch id="abstraction" n={1} title="The core abstraction: the transaction">
             <p>

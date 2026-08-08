@@ -1,13 +1,32 @@
 ---
 name: scalelab-design
-description: Scale Lab's design system for deep-dive pages and canvas visualizations. Use BEFORE building or editing any component page (flagship or classic), TracePlayer trace, sandbox/meter widget, runbook, or canvas drawing — it carries the validated palette, trace-geometry rules, the nine-chapter flagship template, and the wiring checklist. Triggers: new deep-dive, flagship upgrade, TraceSpec, trace animation, sandbox, hardware envelope, runbook, catalog entry.
+description: Design system for "DDIA, as a live comic" (formerly Scale Lab) — the graphic-novel reading skin (idea comics) AND the dark canvas visualizations (deep-dives, sims). Use BEFORE building or editing any idea comic, component page (flagship or classic), TracePlayer trace, sandbox/meter widget, runbook, canvas drawing, or re-skinning a page. Carries the comic skin + two-accent rule, the validated viz palette, trace-geometry rules, the nine-chapter flagship template, and the wiring checklist. Triggers: idea comic, /read, comic skin, new deep-dive, flagship upgrade, TraceSpec, trace animation, sandbox, hardware envelope, runbook, catalog entry.
 ---
 
-# Scale Lab design system
+# DDIA, as a live comic — design system
 
-Every page here was built to one standard: **explain the system the way you'd
-want it explained, and let the reader push on it until it breaks.** The Kafka
-and Postgres flagship pages are the reference implementations — when in doubt,
+The project turns the arcane ideas of *Designing Data-Intensive Applications*
+into a technical **graphic novel**, then applies them to real components and
+architectures. Two layers of craft share one book:
+
+- **The graphic-novel skin** — the whole app's house style (paper, ink borders,
+  hard shadows, Playfair/Comic Neue). Idea comics (`/read`) are pure reading;
+  the deep-dives and sims are converted to the same skin with their live
+  visualizations kept as dark **"figure panels."** Everything below about the
+  comic skin, the two-accent rule, authoring a comic, and the token-flip
+  conversion lives in **[references/comic-skin.md](references/comic-skin.md).**
+  Read it before touching `/read`, the home, or re-skinning a page.
+
+- **The canvas/viz system** (below) — unchanged. The dark surface, the closed
+  `VIZ` palette, and the trace-geometry rules still govern every canvas drawing,
+  because those figures stay dark inside the comic. Model: an *idea* (comic) →
+  the *component* that embodies it (deep-dive) → the *architecture* at scale (sim);
+  cross-link all three.
+
+Every page was built to one standard: **explain the system the way you'd want it
+explained, and let the reader push on it until it breaks.** The Kafka and Postgres
+flagship pages are the reference deep-dives; the Partitioning comic
+(`src/read/comics/partitioning.tsx`) is the reference idea comic — when in doubt,
 open them and copy the pattern, not just the vibe.
 
 ## Non-negotiable invariants

@@ -1,0 +1,198 @@
+import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
+import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
+import { rich } from './rich'
+
+// self-hosted fonts (no runtime network dependency)
+import '@fontsource/playfair-display/700.css'
+import '@fontsource/playfair-display/800.css'
+import '@fontsource/playfair-display/900.css'
+import '@fontsource/comic-neue/400.css'
+import '@fontsource/comic-neue/700.css'
+import '@fontsource/newsreader/400.css'
+import '@fontsource/newsreader/500.css'
+import '@fontsource/newsreader/600.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
+import '../styles/comic.css'
+
+/** render one code line, colouring text after `#` as a comment */
+function codeLine(t: string) {
+  const hash = t.indexOf('#')
+  if (hash < 0) return t
+  return (
+    <>
+      {t.slice(0, hash)}
+      <span className="cm">{t.slice(hash)}</span>
+    </>
+  )
+}
+
+function CodeBlock({ code }: { code: CodeBlockT }) {
+  return (
+    <div className="gn-code">
+      <div className="bar">
+        <i />
+        <span className="fn">{code.file}</span>
+      </div>
+      <pre>
+        {code.lines.map((l, i) => (
+          <span key={i} className={'ln' + (l.hl === 'good' ? ' hl-good' : l.hl === 'bad' ? ' hl-bad' : '')}>
+            {codeLine(l.t)}
+            {'\n'}
+          </span>
+        ))}
+      </pre>
+    </div>
+  )
+}
+
+function Panel({ step }: { step: Step }) {
+  const wide = step.span === 2 || !!step.diagram
+  const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
+  const body = (
+    <>
+      {step.body?.map((p, i) => <p key={i}>{rich(p)}</p>)}
+      {step.code && <CodeBlock code={step.code} />}
+      {step.callout && (
+        <div className={'gn-callout ' + (step.callout.kind === 'good' ? 'good' : 'bad')}>
+          <span className="big">{step.callout.big}</span>
+          <span className="t">{rich(step.callout.text)}</span>
+        </div>
+      )}
+    </>
+  )
+  return (
+    <article className={'gn-panel box lift' + accent + (wide ? ' gn-span2' : '')} data-obs>
+      <div className="head">
+        <span className="gn-step">{step.n}</span>
+        <span className="ht">{step.title}</span>
+      </div>
+      {step.diagram ? (
+        <div className="gn-diagram">
+          <div>{body}</div>
+          {step.diagram}
+        </div>
+      ) : (
+        body
+      )}
+    </article>
+  )
+}
+
+export default function ComicView({ comic }: { comic: Comic }) {
+  const barRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    const bar = barRef.current
+    const onScroll = () => {
+      const h = document.documentElement
+      const max = h.scrollHeight - h.clientHeight
+      if (bar) bar.style.width = (max > 0 ? (h.scrollTop / max) * 100 : 0) + '%'
+    }
+    document.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
+    const nodes = Array.from(document.querySelectorAll('.gn [data-obs]'))
+    let io: IntersectionObserver | null = null
+    if (!reduce && 'IntersectionObserver' in window) {
+      io = new IntersectionObserver(
+        (es) => {
+          for (const e of es)
+            if (e.isIntersecting) {
+              e.target.classList.add('in')
+              io!.unobserve(e.target)
+            }
+        },
+        { threshold: 0.15, rootMargin: '0px 0px -6% 0px' },
+      )
+      nodes.forEach((el, i) => {
+        ;(el as HTMLElement).style.transitionDelay = Math.min(i, 4) * 35 + 'ms'
+        io!.observe(el)
+      })
+    } else {
+      nodes.forEach((el) => el.classList.add('in'))
+    }
+    return () => {
+      document.removeEventListener('scroll', onScroll)
+      io?.disconnect()
+    }
+  }, [comic.slug])
+
+  return (
+    <div className="gn">
+      <div className="gn-progress" aria-hidden="true">
+        <i ref={barRef} />
+      </div>
+
+      <nav className="gn-nav">
+        <div className="gn-nav-in">
+          <Link className="gn-brand" to="/">
+            <b>DDIA</b>
+            <span className="tl">, as a live comic</span>
+          </Link>
+          <span className="sp" />
+          <Link className="gn-link" to="/read">
+            ← All ideas
+          </Link>
+        </div>
+      </nav>
+
+      <div className="gn-sheet">
+        <header className="gn-mast box" data-obs>
+          <div className="gn-kicker">Inspired by DDIA · {comic.chapter}</div>
+          <h1>{comic.title}</h1>
+          <p className="dek">{comic.dek}</p>
+          <div className="gn-tags">
+            <span className="gn-tag">Reading time · {comic.minutes} min</span>
+            <span className="gn-tag">{comic.chapterNo}</span>
+          </div>
+        </header>
+
+        <main className="gn-page">
+          <section className="gn-caption" data-obs>
+            <div className="nl">Narration</div>
+            <p>{rich(comic.caption)}</p>
+          </section>
+
+          {comic.steps.map((s, i) => (
+            <Panel key={i} step={s} />
+          ))}
+
+          {comic.bubbles && comic.bubbles.length > 0 && (
+            <aside className="gn-bubbles gn-span2" data-obs>
+              {comic.bubbles.map((b, i) => (
+                <div className="gn-bubble" key={i}>
+                  <span className="term">{b.term}</span> {b.body}
+                </div>
+              ))}
+            </aside>
+          )}
+
+          <section className="gn-finale" data-obs>
+            <div className="k">See this for real</div>
+            <h3>{comic.finale.title}</h3>
+            <p>{rich(comic.finale.body)}</p>
+            <div className="gn-seen">
+              {comic.seenIn.map((s, i) =>
+                s.to ? (
+                  <Link key={i} className={s.live ? 'live' : ''} to={s.to}>
+                    {s.label}
+                  </Link>
+                ) : (
+                  <span key={i}>{s.label}</span>
+                ),
+              )}
+            </div>
+          </section>
+
+          <div className="gn-next">
+            <span>DDIA, as a live comic — inspired by the book by Martin Kleppmann</span>
+            {comic.next && <Link to={'/read/' + comic.next.slug}>Next: {comic.next.title} →</Link>}
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+}

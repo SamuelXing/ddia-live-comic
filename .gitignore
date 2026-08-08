@@ -10,3 +10,6 @@ npm-debug.log*
 *.tsbuildinfo
 
 _to_delete/
+
+# private design scratch space
+design/

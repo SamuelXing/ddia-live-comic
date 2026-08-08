@@ -58,6 +58,20 @@ button { font-family: inherit; cursor: pointer; }
 .btn-ghost { background: var(--card); color: var(--ink); }
 .btn-ghost:hover { border-color: var(--line); color: #fff; }
 
+/* ===== idea cross-link strip (Layer 2/3 → Layer 1 comics) ===== */
+.idea-strip {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 9px 14px;
+  margin: 6px 0 26px; padding: 12px 16px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
+.idea-strip-l { font-size: 11.5px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); }
+.idea-strip-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.idea-strip-links a {
+  font-size: 13px; font-weight: 650; color: var(--accent-2);
+  border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; transition: 0.15s;
+}
+.idea-strip-links a:hover { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: #fff; }
+
 /* ===== 404 ===== */
 .nf { min-height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
 .nf h1 { font-size: 44px; margin: 0; letter-spacing: -0.03em; }

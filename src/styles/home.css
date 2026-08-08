@@ -31,6 +31,8 @@
 
 /* pillars */
 .home-page .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.home-page .pillars.three { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) { .home-page .pillars.three { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .home-page .pillars { grid-template-columns: 1fr; } }
 .home-page .pillar {
   background: linear-gradient(180deg, var(--card-2), var(--card));
@@ -44,6 +46,7 @@
 .home-page .pillar .go { font-weight: 700; font-size: 14px; color: var(--accent-2); }
 .home-page .pill-a .pi { background: rgba(57, 135, 229, 0.14); }
 .home-page .pill-b .pi { background: rgba(144, 133, 233, 0.16); }
+.home-page .pill-c .pi { background: rgba(201, 133, 0, 0.16); }
 
 /* app gallery */
 .home-page .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }

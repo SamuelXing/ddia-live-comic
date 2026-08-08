@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import SiteNav from '../../components/SiteNav'
 import SiteFooter from '../../components/SiteFooter'
+import IdeaStrip from '../../components/IdeaStrip'
 import TracePlayer from '../../components/TracePlayer'
 import MetricRunbook from '../../components/MetricRunbook'
 import ClusterZoom from './ClusterZoom'
@@ -85,6 +86,14 @@ export default function KafkaPage() {
             This page walks the system the way you&apos;d want it explained: <b>what one broker
             actually does</b>, what hardware it consumes, and only then how it scales.
           </p>
+
+          <IdeaStrip
+            ideas={[
+              { slug: 'partitioning', label: 'Consistent Hashing' },
+              { slug: 'replication-leader', label: 'Leader & Followers' },
+              { slug: 'replication-quorum', label: 'Leaderless & Quorums' },
+            ]}
+          />
 
           <Ch id="abstraction" n={1} title="The core abstraction: the log">
             <p>

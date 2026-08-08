@@ -1,0 +1,183 @@
+/* ============================================================
+   Comic theme for the DARK app pages (deep-dives + sims).
+   Flips the token-driven .dd-page / .sim-page surfaces to the
+   graphic-novel skin (paper, ink borders, hard shadows, Playfair)
+   WITHOUT touching their JSX. Canvas visualizations stay dark and
+   read as inked "figure panels."
+
+   Override rules use `.dd-page[class]` / `.sim-page[class]` so they
+   win over deepdives/flagship/sim.css regardless of bundle order.
+   Fonts self-hosted via @fontsource (imported here).
+   ============================================================ */
+@import '@fontsource/playfair-display/700.css';
+@import '@fontsource/playfair-display/800.css';
+@import '@fontsource/playfair-display/900.css';
+@import '@fontsource/comic-neue/400.css';
+@import '@fontsource/comic-neue/700.css';
+@import '@fontsource/newsreader/400.css';
+@import '@fontsource/newsreader/500.css';
+@import '@fontsource/newsreader/600.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+
+/* ---- token flip (specificity of .dd-page/.sim-page beats :root) ---- */
+.dd-page,
+.sim-page {
+  --bg: #f7f4ef;
+  --plane: #efe7d6;
+  --panel: #f1ead9;
+  --panel-2: #e7ddc8;
+  --card: #fffdf8;
+  --card-2: #f5eedd;
+  --ink: #16130f;
+  --ink-2: #45403a;
+  --muted: #8a8177;
+  --line: rgba(26, 26, 26, 0.3);
+  --border: rgba(26, 26, 26, 0.16);
+  --accent: #3f6191;
+  --accent-2: #29456c;
+  --good: #2f7d52;
+  --warn: #b0791f;
+  --hot: #bd4a30;
+  --crit: #bd4a30;
+  --good-fill: #e7f2ea;
+  --warn-fill: #f6efdc;
+  --crit-fill: #fbeee8;
+  --radius: 5px;
+  --radius-sm: 4px;
+  --shadow: 3px 3px 0 #1a1a1a;
+
+  --gnf-display: 'Playfair Display', Georgia, serif;
+  --gnf-comic: 'Comic Neue', 'Comic Sans MS', system-ui, sans-serif;
+  --gnf-body: 'Newsreader', Georgia, serif;
+  --gnf-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+
+  font-family: var(--gnf-body);
+  /* headings inherit color from <body> (computed white) unless we set it
+     explicitly here so the flipped --ink actually reaches them */
+  color: var(--ink);
+}
+
+/* ---- paper ground + subtle halftone ---- */
+.dd-page[class] {
+  background:
+    radial-gradient(120% 60% at 85% -6%, rgba(63, 97, 145, 0.06), transparent 60%),
+    var(--bg);
+  min-height: 100vh;
+}
+
+/* ---- headings → Playfair, kickers/labels → mono ---- */
+.dd-page[class] h1.title,
+.dd-page[class] h2,
+.dd-page[class] h3,
+.dd-page[class] .ch-head h2,
+.sim-page[class] .mission h2 {
+  font-family: var(--gnf-display);
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.dd-page[class] h1.title { font-weight: 900; }
+.dd-page[class] .h-kicker,
+.dd-page[class] .cat-sec,
+.dd-page[class] .sb-title,
+.dd-page[class] .src .s-k,
+.sim-page[class] .m-kicker,
+.sim-page[class] .m-sec,
+.sim-page[class] .kpi .k {
+  font-family: var(--gnf-mono);
+  font-weight: 500;
+}
+.dd-page[class] .lede { font-family: var(--gnf-body); }
+
+/* ---- ink-bordered, hard-shadow panels (the comic craft) ---- */
+.dd-page[class] .card,
+.dd-page[class] .tile,
+.dd-page[class] .mini-card,
+.dd-page[class] .trace,
+.dd-page[class] .src,
+.dd-page[class] .rb-card,
+.dd-page[class] .bigfact,
+.dd-page[class] .blast-card,
+.dd-page[class] .cat-card,
+.dd-page[class] .boundary,
+.sim-page[class] .kpi,
+.sim-page[class] .mission,
+.sim-page[class] .goal {
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+.dd-page[class] .cat-card.flagship {
+  background: linear-gradient(120deg, rgba(63, 97, 145, 0.12), var(--card) 55%);
+  box-shadow: 4px 4px 0 #3f6191;
+}
+.dd-page[class] .cat-card:hover,
+.dd-page[class] .bigfact:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0 #1a1a1a;
+}
+
+/* ---- chapter number badge → ink block ---- */
+.dd-page[class] .ch-num {
+  background: #16130f;
+  border: 2px solid #1a1a1a;
+  border-radius: 6px;
+  font-family: var(--gnf-comic);
+}
+
+/* ---- keep canvases DARK: inked night-scene figure panels ---- */
+.dd-page[class] .trace-body canvas {
+  background: #0d0f14;
+}
+.dd-page[class] .trace {
+  overflow: hidden;
+}
+.sim-page[class] .canvas-card {
+  background: #0d0f14;
+  border: 2px solid #1a1a1a;
+  box-shadow: 3px 3px 0 #1a1a1a;
+}
+.sim-page[class] .legend {
+  background: rgba(13, 15, 20, 0.82);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+.sim-page[class] .legend span { color: #cfd4de; }
+
+/* ---- primary buttons → comic (ink fill, hard terra shadow) ---- */
+.dd-page[class] .trace-ctrl button.play,
+.sim-page[class] .tbtn.play,
+.sim-page[class] .tbtn.on {
+  background: #16130f;
+  border: 2px solid #1a1a1a;
+  color: #f7f4ef;
+  box-shadow: 2px 2px 0 #bd5f3d;
+  font-family: var(--gnf-comic);
+  font-weight: 700;
+}
+
+/* ---- slider track on paper ---- */
+.dd-page[class] input[type='range'],
+.sim-page[class] input[type='range'] { background: #e7ddc8; }
+.dd-page[class] input[type='range']::-webkit-slider-thumb,
+.sim-page[class] input[type='range']::-webkit-slider-thumb { border-color: #fffdf8; }
+
+/* ---- sim top bar + stepper → paper chrome ---- */
+.sim-page[class] .topbar,
+.sim-page[class] .stepper { background: var(--panel); border-bottom: 2px solid #1a1a1a; }
+.sim-page[class] .home-link { font-family: var(--gnf-display); font-weight: 800; }
+.sim-page[class] .srung[aria-current='true'] {
+  background: rgba(63, 97, 145, 0.12);
+  border-color: #3f6191;
+}
+
+/* ---- shared SiteNav, when it sits inside a themed page ---- */
+.dd-page[class] .site-nav {
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  border-bottom: 2px solid #1a1a1a;
+}
+.dd-page[class] .brand { font-family: var(--gnf-display); font-weight: 800; }
+.dd-page[class] .nav-links a { font-family: var(--gnf-mono); font-size: 13px; }
+.dd-page[class] .nav-cta { font-family: var(--gnf-comic); font-weight: 700; border: 2px solid #1a1a1a; box-shadow: 2px 2px 0 #bd5f3d; }
+.dd-page[class] .site-footer { border-top: 2px solid #1a1a1a; }
+
+/* ---- dd-tabs (component sub-nav) → paper ---- */
+.dd-page[class] .dd-tabs { background: var(--bg); border-bottom: 2px solid #1a1a1a; }
