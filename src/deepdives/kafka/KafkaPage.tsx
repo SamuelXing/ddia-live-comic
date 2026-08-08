@@ -76,7 +76,7 @@ export default function KafkaPage() {
         </aside>
 
         <div className="fl-body">
-          <p className="h-kicker">📨 &nbsp;Flagship deep-dive · distributed log</p>
+          <p className="h-kicker">Deep-dive · distributed log</p>
           <h1 className="title">Apache Kafka</h1>
           <p className="lede">
             Kafka is what happens when you take one idea — <b>a replicated, append-only log on the

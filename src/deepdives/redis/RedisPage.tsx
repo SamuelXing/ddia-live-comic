@@ -74,7 +74,7 @@ export default function RedisPage() {
         </aside>
 
         <div className="fl-body">
-          <p className="h-kicker">⚡ &nbsp;Flagship deep-dive · in-memory data structures</p>
+          <p className="h-kicker">Deep-dive · in-memory data structures</p>
           <h1 className="title">Redis</h1>
           <p className="lede">
             Redis is what you get when you <b>delete the durability constraint and spend all the
