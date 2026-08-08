@@ -31,6 +31,16 @@ export const SIMS: SimEntry[] = [
     accent: '#3987e5',
   },
   {
+    id: 'observability',
+    emoji: '📊',
+    name: 'Observability at Scale',
+    status: 'live',
+    path: '/sims/observability',
+    desc: 'Logs, metrics, and traces from a million agents. Buffer the firehose, scale the index tier, survive a cardinality explosion, tier the storage, and meter per-team — a Splunk/Datadog-shaped pipeline.',
+    tags: ['ingest fan-in', 'cardinality explosion', 'hot/cold tiering', 'quotas'],
+    accent: '#e6a72a',
+  },
+  {
     id: 'checkout',
     emoji: '🛒',
     name: 'E-commerce Checkout',
