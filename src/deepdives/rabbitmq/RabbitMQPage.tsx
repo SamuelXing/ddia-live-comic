@@ -74,7 +74,7 @@ export default function RabbitMQPage() {
         </aside>
 
         <div className="fl-body">
-          <p className="h-kicker">🐰 &nbsp;Flagship deep-dive · message broker</p>
+          <p className="h-kicker">Deep-dive · message broker</p>
           <h1 className="title">RabbitMQ</h1>
           <p className="lede">
             RabbitMQ is the <b>opposite bet from Kafka</b>, made a decade earlier: put the

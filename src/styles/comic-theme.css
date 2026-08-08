@@ -83,9 +83,7 @@
 
 /* ---- paper ground + subtle halftone ---- */
 .dd-page[class] {
-  background:
-    radial-gradient(120% 60% at 85% -6%, rgba(63, 97, 145, 0.06), transparent 60%),
-    var(--bg);
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -129,15 +127,42 @@
   border: 2px solid #1a1a1a;
   box-shadow: 3px 3px 0 #1a1a1a;
 }
-.dd-page[class] .cat-card.flagship {
-  background: linear-gradient(120deg, rgba(63, 97, 145, 0.12), var(--card) 55%);
-  box-shadow: 4px 4px 0 #3f6191;
-}
-.dd-page[class] .cat-card:hover,
 .dd-page[class] .bigfact:hover {
   transform: translate(-3px, -3px);
   box-shadow: 6px 6px 0 #1a1a1a;
 }
+
+/* ---- de-slop: square the rounded pills, re-comic the chrome, and fix the
+     paper contrast the token-flip missed. Applies to all flagship pages. ---- */
+.dd-page[class] .seg,
+.dd-page[class] .seg button,
+.dd-page[class] .pill,
+.dd-page[class] .ctl-val,
+.dd-page[class] .rb-sev,
+.dd-page[class] .rb-jmx,
+.dd-page[class] .rb-expand,
+.dd-page[class] .zoom-seg,
+.dd-page[class] .zoom-seg button,
+.dd-page[class] .zoom-chip,
+.dd-page[class] .idea-strip,
+.dd-page[class] .idea-strip-links a {
+  border-radius: 2px;
+}
+/* segmented toggle → ink; active is an ink block, not white-on-accent */
+.dd-page[class] .seg { border: 2px solid #1a1a1a; background: var(--card); }
+.dd-page[class] .seg button[aria-pressed='true'] { background: #16130f; color: #f7f4ef; }
+/* slider readout → flat ink chip (was a translucent accent pill) */
+.dd-page[class] .ctl-val { background: var(--panel-2); color: var(--ink); }
+/* runbook severity → squared comic tags: terra = page (wake someone), grey = watch */
+.dd-page[class] .rb-sev { border: 2px solid; background: transparent; font-family: var(--gnf-mono); }
+.dd-page[class] .rb-sev.sev-page { color: #97462a; border-color: #bd5f3d; }
+.dd-page[class] .rb-sev.sev-watch { color: #6f665b; border-color: #cbb8a6; }
+.dd-page[class] .rb-card.sev-page,
+.dd-page[class] .rb-card.sev-watch { border-left-color: #1a1a1a; }
+/* idea-strip → comic panel + squared ink tags with an ink hover (not white-on-accent) */
+.dd-page[class] .idea-strip { border: 2px solid #1a1a1a; background: var(--card); box-shadow: 3px 3px 0 #1a1a1a; }
+.dd-page[class] .idea-strip-links a { border: 2px solid #1a1a1a; color: var(--ink-2); background: transparent; }
+.dd-page[class] .idea-strip-links a:hover { background: rgba(63, 97, 145, 0.12); color: #16130f; border-color: #1a1a1a; }
 
 /* ---- chapter number badge → ink block ---- */
 .dd-page[class] .ch-num {

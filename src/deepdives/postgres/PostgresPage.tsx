@@ -75,7 +75,7 @@ export default function PostgresPage() {
         </aside>
 
         <div className="fl-body">
-          <p className="h-kicker">🐘 &nbsp;Flagship deep-dive · relational database</p>
+          <p className="h-kicker">Deep-dive · relational database</p>
           <h1 className="title">PostgreSQL</h1>
           <p className="lede">
             Postgres is built on two ideas that explain everything else about it. <b>Every change
