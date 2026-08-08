@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { LeaderFollowerDiagram } from '../diagrams'
+import { LeaderFollowerDiagram, ReplicationLogDiagram, SyncAsyncDiagram } from '../diagrams'
 
 export const replicationLeader: Comic = {
   slug: 'replication-leader',
@@ -26,6 +26,7 @@ export const replicationLeader: Comic = {
       n: 'Step 02',
       title: 'The replication log',
       rung: 'Rung 2 · Mechanism',
+      diagram: <ReplicationLogDiagram />,
       body: [
         'When the leader applies a write, it also appends it to a **replication log** and streams that log to every follower. Each follower replays the log in the same order.',
         'Same starting state + same ordered changes = same ending state. This is why Postgres ships its **WAL** to replicas and Kafka followers copy the leader’s **log** verbatim.',
@@ -50,6 +51,21 @@ export const replicationLeader: Comic = {
       title: 'Sync or async?',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <SyncAsyncDiagram />,
+      code: {
+        file: 'write_path.py',
+        lines: [
+          { t: 'def write_sync(v):' },
+          { t: '    leader.apply(v)' },
+          { t: '    follower.wait_for_ack(v)   # blocks right here', hl: 'good' },
+          { t: '    return "ok"                # 2 machines hold it' },
+          { t: '' },
+          { t: 'def write_async(v):            # the common default' },
+          { t: '    leader.apply(v)' },
+          { t: '    send_and_forget(follower, v)' },
+          { t: '    return "ok"                # only 1 machine holds it', hl: 'bad' },
+        ],
+      },
       body: [
         '**Synchronous:** the leader waits for a follower to confirm before telling the client “done”. Safe — the write survives a leader crash — but one slow follower stalls every write.',
         '**Asynchronous:** the leader confirms immediately and streams to followers whenever. Fast, but a crash can lose the last few writes. Almost everyone runs async, and spends the rest of their life managing what that costs.',

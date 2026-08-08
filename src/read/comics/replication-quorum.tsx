@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { QuorumDiagram } from '../diagrams'
+import { QuorumDiagram, QuorumWriteDiagram, DialsDiagram, ConflictDiagram } from '../diagrams'
 
 export const replicationQuorum: Comic = {
   slug: 'replication-quorum',
@@ -15,6 +15,7 @@ export const replicationQuorum: Comic = {
       n: 'Step 01',
       title: 'Write to many, read from many',
       rung: 'Rung 1 · Intuition',
+      diagram: <QuorumWriteDiagram />,
       body: [
         'With **N** replicas, don’t wait for all of them. A write succeeds once **W** replicas acknowledge; a read asks **R** replicas and takes the newest answer.',
         'Fast and available — a few dead replicas don’t stop you. But how do you avoid reading stale data when nobody is in charge?',
@@ -52,6 +53,21 @@ export const replicationQuorum: Comic = {
       n: 'Step 03',
       title: 'Tune the dials',
       rung: 'Rung 2 · Mechanism',
+      diagram: <DialsDiagram />,
+      code: {
+        file: 'tune.py',
+        lines: [
+          { t: 'N, W, R = 5, 3, 3      # W + R = 6 > 5  -> fresh reads', hl: 'good' },
+          { t: 'N, W, R = 5, 1, 1      # W + R = 2 < 5  -> may read stale', hl: 'bad' },
+          { t: '' },
+          { t: '# heal the replicas that missed a write' },
+          { t: 'on_read(k, replies):' },
+          { t: '    newest = max(replies, key=version)' },
+          { t: '    for r in replies:' },
+          { t: '        if version(r) < version(newest):' },
+          { t: '            write_back(r.node, k, newest)   # read repair' },
+        ],
+      },
       body: [
         'The same knobs trade speed for safety. Want **fast writes**? Lower W. Want **fast reads**? Lower R. Want them cheap and are willing to read stale? Break the inequality on purpose.',
         '**Read repair** and **anti-entropy** run in the background to heal replicas that missed a write, so the stragglers converge over time.',
@@ -62,6 +78,18 @@ export const replicationQuorum: Comic = {
       title: 'The honest caveat',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <ConflictDiagram />,
+      code: {
+        file: 'resolve.py',
+        lines: [
+          { t: '# last-write-wins: simple, and silently drops a write' },
+          { t: 'winner = max(versions, key=lambda v: v.timestamp)', hl: 'bad' },
+          { t: '' },
+          { t: '# keep both: the app (or a CRDT) merges them' },
+          { t: 'if concurrent(v1, v2):' },
+          { t: '    return merge(v1, v2)        # e.g. union the cart', hl: 'good' },
+        ],
+      },
       body: [
         'Quorums are not magic. Concurrent writes to different replicas can still **conflict**, and edge cases (sloppy quorums, timing) can hand back stale data even when `W + R > N`. Leaderless buys availability; it does not buy you linearizability for free.',
       ],

@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { RingDiagram } from '../diagrams'
+import { RingDiagram, ModuloDiagram, StampedeDiagram, VirtualNodesDiagram } from '../diagrams'
 
 export const partitioning: Comic = {
   slug: 'partitioning',
@@ -15,6 +15,7 @@ export const partitioning: Comic = {
       n: 'Step 01',
       title: 'The naïve map',
       rung: 'Rung 1 · Intuition',
+      diagram: <ModuloDiagram />,
       body: [
         'The obvious answer: hash the key, take it modulo the number of nodes. Even spread, one line of math, nothing to store.',
       ],
@@ -28,6 +29,7 @@ export const partitioning: Comic = {
       title: 'The stampede',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <StampedeDiagram />,
       body: [
         'Grow from four nodes to five and the modulo shifts under **almost every key**. Data that never needed to move gets rehashed to a different node all at once.',
       ],
@@ -80,6 +82,16 @@ export const partitioning: Comic = {
       title: 'Add a node, calmly',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <VirtualNodesDiagram />,
+      code: {
+        file: 'vnodes.py',
+        lines: [
+          { t: '# place each machine at many points so slices stay small' },
+          { t: 'for node in nodes:' },
+          { t: '    for i in range(128):                 # 128 virtual nodes' },
+          { t: '        ring[hash(f"{node}#{i}")] = node', hl: 'good' },
+        ],
+      },
       body: [
         'Naïvely, one point per node gives **lumpy** slices — one node can own a fat arc, and a lost node dumps all its keys on a single neighbour. Fix: place each machine at **many** points on the ring (**virtual nodes**), so load evens out and a departure spreads across *all* survivors.',
       ],
