@@ -123,5 +123,5 @@ export const partitioning: Comic = {
     title: 'Watch the ring rebalance under load',
     body: 'You’ve got the idea. Now operate it at production scale: add a node and watch exactly which keys move — the mechanism inside Redis Cluster’s hash slots and Kafka’s partition assignment.',
   },
-  next: { slug: 'replication-leader', title: 'Leader & Followers' },
+  next: { slug: 'transactions', title: 'Isolation Levels' },
 }
