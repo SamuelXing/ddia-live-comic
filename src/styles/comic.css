@@ -125,9 +125,12 @@
 .gn-code .hl-bad { background: rgba(189,95,61,.26); box-shadow: inset 3px 0 0 var(--terra); }
 
 /* diagram layout inside a wide panel */
-.gn-diagram { display: grid; grid-template-columns: 1fr 176px; gap: 18px; align-items: center; }
-@media (max-width: 560px) { .gn-diagram { grid-template-columns: 1fr; } }
-.gn-diagram svg { width: 100%; height: auto; display: block; }
+/* a step's drawing sits beside its prose and carries real weight — it's a
+   comic panel, not a thumbnail. Framed on paper so it reads as inked art. */
+.gn-diagram { display: grid; grid-template-columns: 1fr minmax(280px, 340px); gap: 24px; align-items: center; }
+@media (max-width: 700px) { .gn-diagram { grid-template-columns: 1fr; } }
+.gn-diagram svg { width: 100%; height: auto; display: block; border: 2px solid var(--ink-line);
+  background: var(--paper-2); padding: 10px; }
 
 /* seen-in / finale */
 .gn-finale { grid-column: 1 / -1; border: 2px solid var(--ink-line); background: var(--paper-2);

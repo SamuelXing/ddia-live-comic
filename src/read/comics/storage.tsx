@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { StorageDiagram } from '../diagrams'
+import { AppendScanDiagram, BTreeDiagram, LsmFlowDiagram, AmplificationDiagram } from '../diagrams'
 
 export const storage: Comic = {
   slug: 'storage',
@@ -15,6 +15,7 @@ export const storage: Comic = {
       n: 'Step 01',
       title: 'Append is fast; finding is slow',
       rung: 'Rung 1 · Intuition',
+      diagram: <AppendScanDiagram />,
       body: [
         'Writing to the end of a file is the fastest thing a disk does — sequential, no seeking. But to `get(k)` you’d scan the whole log. An **index** is the extra structure you maintain on writes to make reads fast — and every index is a **write-time cost paid for read-time speed**.',
         'The two families make opposite bets on where to pay.',
@@ -25,7 +26,7 @@ export const storage: Comic = {
       title: 'B-tree: update in place',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
-      diagram: <StorageDiagram />,
+      diagram: <BTreeDiagram />,
       body: [
         'A **B-tree** stores keys sorted, in fixed-size [[page|A fixed-size block (often 4–8 KB) that is the unit of disk I/O and caching. The B-tree is a tree of pages; you read and write whole pages at a time.]]s arranged as a shallow, wide tree. A lookup walks a handful of pages from root to leaf — **very fast, predictable reads**.',
         'A write finds the right leaf page and **modifies it in place**; if the page is full it **splits**. This is the workhorse behind Postgres, MyS/InnoDB, and most relational databases.',
@@ -36,6 +37,7 @@ export const storage: Comic = {
       title: 'LSM-tree: buffer, flush, compact',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <LsmFlowDiagram />,
       body: [
         'An **LSM-tree** takes the opposite bet. Writes land in an in-memory **memtable** (sorted); when it fills, it’s flushed to disk as an immutable, sorted **SSTable**. Reads check the memtable, then SSTables newest-first.',
         'Files never change once written, so a background **compaction** merges them, drops overwritten keys, and keeps the count down. Behind Cassandra, RocksDB, and most write-heavy stores.',
@@ -52,6 +54,7 @@ export const storage: Comic = {
       title: 'The tradeoff has a name',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <AmplificationDiagram />,
       body: [
         'Neither wins outright — it’s **amplification**. A B-tree does more **write** work (it writes each change twice: once to the WAL, once to the page) and can leave pages partly empty. An LSM does less write work up front but pays it back in **compaction**, and a read may check several files.',
         'Rule of thumb: **B-tree for read-heavy** transactional work; **LSM for write-heavy** ingest. Same `put`/`get` interface, opposite disk bargain.',

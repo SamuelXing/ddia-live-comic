@@ -243,3 +243,101 @@ export function StorageDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   Per-step panels — one drawing per beat, so each comic reads as a
+   sequence of pictures rather than prose with a single illustration.
+   Ch 3 · Storage & Retrieval
+   ============================================================ */
+
+/** Ch 3 · Step 01 — appending is O(1); finding means scanning the whole log. */
+export function AppendScanDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Records appended to the end of a log are fast to write, but a lookup must scan every record.">
+      <defs>
+        <marker id="gn-ap-t" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} /></marker>
+        <marker id="gn-ap-m" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+      </defs>
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>log file</text>
+      {[10, 44, 78, 112].map((x) => (
+        <rect key={x} x={x} y="28" width="30" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      ))}
+      <rect x="146" y="28" width="22" height="20" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <path d="M157 12 L157 24" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-ap-t)" />
+      <text x="157" y="60" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>append</text>
+      <text x="88" y="86" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>write = fast</text>
+      <path d="M10 106 L166 106" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-ap-m)" />
+      <text x="88" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>get(k) checks every record</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>read = slow</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 02 — a B-tree lookup walks a few pages; writes edit a page in place. */
+export function BTreeDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A B-tree: a root page points to internal pages, which point to leaf pages; a lookup walks one path from root to leaf.">
+      <rect x="62" y="16" width="52" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="29" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">root page</text>
+      <path d="M76 34 L46 56" stroke={DENIM} strokeWidth="2.5" />
+      <path d="M100 34 L130 56" stroke={INK} strokeWidth="1.5" />
+      <rect x="18" y="58" width="56" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2.5" />
+      <rect x="102" y="58" width="56" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <path d="M36 76 L28 98" stroke={DENIM} strokeWidth="2.5" />
+      <path d="M58 76 L66 98" stroke={INK} strokeWidth="1.5" />
+      <path d="M120 76 L112 98" stroke={INK} strokeWidth="1.5" />
+      <path d="M140 76 L148 98" stroke={INK} strokeWidth="1.5" />
+      <rect x="10" y="100" width="34" height="18" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2.5" />
+      <rect x="50" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="92" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="132" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="27" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>leaf</text>
+      <text x="88" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>one path, a few pages</text>
+      <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>write edits a page in place</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 03 — LSM: buffer in memory, flush to sorted files, compact in the background. */
+export function LsmFlowDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Writes buffer in an in-memory memtable, flush to immutable sorted SSTables on disk, and are merged by background compaction.">
+      <defs>
+        <marker id="gn-lsm-i" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="46" y="10" width="84" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">memtable (RAM)</text>
+      <path d="M88 28 L88 42" stroke={INK} strokeWidth="2" markerEnd="url(#gn-lsm-i)" />
+      <text x="96" y="39" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>flush</text>
+      <line x1="6" y1="46" x2="170" y2="46" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="8" y="56" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>disk</text>
+      <rect x="46" y="60" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="46" y="78" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="46" y="96" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable (sorted)</text>
+      <text x="88" y="88" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
+      <text x="88" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
+      <path d="M134 67 C154 67 154 118 110 118" fill="none" stroke={TERRA} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-lsm-i)" />
+      <rect x="46" y="122" width="60" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="76" y="133" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>merged file</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>compaction, in the background</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 04 — the amplification triangle: every engine picks a point. */
+export function AmplificationDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A triangle of write, read, and space amplification; B-trees and LSM-trees sit at different points on it.">
+      <polygon points="88,24 22,124 154,124" fill="none" stroke={INK} strokeWidth="2" />
+      <text x="88" y="16" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>read amp</text>
+      <text x="18" y="138" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>write</text>
+      <text x="156" y="138" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>space</text>
+      <circle cx="60" cy="92" r="6" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="60" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>B-tree</text>
+      <circle cx="114" cy="94" r="6" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="114" y="114" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>LSM</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>no free point on the triangle</text>
+    </svg>
+  )
+}
