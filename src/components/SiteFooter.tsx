@@ -5,14 +5,16 @@ export default function SiteFooter() {
     <footer className="site-footer">
       <div className="wrap foot-in">
         <div>
-          <b style={{ color: 'var(--ink-2)' }}>Scale Lab</b> — an interactive systems-design
-          teaching tool. Numbers are order-of-magnitude engineering rules of thumb; verify against
-          real load tests before sizing production.
+          <b style={{ color: 'var(--ink-2)' }}>DDIA, as a live comic</b> — an unofficial, illustrated
+          companion to <i>Designing Data-Intensive Applications</i> by Martin Kleppmann; not affiliated
+          with the author or O’Reilly. The <b style={{ color: 'var(--ink-2)' }}>Scale Lab</b> simulations
+          use order-of-magnitude engineering rules of thumb; verify against real load tests before sizing
+          production.
         </div>
         <div className="foot-links">
-          <Link to="/">Home</Link>
+          <Link to="/read">Read the Ideas</Link>
           <Link to="/components">Deep-Dives</Link>
-          <Link to="/sims/feed">Feed at Scale</Link>
+          <Link to="/sims/feed">Simulations</Link>
         </div>
       </div>
     </footer>

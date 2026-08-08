@@ -225,6 +225,9 @@ export default function FeedSimPage() {
         <Link className="site-link" to="/components">
           Component Deep-Dives
         </Link>
+        <Link className="site-link" to="/read" title="The ideas this simulation leans on: partitioning (sharding) and replication lag (read replicas)">
+          ◆ Ideas in play
+        </Link>
         <div className="tb-spacer" />
         <div className="speed">
           speed{' '}

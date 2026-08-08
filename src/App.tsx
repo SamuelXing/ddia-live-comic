@@ -6,6 +6,9 @@ import CalculatorPage from './pages/CalculatorPage'
 import KafkaPage from './deepdives/kafka/KafkaPage'
 import PostgresPage from './deepdives/postgres/PostgresPage'
 import FeedSimPage from './sims/feed/FeedSimPage'
+import ObservabilityPage from './sims/observability/ObservabilityPage'
+import ReadIndexPage from './read/IndexPage'
+import ReadPage from './read/ReadPage'
 import NotFound from './pages/NotFound'
 
 export default function App() {
@@ -18,6 +21,9 @@ export default function App() {
       <Route path="/components/calculator" element={<CalculatorPage />} />
       <Route path="/components/:key" element={<ClassicModulePage />} />
       <Route path="/sims/feed" element={<FeedSimPage />} />
+      <Route path="/sims/observability" element={<ObservabilityPage />} />
+      <Route path="/read" element={<ReadIndexPage />} />
+      <Route path="/read/:slug" element={<ReadPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )
