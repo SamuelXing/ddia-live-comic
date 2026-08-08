@@ -24,8 +24,11 @@ export default function SiteNav() {
           Deep-Dives
         </NavLink>
         <a className="gn-link" href="/#apps">
-          Simulations
+          Simulations <span className="exp">(experimental)</span>
         </a>
+        <NavLink className={linkClass} to="/calculator">
+          Calculator
+        </NavLink>
       </div>
     </nav>
   )

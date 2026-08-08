@@ -53,7 +53,7 @@ export default function ComponentsCatalog() {
           {classic.map((c) => (
             <LiveCard c={c} key={c.key} />
           ))}
-          <Link className="gn-cat box lift" to="/components/calculator">
+          <Link className="gn-cat box lift" to="/calculator">
             <div className="gn-cat-top">
               <span className="dot" style={{ background: '#bd5f3d' }} />
               <h3>Capacity calculator</h3>
