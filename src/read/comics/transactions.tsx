@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { WriteSkewDiagram } from '../diagrams'
+import { WriteSkewDiagram, AtomicityDiagram, NonRepeatableDiagram, MvccDiagram, TwoPlSsiDiagram } from '../diagrams'
 
 export const transactions: Comic = {
   slug: 'transactions',
@@ -15,6 +15,17 @@ export const transactions: Comic = {
       n: 'Step 01',
       title: 'The promise',
       rung: 'Rung 1 · Intuition',
+      diagram: <AtomicityDiagram />,
+      code: {
+        file: 'transfer.sql',
+        lines: [
+          { t: 'BEGIN;' },
+          { t: '  UPDATE accounts SET balance = balance - 100 WHERE id = 1;' },
+          { t: '  -- crash right here and NEITHER line survives', hl: 'bad' },
+          { t: '  UPDATE accounts SET balance = balance + 100 WHERE id = 2;' },
+          { t: 'COMMIT;    -- both, or neither', hl: 'good' },
+        ],
+      },
       body: [
         'Wrap two writes in a transaction and a crash between them can’t leave you half-done — money leaves one account only if it arrives at the other. That’s **atomicity**, and it’s the easy half.',
         'The hard half is **isolation**: what does a transaction see when *others* are running at the same time?',
@@ -25,6 +36,17 @@ export const transactions: Comic = {
       title: 'The weakest bargain',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <NonRepeatableDiagram />,
+      code: {
+        file: 'read_committed.sql',
+        lines: [
+          { t: 'BEGIN;' },
+          { t: '  SELECT balance FROM accounts WHERE id = 1;   -- 100' },
+          { t: '  -- someone else COMMITs 80 in between' },
+          { t: '  SELECT balance FROM accounts WHERE id = 1;   -- 80 (!)', hl: 'bad' },
+          { t: 'COMMIT;' },
+        ],
+      },
       body: [
         'The floor is **Read Committed**: you never read another transaction’s *uncommitted* writes (no **dirty reads**), and you never overwrite them. Most databases default here.',
         'But two reads in the same transaction can still return **different values** if someone commits in between — a *non-repeatable read*. The ground moves under you mid-transaction.',
@@ -35,6 +57,18 @@ export const transactions: Comic = {
       title: 'Freeze the world: snapshots',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <MvccDiagram />,
+      code: {
+        file: 'visibility.py',
+        lines: [
+          { t: '# which version does this transaction see?' },
+          { t: 'def visible(version, snapshot):' },
+          { t: '    return (version.xmin in snapshot.committed', hl: 'good' },
+          { t: '            and version.xmin not in snapshot.in_progress' },
+          { t: '            and (version.xmax is None' },
+          { t: '                 or version.xmax not in snapshot.committed))' },
+        ],
+      },
       body: [
         '**Snapshot isolation** (a.k.a. [[repeatable read|The transaction reads from a consistent snapshot taken at its start; every read sees the same version, as if the rest of the world froze.]]) gives each transaction a private, consistent snapshot of the DB as of when it began. Every read is stable; readers never block writers.',
         'Postgres builds this with **MVCC** — it keeps *multiple versions* of each row and shows you the ones visible to your snapshot.',
@@ -66,6 +100,20 @@ export const transactions: Comic = {
       title: 'The real thing: serializable',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <TwoPlSsiDiagram />,
+      code: {
+        file: 'retry.py',
+        lines: [
+          { t: '# SERIALIZABLE can abort you — so always wrap in a retry' },
+          { t: 'for attempt in range(5):' },
+          { t: '    try:' },
+          { t: '        with db.transaction(isolation="SERIALIZABLE"):' },
+          { t: '            book_the_last_seat()' },
+          { t: '        break', hl: 'good' },
+          { t: '    except SerializationFailure:' },
+          { t: '        sleep(backoff(attempt))      # someone else won; try again', hl: 'bad' },
+        ],
+      },
       body: [
         '**Serializable** is the top: the result is guaranteed to equal *some* one-at-a-time ordering — every anomaly gone, including write skew.',
         'Three ways to get it: actual serial execution (one thread), **two-phase locking** (readers and writers block each other — safe, slow), or **Serializable Snapshot Isolation** (SSI): run optimistically on snapshots, detect the dangerous read-write patterns, and abort a loser.',

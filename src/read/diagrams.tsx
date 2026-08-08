@@ -20,8 +20,8 @@ export function RingDiagram() {
       <circle cx="122" cy="38" r="4.5" fill={TERRA} stroke={INK} strokeWidth="1.5" />
       <path d="M122 38 A58 58 0 0 1 138 72" fill="none" stroke={TERRA} strokeWidth="2.5" strokeDasharray="3 3" markerEnd="url(#gn-ar)" />
       <defs>
-        <marker id="gn-ar" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
-          <path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} />
+        <marker id="gn-ar" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 z" fill={TERRA} />
         </marker>
       </defs>
       <text x="80" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>
@@ -40,15 +40,15 @@ export function LeaderFollowerDiagram() {
           <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
         </marker>
       </defs>
+      {/* write arrow in — kept fully inside the frame */}
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>write</text>
+      <path d="M88 16 L88 26" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
       {/* leader */}
-      <rect x="62" y="8" width="52" height="30" rx="4" fill={DENIM} stroke={INK} strokeWidth="2" />
-      <text x="88" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#fff">leader</text>
-      {/* write arrow in */}
-      <path d="M88 -2 L88 6" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
-      <text x="94" y="4" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>write</text>
+      <rect x="62" y="30" width="52" height="28" rx="4" fill={DENIM} stroke={INK} strokeWidth="2" />
+      <text x="88" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#fff">leader</text>
       {/* replication arrows */}
-      <path d="M74 40 L40 96" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
-      <path d="M102 40 L136 96" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      <path d="M74 60 L44 94" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      <path d="M102 60 L132 94" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
       {/* followers */}
       <rect x="14" y="100" width="52" height="30" rx="4" fill="#fff" stroke={INK} strokeWidth="2" />
       <text x="40" y="119" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>follower</text>
@@ -165,7 +165,7 @@ export function TimeoutDiagram() {
       <text x="138" y="42" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>waits 5s</text>
       {/* missed heartbeats */}
       <path d="M84 28 L112 28" stroke={MUTED} strokeWidth="2" strokeDasharray="2 4" />
-      <text x="98" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>♥ ✗</text>
+      <text x="98" y="11" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={TERRA}>no heartbeat</text>
       {/* declared dead */}
       <rect x="98" y="64" width="66" height="26" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
       <text x="131" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>“A is dead”</text>
@@ -240,6 +240,647 @@ export function StorageDiagram() {
       <text x="132" y="91" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
       <text x="132" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>append + </text>
       <text x="132" y="130" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>compact</text>
+    </svg>
+  )
+}
+
+/* ============================================================
+   Per-step panels — one drawing per beat, so each comic reads as a
+   sequence of pictures rather than prose with a single illustration.
+   Ch 3 · Storage & Retrieval
+   ============================================================ */
+
+/** Ch 3 · Step 01 — appending is O(1); finding means scanning the whole log. */
+export function AppendScanDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Records appended to the end of a log are fast to write, but a lookup must scan every record.">
+      <defs>
+        <marker id="gn-ap-t" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} /></marker>
+        <marker id="gn-ap-m" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+      </defs>
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>log file</text>
+      {[10, 44, 78, 112].map((x) => (
+        <rect key={x} x={x} y="28" width="30" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      ))}
+      <rect x="146" y="28" width="22" height="20" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <path d="M157 12 L157 24" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-ap-t)" />
+      <text x="157" y="60" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>append</text>
+      <text x="88" y="86" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>write = fast</text>
+      <path d="M10 106 L166 106" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-ap-m)" />
+      <text x="88" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>get(k) checks every record</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>read = slow</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 02 — a B-tree lookup walks a few pages; writes edit a page in place. */
+export function BTreeDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A B-tree: a root page points to internal pages, which point to leaf pages; a lookup walks one path from root to leaf.">
+      <rect x="62" y="16" width="52" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="29" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">root page</text>
+      <path d="M76 34 L46 56" stroke={DENIM} strokeWidth="2.5" />
+      <path d="M100 34 L130 56" stroke={INK} strokeWidth="1.5" />
+      <rect x="18" y="58" width="56" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2.5" />
+      <rect x="102" y="58" width="56" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <path d="M36 76 L28 98" stroke={DENIM} strokeWidth="2.5" />
+      <path d="M58 76 L66 98" stroke={INK} strokeWidth="1.5" />
+      <path d="M120 76 L112 98" stroke={INK} strokeWidth="1.5" />
+      <path d="M140 76 L148 98" stroke={INK} strokeWidth="1.5" />
+      <rect x="10" y="100" width="34" height="18" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2.5" />
+      <rect x="50" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="92" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="132" y="100" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="27" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>leaf</text>
+      <text x="88" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>one path, a few pages</text>
+      <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>write edits a page in place</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 03 — LSM: buffer in memory, flush to sorted files, compact in the background. */
+export function LsmFlowDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Writes buffer in an in-memory memtable, flush to immutable sorted SSTables on disk, and are merged by background compaction.">
+      <defs>
+        <marker id="gn-lsm-i" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="46" y="10" width="84" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">memtable (RAM)</text>
+      <path d="M88 28 L88 42" stroke={INK} strokeWidth="2" markerEnd="url(#gn-lsm-i)" />
+      <text x="96" y="39" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>flush</text>
+      <line x1="6" y1="46" x2="170" y2="46" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="8" y="56" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>disk</text>
+      <rect x="46" y="60" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="46" y="78" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="46" y="96" width="84" height="14" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable (sorted)</text>
+      <text x="88" y="88" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
+      <text x="88" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
+      <path d="M134 67 C154 67 154 118 110 118" fill="none" stroke={TERRA} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-lsm-i)" />
+      <rect x="46" y="122" width="60" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="76" y="133" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>merged file</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>compaction, in the background</text>
+    </svg>
+  )
+}
+
+/** Ch 3 · Step 04 — the amplification triangle: every engine picks a point. */
+export function AmplificationDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A triangle of write, read, and space amplification; B-trees and LSM-trees sit at different points on it.">
+      <polygon points="88,24 22,124 154,124" fill="none" stroke={INK} strokeWidth="2" />
+      <text x="88" y="16" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>read amp</text>
+      <text x="18" y="138" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>write</text>
+      <text x="156" y="138" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>space</text>
+      <circle cx="60" cy="92" r="6" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="60" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>B-tree</text>
+      <circle cx="114" cy="94" r="6" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="114" y="114" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>LSM</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>no free point on the triangle</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 5 · Replication: leader & followers ---------------- */
+
+/** Ch 5 · Step 02 — the leader streams an ordered log; followers replay it. */
+export function ReplicationLogDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A leader appends changes to an ordered log and streams it to followers, which replay the entries in the same order.">
+      <defs>
+        <marker id="gn-rl" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="58" y="8" width="60" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="21" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">leader</text>
+      <path d="M88 26 L88 42" stroke={INK} strokeWidth="2" markerEnd="url(#gn-rl)" />
+      <rect x="26" y="46" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="70" y="46" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="114" y="46" width="34" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="43" y="59" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>#1</text>
+      <text x="87" y="59" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>#2</text>
+      <text x="131" y="59" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>#3</text>
+      <text x="88" y="76" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>replication log</text>
+      <path d="M56 82 L34 100" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-rl)" />
+      <path d="M120 82 L142 100" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-rl)" />
+      <rect x="4" y="104" width="64" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <rect x="108" y="104" width="64" height="18" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="36" y="117" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>follower</text>
+      <text x="140" y="117" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>follower</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>replay in the same order</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>same ending state</text>
+    </svg>
+  )
+}
+
+/** Ch 5 · Step 03 — synchronous waits for the copy; asynchronous confirms first. */
+export function SyncAsyncDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Synchronous replication waits for a follower to confirm before acknowledging; asynchronous acknowledges immediately and copies later.">
+      <defs>
+        <marker id="gn-sa-i" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+        <marker id="gn-sa-m" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+      </defs>
+      <text x="43" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={DENIM}>synchronous</text>
+      <rect x="12" y="20" width="62" height="16" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="43" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      <path d="M43 38 L43 50" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-sa-i)" />
+      <rect x="12" y="54" width="62" height="16" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="43" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>follower</text>
+      <text x="43" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>it confirms</text>
+      <text x="43" y="98" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>then “done”</text>
+      <text x="43" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>safe — one slow</text>
+      <text x="43" y="131" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>copy stalls</text>
+      <text x="43" y="142" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>everyone</text>
+      <line x1="88" y1="14" x2="88" y2="148" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="133" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>asynchronous</text>
+      <rect x="102" y="20" width="62" height="16" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="133" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      <text x="133" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>“done” at once</text>
+      <path d="M133 52 L133 62" stroke={MUTED} strokeWidth="1.5" strokeDasharray="2 2" markerEnd="url(#gn-sa-m)" />
+      <rect x="102" y="66" width="62" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="133" y="78" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>copies later</text>
+      <text x="133" y="98" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>nobody waits</text>
+      <text x="133" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast — a crash</text>
+      <text x="133" y="131" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>loses the last</text>
+      <text x="133" y="142" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>few writes</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 5 · Replication lag ---------------- */
+
+/** Ch 5 lag · Fix 01 — route a user's own reads to the leader for a while. */
+export function ReadYourWritesDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="After writing, a user's own reads are routed to the leader so they always see their own update, while other readers use followers.">
+      <defs>
+        <marker id="gn-ryw-d" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} /></marker>
+        <marker id="gn-ryw-m" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+      </defs>
+      <rect x="8" y="30" width="46" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="31" y="43" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>you</text>
+      <path d="M54 34 L110 34" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-ryw-d)" />
+      <text x="82" y="29" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>write</text>
+      <path d="M110 46 L54 46" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-ryw-d)" />
+      <text x="82" y="58" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>your read</text>
+      <rect x="112" y="26" width="56" height="26" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="140" y="43" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">leader</text>
+      <path d="M140 52 L140 76" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-ryw-m)" />
+      <rect x="112" y="80" width="56" height="20" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="140" y="93" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>follower</text>
+      <rect x="8" y="80" width="46" height="20" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="31" y="93" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>others</text>
+      <path d="M110 90 L56 90" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-ryw-m)" />
+      <text x="88" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>you always see your own write</text>
+      <text x="88" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>everyone else may lag briefly</text>
+    </svg>
+  )
+}
+
+/** Ch 5 lag · Step 02 — a second read hits a more-lagged replica: time runs backwards. */
+export function MonotonicDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A first read hits a fresh replica and shows a comment; a second read hits a more-lagged replica and the comment is gone.">
+      <defs>
+        <marker id="gn-mono" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="10" y="16" width="52" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="36" y="29" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>read #1</text>
+      <path d="M62 25 L96 25" stroke={INK} strokeWidth="2" markerEnd="url(#gn-mono)" />
+      <rect x="100" y="14" width="68" height="22" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2" />
+      <text x="134" y="28" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>fresh replica</text>
+      <text x="88" y="50" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>“the comment is here”</text>
+      <line x1="10" y1="62" x2="166" y2="62" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" />
+      <rect x="10" y="74" width="52" height="18" rx="2" fill="#fff" stroke={TERRA} strokeWidth="2" />
+      <text x="36" y="87" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>read #2</text>
+      <path d="M62 83 L96 83" stroke={INK} strokeWidth="2" markerEnd="url(#gn-mono)" />
+      <rect x="100" y="72" width="68" height="22" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="134" y="86" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>laggier replica</text>
+      <text x="88" y="108" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>“…what comment?”</text>
+      <path d="M126 122 L50 122" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-mono)" />
+      <text x="88" y="138" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>the reader moved backwards in time</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>fix: pin them to one replica</text>
+    </svg>
+  )
+}
+
+/** Ch 5 lag · Step 03 — the answer replicates faster than the question it answers. */
+export function CausalDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A question and its answer replicate along different paths, so a reader can see the answer before the question.">
+      <defs>
+        <marker id="gn-cz" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+        <marker id="gn-cz-t" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} /></marker>
+      </defs>
+      <rect x="12" y="14" width="66" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="45" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>question</text>
+      <rect x="98" y="14" width="66" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="131" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>answer</text>
+      <path d="M78 24 L94 24" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-cz)" />
+      <text x="88" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>the answer needs it</text>
+      <path d="M45 36 C30 60 30 78 45 96" fill="none" stroke={MUTED} strokeWidth="2" strokeDasharray="4 3" markerEnd="url(#gn-cz)" />
+      <text x="16" y="70" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>slow</text>
+      <text x="16" y="80" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>path</text>
+      <path d="M131 36 C146 54 146 70 131 96" fill="none" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-cz-t)" />
+      <text x="150" y="70" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>fast</text>
+      <text x="150" y="80" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>path</text>
+      <rect x="20" y="100" width="136" height="30" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="113" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#f7f4ef">reader sees the answer</text>
+      <text x="88" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>before the question</text>
+      <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>effect arrives before its cause</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 5 · Leaderless & quorums ---------------- */
+
+/** Ch 5 quorum · Step 01 — send to all N, wait for only W acks. */
+export function QuorumWriteDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A client sends a write to all replicas but only waits for W acknowledgements.">
+      <defs>
+        <marker id="gn-qw" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} /></marker>
+        <marker id="gn-qw-m" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+      </defs>
+      <rect x="60" y="8" width="56" height="18" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="21" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#f7f4ef">client</text>
+      <path d="M76 27 L30 52" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-qw)" />
+      <path d="M85 27 L72 52" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-qw)" />
+      <path d="M91 27 L114 52" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-qw)" />
+      <path d="M100 27 L152 52" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" markerEnd="url(#gn-qw-m)" />
+      {[20, 62, 104, 146].map((x, i) => (
+        <g key={x}>
+          <circle cx={x + 5} cy="70" r="13" fill={i < 3 ? DENIM : '#fff'} stroke={INK} strokeWidth="1.5" />
+          <text x={x + 5} y="73" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={i < 3 ? '#fff' : MUTED}>
+            {i < 3 ? 'ack' : '…'}
+          </text>
+        </g>
+      ))}
+      <text x="88" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>W acks → write is done</text>
+      <text x="88" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>the rest catch up later</text>
+      <text x="88" y="146" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>never wait for all N</text>
+    </svg>
+  )
+}
+
+/** Ch 5 quorum · Step 03 — W and R are dials traded against each other. */
+export function DialsDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="W and R shown as dials: lowering one speeds that operation and weakens the freshness guarantee.">
+      <text x="88" y="14" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>two dials, one budget</text>
+      <text x="12" y="40" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={DENIM}>W</text>
+      <line x1="32" y1="36" x2="164" y2="36" stroke={INK} strokeWidth="2" />
+      <circle cx="64" cy="36" r="7" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="32" y="52" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast writes</text>
+      <text x="164" y="52" textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>safe writes</text>
+      <text x="12" y="82" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>R</text>
+      <line x1="32" y1="78" x2="164" y2="78" stroke={INK} strokeWidth="2" />
+      <circle cx="130" cy="78" r="7" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="32" y="94" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast reads</text>
+      <text x="164" y="94" textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fresh reads</text>
+      <rect x="16" y="108" width="144" height="22" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2" />
+      <text x="88" y="122" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>keep W + R bigger than N</text>
+      <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>break it on purpose → stale reads</text>
+    </svg>
+  )
+}
+
+/** Ch 5 quorum · Step 04 — two clients write the same key at once: who wins? */
+export function ConflictDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Two clients write the same key to different replicas at the same moment, producing two conflicting versions.">
+      <defs>
+        <marker id="gn-cf" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="6" y="10" width="58" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="35" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">client A</text>
+      <rect x="112" y="10" width="58" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="141" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">client B</text>
+      <path d="M35 28 L35 48" stroke={INK} strokeWidth="2" markerEnd="url(#gn-cf)" />
+      <path d="M141 28 L141 48" stroke={INK} strokeWidth="2" markerEnd="url(#gn-cf)" />
+      <rect x="6" y="52" width="58" height="22" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2" />
+      <text x="35" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>x = “red”</text>
+      <rect x="112" y="52" width="58" height="22" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="141" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>x = “blue”</text>
+      <text x="88" y="62" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>same key,</text>
+      <text x="88" y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>same moment</text>
+      <path d="M38 78 L74 100" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-cf)" />
+      <path d="M138 78 L102 100" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-cf)" />
+      <rect x="26" y="104" width="124" height="26" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="121" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill="#f7f4ef">which one wins?</text>
+      <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>the quorum math can’t answer this</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 6 · Partitioning ---------------- */
+
+/** Ch 6 · Step 01 — hash(key) % N drops each key in a bucket. */
+export function ModuloDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Keys are hashed and taken modulo the node count, dropping each key into one of four node buckets.">
+      <defs>
+        <marker id="gn-mod" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="32" y="10" width="112" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>hash(key) % 4</text>
+      <path d="M64 30 L28 54" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-mod)" />
+      <path d="M80 30 L68 54" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-mod)" />
+      <path d="M96 30 L110 54" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-mod)" />
+      <path d="M112 30 L150 54" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-mod)" />
+      {[6, 48, 90, 132].map((x, i) => (
+        <g key={x}>
+          <rect x={x} y="58" width="38" height="32" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+          <text x={x + 19} y="78" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">node {i}</text>
+        </g>
+      ))}
+      <text x="88" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>even spread, nothing to store</text>
+      <text x="88" y="134" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>one line of math…</text>
+      <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>…until N changes</text>
+    </svg>
+  )
+}
+
+/** Ch 6 · Step 02 — grow 4 → 5 and almost every key relocates. */
+export function StampedeDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Growing from four nodes to five changes the modulo for about eighty percent of keys, so they must all move.">
+      <defs>
+        <marker id="gn-st" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} /></marker>
+      </defs>
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>% 4 → % 5</text>
+      {[10, 52, 94, 136].map((x) => (
+        <rect key={x} x={x} y="20" width="32" height="20" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      ))}
+      {[6, 40, 74, 108, 142].map((x) => (
+        <rect key={x} x={x} y="108" width="28" height="20" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      ))}
+      <path d="M26 42 L100 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path d="M68 42 L20 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path d="M110 42 L54 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path d="M152 42 L122 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <rect x="46" y="62" width="84" height="22" fill="#fffdf8" stroke={TERRA} strokeWidth="1.5" />
+      <text x="88" y="77" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill={TERRA}>~80% move</text>
+      <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>a cluster-wide stampede</text>
+    </svg>
+  )
+}
+
+/** Ch 6 · Step 04 — each machine sits at many points, so load spreads evenly. */
+export function VirtualNodesDiagram() {
+  const pts = [DENIM, TERRA, MUTED, DENIM, TERRA, MUTED, DENIM, TERRA, MUTED, DENIM, TERRA, MUTED]
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Each machine is placed at many points around the ring, so every machine owns many small slices instead of one large arc.">
+      <circle cx="88" cy="70" r="50" fill="none" stroke={INK} strokeWidth="2" />
+      {pts.map((c, i) => {
+        const r = ((i * 30 - 90) * Math.PI) / 180
+        return <circle key={i} cx={88 + 50 * Math.cos(r)} cy={70 + 50 * Math.sin(r)} r="6" fill={c} stroke={INK} strokeWidth="1.5" />
+      })}
+      <text x="88" y="68" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>3 machines,</text>
+      <text x="88" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>12 points</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>lose one → its slices spread</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>across every survivor</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 7 · Transactions ---------------- */
+
+/** Ch 7 · Step 01 — atomicity: both writes land, or neither does. */
+export function AtomicityDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A transfer debits one account and credits another; a crash in the middle rolls both back rather than leaving half the work done.">
+      <defs>
+        <marker id="gn-at" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="10" y="16" width="60" height="24" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="40" y="31" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>debit A</text>
+      <rect x="106" y="16" width="60" height="24" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="136" y="31" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>credit B</text>
+      <path d="M70 28 L102 28" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-at)" />
+      <path d="M78 44 L98 62" stroke={TERRA} strokeWidth="2.5" />
+      <path d="M98 44 L78 62" stroke={TERRA} strokeWidth="2.5" />
+      <text x="88" y="78" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>crash here</text>
+      <rect x="16" y="88" width="144" height="26" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2" />
+      <text x="88" y="105" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>both undone — as if never run</text>
+      <text x="88" y="134" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>money never sits in mid-air</text>
+      <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>all, or nothing</text>
+    </svg>
+  )
+}
+
+/** Ch 7 · Step 02 — the same query twice, two different answers. */
+export function NonRepeatableDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Inside one transaction the same query returns 100 and then 80, because another transaction committed in between.">
+      <line x1="20" y1="16" x2="20" y2="140" stroke={INK} strokeWidth="2" />
+      <text x="30" y="14" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>your transaction</text>
+      <rect x="30" y="24" width="86" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="73" y="37" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>read → 100</text>
+      <rect x="30" y="66" width="132" height="22" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="96" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>someone else commits 80</text>
+      <rect x="30" y="106" width="86" height="20" rx="2" fill="#fff" stroke={TERRA} strokeWidth="2" />
+      <text x="73" y="119" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>read → 80</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>the ground moved mid-transaction</text>
+    </svg>
+  )
+}
+
+/** Ch 7 · Step 03 — MVCC: many versions, each read sees its own snapshot. */
+export function MvccDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A row keeps several versions stamped with transaction ids; a snapshot decides which version a reader sees.">
+      <defs>
+        <marker id="gn-mv" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} /></marker>
+      </defs>
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>one row, three versions</text>
+      <rect x="18" y="22" width="140" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="35" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>v1 · xid 100</text>
+      <rect x="18" y="48" width="140" height="20" rx="2" fill="#eaf0f8" stroke={DENIM} strokeWidth="2" />
+      <text x="88" y="61" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>v2 · xid 205</text>
+      <rect x="18" y="74" width="140" height="20" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="88" y="87" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>v3 · xid 310 (not yet visible)</text>
+      <path d="M8 58 L14 58" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-mv)" />
+      <text x="88" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>your snapshot picks v2</text>
+      <text x="88" y="132" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>writers add versions; readers</text>
+      <text x="88" y="144" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>never wait — that’s MVCC</text>
+    </svg>
+  )
+}
+
+/** Ch 7 · Step 05 — 2PL blocks; SSI lets them run and aborts a loser. */
+export function TwoPlSsiDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Two-phase locking makes the second transaction wait; serializable snapshot isolation runs both and aborts one if a dangerous pattern appears.">
+      <text x="44" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>2PL</text>
+      <rect x="12" y="20" width="64" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="44" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">T1 holds lock</text>
+      <rect x="12" y="46" width="64" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="44" y="58" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>T2 waits…</text>
+      <text x="44" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>prevent</text>
+      <text x="44" y="104" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>safe, but they</text>
+      <text x="44" y="116" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>queue up</text>
+      <line x1="88" y1="14" x2="88" y2="146" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="132" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>SSI</text>
+      <rect x="100" y="20" width="64" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="132" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">T1 runs</text>
+      <rect x="100" y="46" width="64" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="132" y="58" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">T2 runs too</text>
+      <text x="132" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>detect</text>
+      <text x="132" y="104" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast, but a loser</text>
+      <text x="132" y="116" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>gets aborted</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>block early, or retry later</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 8 · The trouble with distributed systems ---------------- */
+
+/** Ch 8 · Step 01 — one silence, five different causes. */
+export function SilenceDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="After sending a request and hearing nothing, five different failures are indistinguishable from the caller's side.">
+      <defs>
+        <marker id="gn-si" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="38" y="8" width="100" height="18" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="21" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#f7f4ef">you send a request</text>
+      <path d="M88 26 L88 40" stroke={INK} strokeWidth="2" markerEnd="url(#gn-si)" />
+      <text x="88" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>…silence…</text>
+      {[
+        'the request was lost',
+        'it arrived, node died',
+        'it is still working',
+        'the reply was lost',
+        'everything is just slow',
+      ].map((t, i) => (
+        <g key={t}>
+          <rect x="10" y={62 + i * 16} width="156" height="13" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.2" />
+          <text x="88" y={71 + i * 16} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>{t}</text>
+        </g>
+      ))}
+      <text x="88" y="156" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>you cannot tell them apart</text>
+    </svg>
+  )
+}
+
+/** Ch 8 · Step 02 — two clocks disagree, so timestamps mis-order events. */
+export function ClockSkewDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Two machines with skewed clocks stamp events so that the later event carries an earlier timestamp.">
+      <circle cx="44" cy="42" r="26" fill="#fff" stroke={INK} strokeWidth="2" />
+      <path d="M44 42 L44 24 M44 42 L58 42" stroke={DENIM} strokeWidth="2" />
+      <text x="44" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>node A · 10:00.5</text>
+      <circle cx="132" cy="42" r="26" fill="#fff" stroke={INK} strokeWidth="2" />
+      <path d="M132 42 L132 24 M132 42 L120 50" stroke={TERRA} strokeWidth="2" />
+      <text x="132" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>node B · 09:59.8</text>
+      <text x="88" y="100" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>B’s write really happened later</text>
+      <rect x="18" y="110" width="140" height="24" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="88" y="125" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>…but its timestamp is older</text>
+      <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>order by timestamp → lose the write</text>
+    </svg>
+  )
+}
+
+/** Ch 8 · Step 04 — a fencing token makes a stale writer harmless. */
+export function FencingDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="The storage layer remembers the highest fencing token seen and rejects any write carrying an older token.">
+      <defs>
+        <marker id="gn-fe" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="6" y="14" width="70" height="24" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="41" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>zombie leader</text>
+      <text x="41" y="34" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>token 32</text>
+      <rect x="100" y="14" width="70" height="24" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="135" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">new leader</text>
+      <text x="135" y="34" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#dfe7f0">token 33</text>
+      <path d="M41 40 L60 66" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-fe)" />
+      <path d="M135 40 L116 66" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-fe)" />
+      <rect x="30" y="70" width="116" height="30" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="83" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#f7f4ef">storage remembers</text>
+      <text x="88" y="94" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#f7f4ef">highest token = 33</text>
+      <text x="30" y="118" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>32 → rejected</text>
+      <text x="146" y="118" textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>33 → accepted</text>
+      <text x="88" y="146" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>detection can be wrong; action can’t</text>
+    </svg>
+  )
+}
+
+/* ---------------- Ch 9 · Consistency & consensus ---------------- */
+
+/** Ch 9 · Step 01 — eventual replicas diverge then converge; linearizable is one timeline. */
+export function ConsistencyKindsDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Eventual consistency lets replicas diverge before converging; linearizability behaves as a single copy on one timeline.">
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>eventual</text>
+      <path d="M12 34 C50 18 60 50 96 32 C130 16 150 34 164 30" fill="none" stroke={TERRA} strokeWidth="2" />
+      <path d="M12 46 C50 62 60 30 96 48 C130 64 150 44 164 40" fill="none" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" />
+      <circle cx="164" cy="35" r="5" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="88" y="74" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>disagree for a while, then meet</text>
+      <line x1="10" y1="88" x2="166" y2="88" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="88" y="104" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>linearizable</text>
+      <line x1="12" y1="122" x2="164" y2="122" stroke={DENIM} strokeWidth="2.5" />
+      {[30, 66, 102, 138].map((x) => (
+        <circle key={x} cx={x} cy="122" r="5" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      ))}
+      <text x="88" y="144" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>one copy, one order, no surprises</text>
+      <text x="88" y="156" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>and it isn’t free</text>
+    </svg>
+  )
+}
+
+/** Ch 9 · Step 03 — an entry commits once a majority has stored it. */
+export function LogCommitDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="The leader ships a log entry to followers; once a majority have stored it the entry is committed.">
+      <defs>
+        <marker id="gn-lc" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+      </defs>
+      <rect x="10" y="12" width="60" height="18" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="40" y="25" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      {[
+        { y: 44, ok: true, label: 'follower · stored' },
+        { y: 68, ok: true, label: 'follower · stored' },
+        { y: 92, ok: false, label: 'follower · behind' },
+        { y: 116, ok: false, label: 'follower · down' },
+      ].map((f) => (
+        <g key={f.y}>
+          <path d={`M70 26 L96 ${f.y + 8}`} stroke={f.ok ? INK : MUTED} strokeWidth={f.ok ? 2 : 1.2} strokeDasharray={f.ok ? undefined : '3 3'} markerEnd="url(#gn-lc)" />
+          <rect x="100" y={f.y} width="70" height="17" rx="2" fill={f.ok ? '#eaf0f8' : '#fff'} stroke={f.ok ? DENIM : MUTED} strokeWidth={f.ok ? 2 : 1.2} />
+          <text x="135" y={f.y + 12} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={f.ok ? DENIM : MUTED}>{f.label}</text>
+        </g>
+      ))}
+      <text x="40" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>3 of 5</text>
+      <text x="40" y="82" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>hold it</text>
+      <rect x="6" y="94" width="70" height="24" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="41" y="109" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">committed</text>
+      <text x="88" y="146" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>a majority is enough — never all</text>
+    </svg>
+  )
+}
+
+/** Ch 9 · Step 04 — a split vote elects nobody; a stale leader steps down. */
+export function SplitVoteDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Two candidates split the vote so no one reaches a majority; a partitioned old leader on a lower term steps down.">
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>term 7 — a tie</text>
+      <circle cx="40" cy="38" r="16" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="40" y="41" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">2 votes</text>
+      <circle cx="136" cy="38" r="16" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="136" y="41" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">2 votes</text>
+      <text x="88" y="42" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>vs</text>
+      <text x="88" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>neither has a majority</text>
+      <text x="88" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>→ no leader this term</text>
+      <line x1="10" y1="92" x2="166" y2="92" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <rect x="10" y="102" width="72" height="24" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="46" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>old leader</text>
+      <text x="46" y="122" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>term 6</text>
+      <rect x="94" y="102" width="72" height="24" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="130" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill="#fff">sees term 8</text>
+      <text x="130" y="122" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill="#dfe7f0">steps down</text>
+      <text x="88" y="146" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>a tie costs latency, never correctness</text>
     </svg>
   )
 }

@@ -1,6 +1,17 @@
 import { useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
+import {
+  RingDiagram,
+  LeaderFollowerDiagram,
+  LagDiagram,
+  QuorumDiagram,
+  WriteSkewDiagram,
+  TimeoutDiagram,
+  RaftDiagram,
+  StorageDiagram,
+} from './diagrams'
 
 import '@fontsource/playfair-display/700.css'
 import '@fontsource/playfair-display/800.css'
@@ -13,6 +24,19 @@ import '@fontsource/newsreader/600.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '../styles/comic.css'
+
+/** Each idea's inked panel — the graphic that leads the card. Pulled from the
+ *  same diagrams the comics use, so the index is a peek at the panels inside. */
+const PANEL: Record<string, ReactNode> = {
+  storage: <StorageDiagram />,
+  'replication-leader': <LeaderFollowerDiagram />,
+  'replication-lag': <LagDiagram />,
+  'replication-quorum': <QuorumDiagram />,
+  partitioning: <RingDiagram />,
+  transactions: <WriteSkewDiagram />,
+  'distributed-troubles': <TimeoutDiagram />,
+  consensus: <RaftDiagram />,
+}
 
 interface Idea {
   no: string
@@ -117,15 +141,20 @@ export default function IndexPage() {
             <div className="gn-ideas">
               {part.ideas.map((idea, i) => {
                 const live = !!idea.slug
+                const panel = idea.slug ? PANEL[idea.slug] : null
                 const inner = (
                   <>
-                    <span className="no">{idea.no}</span>
-                    <h4>
-                      {idea.title}
-                      {idea.pill && <span className="gn-pill">{idea.pill}</span>}
-                    </h4>
-                    <p className="hook">{idea.hook}</p>
-                    <div className="meta">{live ? <span className="go">Read the comic →</span> : <span className="soon">Coming soon</span>}</div>
+                    <div className={'gn-ipanel' + (panel ? '' : ' ph')}>
+                      <span className="no">{idea.no}</span>
+                      {panel ?? <span className="phlabel">in the sketchbook</span>}
+                    </div>
+                    <div className="gn-icap">
+                      <h4>{idea.title}</h4>
+                      <p className="hook">{idea.hook}</p>
+                      <div className="meta">
+                        {live ? <span className="go">Read the comic →</span> : <span className="soon">Coming soon</span>}
+                      </div>
+                    </div>
                   </>
                 )
                 return live ? (

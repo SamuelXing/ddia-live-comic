@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { LagDiagram } from '../diagrams'
+import { LagDiagram, ReadYourWritesDiagram, MonotonicDiagram, CausalDiagram } from '../diagrams'
 
 export const replicationLag: Comic = {
   slug: 'replication-lag',
@@ -27,6 +27,17 @@ export const replicationLag: Comic = {
       title: 'Read-your-writes',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <ReadYourWritesDiagram />,
+      code: {
+        file: 'route_read.py',
+        lines: [
+          { t: 'def route_read(user, key):' },
+          { t: '    # just wrote? read the leader — you must see yourself' },
+          { t: '    if now() - user.last_write_at < seconds(10):' },
+          { t: '        return leader.get(key)', hl: 'good' },
+          { t: '    return pick_follower().get(key)   # everyone else may lag' },
+        ],
+      },
       body: [
         'Guarantee that a user always sees **their own** updates. Route reads of things they just wrote to the **leader** (or to a follower known to be caught up), for a little while after the write.',
       ],
@@ -45,6 +56,15 @@ export const replicationLag: Comic = {
       title: 'Time runs backwards',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <MonotonicDiagram />,
+      code: {
+        file: 'pick_replica.py',
+        lines: [
+          { t: '# same user -> same replica, so they never jump to a staler one' },
+          { t: 'def pick_replica(user):' },
+          { t: '    return replicas[hash(user.id) % len(replicas)]', hl: 'good' },
+        ],
+      },
       body: [
         'You refresh twice. The first read hits a fresh follower and shows the new comment; the second hits a **more-lagged** follower and the comment is gone again. You’ve moved *backward* in time.',
         'The fix is **monotonic reads**: pin each user to the same replica (e.g. by hashing their id) so they never jump to a more-stale one.',
@@ -53,6 +73,7 @@ export const replicationLag: Comic = {
     {
       n: 'Step 03',
       title: 'Cause arrives after effect',
+      diagram: <CausalDiagram />,
       body: [
         'Two writes with a causal link — a question, then its answer — replicate down different paths. A reader sees the **answer before the question**. This is the **consistent-prefix** problem, and it’s why partitioned systems track causal dependencies.',
         'Three anomalies, one root cause: the copy you read is behind the copy you wrote.',

@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { TimeoutDiagram } from '../diagrams'
+import { TimeoutDiagram, SilenceDiagram, ClockSkewDiagram, FencingDiagram } from '../diagrams'
 
 export const distributedTroubles: Comic = {
   slug: 'distributed-troubles',
@@ -16,6 +16,18 @@ export const distributedTroubles: Comic = {
       title: 'The network won’t tell you',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <SilenceDiagram />,
+      code: {
+        file: 'call.py',
+        lines: [
+          { t: 'try:' },
+          { t: '    reply = rpc(node, request, timeout=2.0)' },
+          { t: 'except Timeout:' },
+          { t: '    # you know exactly ONE thing: no reply in 2s.' },
+          { t: '    # NOT that it failed, NOT that it did not run.', hl: 'bad' },
+          { t: '    retry_somewhere_else(request)   # so make it idempotent', hl: 'good' },
+        ],
+      },
       body: [
         'You send a request and hear nothing back. Which happened? The request was lost; it arrived but the node died; it’s still processing; the reply was lost; or everything’s fine but *slow*. **You cannot tell them apart** from where you’re standing.',
         'The only tool is a **timeout** — and a timeout is a guess, not a fact.',
@@ -26,6 +38,17 @@ export const distributedTroubles: Comic = {
       title: 'Clocks lie',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <ClockSkewDiagram />,
+      code: {
+        file: 'clocks.py',
+        lines: [
+          { t: 'start = time.time()            # wall clock: can jump backwards', hl: 'bad' },
+          { t: 'start = time.monotonic()       # only moves forward', hl: 'good' },
+          { t: 'elapsed = time.monotonic() - start' },
+          { t: '' },
+          { t: 'if ts_a > ts_b: ...            # ordering across machines: a trap', hl: 'bad' },
+        ],
+      },
       body: [
         'Time feels like solid ground; it isn’t. A machine’s **wall clock** is synced by NTP and can jump backward, or drift seconds from its neighbours. Order two events across two machines by their timestamps and you can conclude the effect happened *before* the cause.',
         'For measuring durations, use a [[monotonic clock|A clock guaranteed to only move forward at a steady rate, unaffected by NTP jumps. Good for “how long did this take,” useless for “what time is it.”]] — never the wall clock.',
@@ -47,6 +70,20 @@ export const distributedTroubles: Comic = {
       title: 'You can’t detect death — only suspect it',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <FencingDiagram />,
+      code: {
+        file: 'fencing.py',
+        lines: [
+          { t: 'token = lock_service.acquire()     # a number that only goes up' },
+          { t: 'storage.write(data, token=token)' },
+          { t: '' },
+          { t: '# in the storage layer:' },
+          { t: 'def write(data, token):' },
+          { t: '    if token < self.highest_seen:' },
+          { t: '        raise StaleToken            # the zombie bounces', hl: 'good' },
+          { t: '    self.highest_seen = token' },
+        ],
+      },
       body: [
         'Give up on *knowing* a node is down. The system decides by **quorum**: enough peers stop hearing heartbeats within a timeout, so they *declare* it dead and move on. It might be wrong — the node might be alive and slow — and that’s allowed.',
         'To make being-wrong safe, hand out **fencing tokens**: every time leadership changes, the number goes up, and the storage layer **rejects any write carrying an old token**. The zombie’s stale write bounces.',

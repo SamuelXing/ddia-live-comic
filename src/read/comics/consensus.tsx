@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { RaftDiagram } from '../diagrams'
+import { RaftDiagram, ConsistencyKindsDiagram, LogCommitDiagram, SplitVoteDiagram } from '../diagrams'
 
 export const consensus: Comic = {
   slug: 'consensus',
@@ -15,6 +15,7 @@ export const consensus: Comic = {
       n: 'Step 01',
       title: 'Two kinds of “consistent”',
       rung: 'Rung 1 · Intuition',
+      diagram: <ConsistencyKindsDiagram />,
       body: [
         '**Eventual consistency** (Ch 5’s leaderless world): replicas may disagree for a while, then converge. Cheap and available.',
         '**Linearizable**: the system behaves as if there’s **one** copy and every operation happens at a single instant — once a write is acknowledged, every later read sees it. That single agreed history is what consensus buys, and it isn’t free.',
@@ -36,6 +37,17 @@ export const consensus: Comic = {
       title: 'Replicate the log',
       accent: 'denim',
       rung: 'Rung 2 · Mechanism',
+      diagram: <LogCommitDiagram />,
+      code: {
+        file: 'commit.py',
+        lines: [
+          { t: 'def on_append_response(entry, acks):' },
+          { t: '    if acks >= len(cluster) // 2 + 1:      # a majority', hl: 'good' },
+          { t: '        entry.committed = True' },
+          { t: '        apply_to_state_machine(entry)     # in log order' },
+          { t: '    # 5 nodes -> need 3.  6 nodes -> need 4 (still survives 2)' },
+        ],
+      },
       body: [
         'The leader takes every change as a **log entry** and ships it to followers. Once a **majority** have stored an entry, the leader marks it **committed** and applies it — and tells followers to do the same, in order.',
         'Because entries commit in log order and only after a majority hold them, every node replays the **same sequence** — one agreed history.',
@@ -56,6 +68,18 @@ export const consensus: Comic = {
       title: 'Split votes & split brains',
       accent: 'terra',
       rung: 'Rung 1 · Intuition',
+      diagram: <SplitVoteDiagram />,
+      code: {
+        file: 'term.py',
+        lines: [
+          { t: 'def on_message(msg):' },
+          { t: '    if msg.term > self.term:              # someone is newer' },
+          { t: '        self.term = msg.term' },
+          { t: '        self.become_follower()            # stale leader steps down', hl: 'good' },
+          { t: '    elif msg.term < self.term:' },
+          { t: '        reject(msg)                       # ignore the past' },
+        ],
+      },
       body: [
         'Two candidates can tie — each gets half, neither wins. Raft shrugs: no majority, so **no leader this term**; the randomized timeouts fire again and a new term elects a winner. A tie costs a little latency, never correctness.',
         'And a partitioned old leader? It’s stuck on a lower term. The moment it sees a higher-term message, it **steps down** — majority rule means two leaders can’t both commit.',
