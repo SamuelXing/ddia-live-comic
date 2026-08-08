@@ -20,8 +20,8 @@ export function RingDiagram() {
       <circle cx="122" cy="38" r="4.5" fill={TERRA} stroke={INK} strokeWidth="1.5" />
       <path d="M122 38 A58 58 0 0 1 138 72" fill="none" stroke={TERRA} strokeWidth="2.5" strokeDasharray="3 3" markerEnd="url(#gn-ar)" />
       <defs>
-        <marker id="gn-ar" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
-          <path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} />
+        <marker id="gn-ar" markerUnits="userSpaceOnUse" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+          <path d="M0 0 L9 4.5 L0 9 z" fill={TERRA} />
         </marker>
       </defs>
       <text x="80" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>
@@ -40,15 +40,15 @@ export function LeaderFollowerDiagram() {
           <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
         </marker>
       </defs>
+      {/* write arrow in — kept fully inside the frame */}
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>write</text>
+      <path d="M88 16 L88 26" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
       {/* leader */}
-      <rect x="62" y="8" width="52" height="30" rx="4" fill={DENIM} stroke={INK} strokeWidth="2" />
-      <text x="88" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#fff">leader</text>
-      {/* write arrow in */}
-      <path d="M88 -2 L88 6" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
-      <text x="94" y="4" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>write</text>
+      <rect x="62" y="30" width="52" height="28" rx="4" fill={DENIM} stroke={INK} strokeWidth="2" />
+      <text x="88" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="9" fill="#fff">leader</text>
       {/* replication arrows */}
-      <path d="M74 40 L40 96" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
-      <path d="M102 40 L136 96" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      <path d="M74 60 L44 94" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      <path d="M102 60 L132 94" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
       {/* followers */}
       <rect x="14" y="100" width="52" height="30" rx="4" fill="#fff" stroke={INK} strokeWidth="2" />
       <text x="40" y="119" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>follower</text>
@@ -165,7 +165,7 @@ export function TimeoutDiagram() {
       <text x="138" y="42" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>waits 5s</text>
       {/* missed heartbeats */}
       <path d="M84 28 L112 28" stroke={MUTED} strokeWidth="2" strokeDasharray="2 4" />
-      <text x="98" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>♥ ✗</text>
+      <text x="98" y="21" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={TERRA}>no heartbeat</text>
       {/* declared dead */}
       <rect x="98" y="64" width="66" height="26" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
       <text x="131" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>“A is dead”</text>
@@ -378,32 +378,32 @@ export function SyncAsyncDiagram() {
   return (
     <svg viewBox="0 0 176 160" role="img" aria-label="Synchronous replication waits for a follower to confirm before acknowledging; asynchronous acknowledges immediately and copies later.">
       <defs>
-        <marker id="gn-sa-i" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
-        <marker id="gn-sa-m" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
+        <marker id="gn-sa-i" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
+        <marker id="gn-sa-m" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} /></marker>
       </defs>
-      <text x="44" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={DENIM}>synchronous</text>
-      <rect x="20" y="20" width="48" height="16" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
-      <text x="44" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
-      <path d="M44 36 L44 54" stroke={INK} strokeWidth="2" markerEnd="url(#gn-sa-i)" />
-      <rect x="18" y="58" width="52" height="16" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
-      <text x="44" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>follower</text>
-      <path d="M14 70 C2 70 2 30 18 28" fill="none" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-sa-i)" />
-      <text x="44" y="92" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>then say “done”</text>
-      <text x="44" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>safe —</text>
-      <text x="44" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>one slow copy</text>
-      <text x="44" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>stalls everyone</text>
-      <line x1="88" y1="14" x2="88" y2="146" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
-      <text x="132" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>asynchronous</text>
-      <rect x="108" y="20" width="48" height="16" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
-      <text x="132" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
-      <path d="M162 28 C174 30 174 70 158 70" fill="none" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-sa-m)" />
-      <text x="132" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>“done” at once</text>
-      <path d="M132 52 L132 62" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-sa-m)" />
-      <rect x="106" y="66" width="52" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
-      <text x="132" y="78" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>copies later</text>
-      <text x="132" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>fast — a crash</text>
-      <text x="132" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>loses the last</text>
-      <text x="132" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>few writes</text>
+      <text x="43" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={DENIM}>synchronous</text>
+      <rect x="12" y="20" width="62" height="16" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="43" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      <path d="M43 38 L43 50" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-sa-i)" />
+      <rect x="12" y="54" width="62" height="16" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
+      <text x="43" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>follower</text>
+      <text x="43" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>it confirms</text>
+      <text x="43" y="98" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>then “done”</text>
+      <text x="43" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>safe — one slow</text>
+      <text x="43" y="131" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>copy stalls</text>
+      <text x="43" y="142" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>everyone</text>
+      <line x1="88" y1="14" x2="88" y2="148" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="133" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>asynchronous</text>
+      <rect x="102" y="20" width="62" height="16" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="133" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      <text x="133" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>“done” at once</text>
+      <path d="M133 52 L133 62" stroke={MUTED} strokeWidth="1.5" strokeDasharray="2 2" markerEnd="url(#gn-sa-m)" />
+      <rect x="102" y="66" width="62" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="133" y="78" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>copies later</text>
+      <text x="133" y="98" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>nobody waits</text>
+      <text x="133" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast — a crash</text>
+      <text x="133" y="131" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>loses the last</text>
+      <text x="133" y="142" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>few writes</text>
     </svg>
   )
 }
@@ -478,7 +478,7 @@ export function CausalDiagram() {
       <rect x="98" y="14" width="66" height="20" rx="2" fill="#fff" stroke={INK} strokeWidth="1.5" />
       <text x="131" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>answer</text>
       <path d="M78 24 L94 24" stroke={INK} strokeWidth="1.5" markerEnd="url(#gn-cz)" />
-      <text x="88" y="44" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>answer depends on question</text>
+      <text x="88" y="48" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>the answer needs it</text>
       <path d="M45 36 C30 60 30 78 45 96" fill="none" stroke={MUTED} strokeWidth="2" strokeDasharray="4 3" markerEnd="url(#gn-cz)" />
       <text x="16" y="70" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>slow</text>
       <text x="16" y="80" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>path</text>
@@ -620,7 +620,8 @@ export function StampedeDiagram() {
       <path d="M68 42 L20 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
       <path d="M110 42 L54 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
       <path d="M152 42 L122 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
-      <text x="88" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="11" fill={TERRA}>~80% move</text>
+      <rect x="46" y="62" width="84" height="22" fill="#fffdf8" stroke={TERRA} strokeWidth="1.5" />
+      <text x="88" y="77" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill={TERRA}>~80% move</text>
       <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>a cluster-wide stampede</text>
     </svg>
   )
@@ -726,7 +727,6 @@ export function TwoPlSsiDiagram() {
       <text x="132" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">T1 runs</text>
       <rect x="100" y="46" width="64" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
       <text x="132" y="58" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#fff">T2 runs too</text>
-      <path d="M108 70 L156 70" stroke={INK} strokeWidth="2" />
       <text x="132" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>detect</text>
       <text x="132" y="104" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>fast, but a loser</text>
       <text x="132" y="116" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>gets aborted</text>
@@ -744,7 +744,7 @@ export function SilenceDiagram() {
       <defs>
         <marker id="gn-si" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
       </defs>
-      <rect x="52" y="8" width="72" height="18" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
+      <rect x="38" y="8" width="100" height="18" rx="2" fill={INK} stroke={INK} strokeWidth="1.5" />
       <text x="88" y="21" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#f7f4ef">you send a request</text>
       <path d="M88 26 L88 40" stroke={INK} strokeWidth="2" markerEnd="url(#gn-si)" />
       <text x="88" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>…silence…</text>
