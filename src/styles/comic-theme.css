@@ -211,7 +211,34 @@
 /* ---- sim top bar + stepper → paper chrome ---- */
 .sim-page[class] .topbar,
 .sim-page[class] .stepper { background: var(--panel); border-bottom: 2px solid #1a1a1a; }
-.sim-page[class] .home-link { font-family: var(--gnf-display); font-weight: 800; }
+
+/* ---- sim chrome → the same comic language as every other page ---- */
+/* the wordmark, matching .gn-brand in the shared nav */
+.sim-page[class] .home-link { font-family: var(--gnf-display); font-weight: 800; font-size: 17px;
+  letter-spacing: -0.01em; color: #16130f; gap: 0; }
+.sim-page[class] .home-link b { color: #97462a; font-weight: 800; }
+.sim-page[class] .home-link .tl { font-family: var(--gnf-body); font-style: italic; font-weight: 500;
+  color: #8a8177; font-size: 0.78em; }
+/* square the rounded chrome; the canvas stays dark and untouched */
+.sim-page[class] .site-link,
+.sim-page[class] .tbtn,
+.sim-page[class] .srung,
+.sim-page[class] .kpi,
+.sim-page[class] .mission,
+.sim-page[class] .goal,
+.sim-page[class] .ctl-v,
+.sim-page[class] .tip,
+.sim-page[class] .overload { border-radius: 2px; }
+.sim-page[class] .srung .num { border-radius: 2px; border: 2px solid #1a1a1a; font-family: var(--gnf-mono); }
+.sim-page[class] .site-link { border: 2px solid #1a1a1a; color: var(--ink-2); font-family: var(--gnf-mono); font-size: 12px; }
+.sim-page[class] .site-link:hover { background: rgba(63, 97, 145, 0.12); color: #16130f; }
+.sim-page[class] .tbtn { border: 2px solid #1a1a1a; font-family: var(--gnf-comic); font-weight: 700; }
+/* the readout chip was a translucent accent pill */
+.sim-page[class] .ctl-v { background: var(--panel-2); color: var(--ink); font-family: var(--gnf-mono); }
+/* the section dot had an accent glow ring */
+.sim-page[class] .logo .d { border-radius: 2px; box-shadow: none; border: 2px solid #1a1a1a; background: #3f6191; }
+.sim-page[class] .logo { font-family: var(--gnf-display); font-weight: 800; }
+.sim-page[class] .logo small { font-family: var(--gnf-mono); font-weight: 500; }
 .sim-page[class] .srung[aria-current='true'] {
   background: rgba(63, 97, 145, 0.12);
   border-color: #3f6191;

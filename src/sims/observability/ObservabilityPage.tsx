@@ -214,14 +214,18 @@ export default function ObservabilityPage() {
     <div className="sim-page">
       <div className="topbar">
         <Link className="home-link" to="/">
-          <span className="mk" /> Scale&nbsp;Lab
+          <b>DDIA</b>
+          <span className="tl">, as a live comic</span>
         </Link>
         <span className="home-sep">/</span>
         <div className="logo">
           <span className="d" /> Observability&nbsp;at&nbsp;Scale <small>logs · metrics · traces pipeline</small>
         </div>
         <Link className="site-link" to="/components">
-          Component Deep-Dives
+          Deep-Dives
+        </Link>
+        <Link className="site-link" to="/read" title="The ideas this simulation leans on: partitioning (sharding the index) and the queueing that decides what breaks first">
+          ◆ Ideas in play
         </Link>
         <div className="tb-spacer" />
         <div className="speed">
