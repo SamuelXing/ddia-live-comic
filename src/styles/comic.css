@@ -173,24 +173,26 @@
 .gn-partband .ps { font-family: var(--gn-mono); font-size: 11.5px; color: var(--ink-3); margin-left: auto; text-transform: uppercase; letter-spacing: .08em; }
 
 .gn-ideas { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 18px; }
-/* graphic-first idea card: an inked panel on top, caption below */
+/* graphic-first idea card: an inked panel on top, caption below.
+   NOTE: index-only classes are prefixed .gn-i* — .gn-panel/.gn-caption are
+   already taken by the comic reading page (see above). Do not reuse them. */
 .gn-idea { padding: 0; display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: inherit; }
-.gn-panel { position: relative; height: 156px; background: var(--paper-2); border-bottom: 2px solid var(--ink-line);
+.gn-ipanel { position: relative; height: 156px; background: var(--paper-2); border-bottom: 2px solid var(--ink-line);
   display: grid; place-items: center; padding: 18px 20px; }
-.gn-panel::before { content: ""; position: absolute; inset: 0; background-image: var(--halftone); background-size: 8px 8px;
+.gn-ipanel::before { content: ""; position: absolute; inset: 0; background-image: var(--halftone); background-size: 8px 8px;
   opacity: .5; pointer-events: none; }
-.gn-panel svg { position: relative; width: auto; height: 100%; max-width: 100%; }
-.gn-panel .no { position: absolute; top: 0; left: 0; z-index: 1; font-family: var(--gn-comic); font-weight: 700; font-size: 12px;
+.gn-ipanel svg { position: relative; width: auto; height: 100%; max-width: 100%; }
+.gn-ipanel .no { position: absolute; top: 0; left: 0; z-index: 1; font-family: var(--gn-comic); font-weight: 700; font-size: 12px;
   background: var(--ink); color: var(--paper); padding: 3px 9px; border-right: 2px solid var(--ink-line); border-bottom: 2px solid var(--ink-line); }
-.gn-panel.ph { background: var(--paper); }
-.gn-panel.ph .phlabel { position: relative; font-family: var(--gn-mono); font-size: 11px; letter-spacing: .1em;
+.gn-ipanel.ph { background: var(--paper); }
+.gn-ipanel.ph .phlabel { position: relative; font-family: var(--gn-mono); font-size: 11px; letter-spacing: .1em;
   text-transform: uppercase; color: var(--ink-3); }
-.gn-cap { padding: 14px 17px 16px; display: flex; flex-direction: column; flex: 1; }
-.gn-cap h4 { font-family: var(--gn-display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; line-height: 1.15; margin: 0; color: var(--ink); }
-.gn-cap .hook { font-size: 14px; color: var(--ink-2); margin: 7px 0 0; line-height: 1.45; flex: 1; }
-.gn-cap .meta { margin-top: 13px; font-family: var(--gn-mono); font-size: 11.5px; }
-.gn-cap .meta .go { color: var(--terra-ink); font-weight: 500; }
-.gn-cap .meta .soon { color: var(--ink-3); }
+.gn-icap { padding: 14px 17px 16px; display: flex; flex-direction: column; flex: 1; }
+.gn-icap h4 { font-family: var(--gn-display); font-weight: 800; font-size: 19px; letter-spacing: -.01em; line-height: 1.15; margin: 0; color: var(--ink); }
+.gn-icap .hook { font-size: 14px; color: var(--ink-2); margin: 7px 0 0; line-height: 1.45; flex: 1; }
+.gn-icap .meta { margin-top: 13px; font-family: var(--gn-mono); font-size: 11.5px; }
+.gn-icap .meta .go { color: var(--terra-ink); font-weight: 500; }
+.gn-icap .meta .soon { color: var(--ink-3); }
 .gn-idea.live { box-shadow: 3px 3px 0 var(--denim); }
 .gn-idea.live.lift:hover { box-shadow: 8px 8px 0 var(--denim); }
 .gn-idea.soon { opacity: .72; }

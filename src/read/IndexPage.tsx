@@ -144,11 +144,11 @@ export default function IndexPage() {
                 const panel = idea.slug ? PANEL[idea.slug] : null
                 const inner = (
                   <>
-                    <div className={'gn-panel' + (panel ? '' : ' ph')}>
+                    <div className={'gn-ipanel' + (panel ? '' : ' ph')}>
                       <span className="no">{idea.no}</span>
                       {panel ?? <span className="phlabel">in the sketchbook</span>}
                     </div>
-                    <div className="gn-cap">
+                    <div className="gn-icap">
                       <h4>{idea.title}</h4>
                       <p className="hook">{idea.hook}</p>
                       <div className="meta">
