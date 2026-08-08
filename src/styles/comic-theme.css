@@ -239,6 +239,14 @@
 .sim-page[class] .logo .d { border-radius: 2px; box-shadow: none; border: 2px solid #1a1a1a; background: #3f6191; }
 .sim-page[class] .logo { font-family: var(--gnf-display); font-weight: 800; }
 .sim-page[class] .logo small { font-family: var(--gnf-mono); font-weight: 500; }
+/* "experimental" — these sims are one plausible design, not a reference
+   architecture. terra = the caveat, per the two-accent rule. */
+.sim-page[class] .sim-exp {
+  font-family: var(--gnf-mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #97462a; border: 2px solid #bd5f3d; padding: 2px 7px; border-radius: 2px;
+  white-space: nowrap; font-weight: 500; cursor: help;
+}
+@media (max-width: 980px) { .sim-page[class] .sim-exp { display: none; } }
 .sim-page[class] .srung[aria-current='true'] {
   background: rgba(63, 97, 145, 0.12);
   border-color: #3f6191;

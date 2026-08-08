@@ -221,7 +221,7 @@ export default function FeedSimPage() {
         </Link>
         <span className="home-sep">/</span>
         <div className="logo">
-          <span className="d" /> Feed&nbsp;at&nbsp;Scale <small>social-feed simulation</small>
+          <span className="d" /> Feed&nbsp;at&nbsp;Scale <small>social-feed simulation</small> <span className="sim-exp" title="A sketch, not a reference architecture. One plausible design among many — real systems differ by workload, budget and team. Treat the numbers as order-of-magnitude intuition, not sizing advice.">experimental</span>
         </div>
         <Link className="site-link" to="/components">
           Deep-Dives

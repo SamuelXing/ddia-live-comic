@@ -219,7 +219,7 @@ export default function ObservabilityPage() {
         </Link>
         <span className="home-sep">/</span>
         <div className="logo">
-          <span className="d" /> Observability&nbsp;at&nbsp;Scale <small>logs · metrics · traces pipeline</small>
+          <span className="d" /> Observability&nbsp;at&nbsp;Scale <small>logs · metrics · traces</small> <span className="sim-exp" title="A sketch, not a reference architecture. One plausible design among many — real systems differ by workload, budget and team. Treat the numbers as order-of-magnitude intuition, not sizing advice.">experimental</span>
         </div>
         <Link className="site-link" to="/components">
           Deep-Dives
