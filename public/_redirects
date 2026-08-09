@@ -1,5 +1,10 @@
 # Cloudflare Pages SPA fallback.
 #
+# Only used if this is deployed as a classic Pages project. The live deploy is
+# a Workers static-assets project, where the same job is done by
+# `not_found_handling: "single-page-application"` in wrangler.jsonc. Kept
+# because it costs nothing and makes the Pages path work without edits.
+#
 # Every route on this site is client-side: /components/s3 is a React Router
 # match, not a file on disk. Without this line a hard refresh or an inbound
 # link to anything other than / returns Pages' own 404, which is the single
