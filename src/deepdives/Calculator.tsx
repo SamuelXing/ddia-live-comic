@@ -720,9 +720,10 @@ export default function Calculator() {
         <div className="calc-help-b">
           <p>
             A model nobody has checked is just tidier folklore. The arithmetic on this page lives in
-            a pure module covered by unit tests whose expected values were computed by hand — and
-            these are the points where it can also be compared against numbers somebody else
-            published.
+            a pure module covered by unit tests whose expected values were computed by hand — and by
+            a second suite of <b>reality tests</b> that pin it, executably, against numbers published
+            by the people who ran the real systems. These are the anchor points; an anchor validates
+            the formula that runs through it, not the whole model.
           </p>
           <table className="tbl">
             <thead>
@@ -787,6 +788,63 @@ export default function Calculator() {
                 </td>
                 <td className="ok">matches</td>
               </tr>
+              <tr>
+                <td>
+                  Fan-out: 4.6k writes/s × 75 recipients = <b>345k deliveries/s</b>; the tool
+                  answers with fan-out workers + a partitioned cache tier
+                </td>
+                <td>
+                  Twitter’s published timeline numbers (2012, via DDIA Ch 1): 4.6k tweets/s becomes{' '}
+                  <b>345k</b> home-timeline cache writes/s — served by async fan-out workers and
+                  Redis clusters, with fan-out-on-read for celebrity accounts.
+                </td>
+                <td className="ok">matches</td>
+              </tr>
+              <tr>
+                <td>
+                  Connections per host: <b>100k</b> default, ladder up to 2M
+                </td>
+                <td>
+                  WhatsApp held <b>2M+</b> live connections on one heroically tuned FreeBSD box
+                  (2012). The ladder reaches the record; the default stays 20× under it.
+                </td>
+                <td className="ok">conservative</td>
+              </tr>
+              <tr>
+                <td>
+                  Write ceiling band: <b>3.3k–26.7k/s</b> per node (group commit ×1–×8)
+                </td>
+                <td>
+                  Netflix measured <b>1.1M writes/s on 288 Cassandra nodes</b> — ~11.5k applied
+                  writes/s per node at replication factor 3, inside the band.
+                </td>
+                <td className="ok">in range</td>
+              </tr>
+              <tr>
+                <td>
+                  The chain: misses = reads × (1 − hit rate), so 99% → 98% <b>doubles</b> database
+                  load
+                </td>
+                <td>
+                  Facebook’s memcache paper (NSDI 2013) reports <b>~99%</b> hit rate and states
+                  that “a 1% decrease in hit rate doubles database load” — the same arithmetic,
+                  from the largest cache fleet ever measured.
+                </td>
+                <td className="ok">matches</td>
+              </tr>
+              <tr>
+                <td>
+                  The LSM column’s pitch: partitioning built in, write-optimized, read amp as the
+                  price
+                </td>
+                <td>
+                  Discord stores <b>trillions</b> of messages on LSM stores (Cassandra, 177 nodes →
+                  ScyllaDB, 72). At that scale, ring-managed partitioning dominates — an operational
+                  factor this page prices only through its scale notes, which is what pinning a
+                  column is for.
+                </td>
+                <td className="ok">corroborates</td>
+              </tr>
             </tbody>
           </table>
           <p className="calc-src">
@@ -798,8 +856,28 @@ export default function Calculator() {
             <a href="https://github.com/sirupsen/napkin-math" target="_blank" rel="noreferrer">
               sirupsen/napkin-math
             </a>{' '}
-            (MIT). The honest gaps: the write ceiling swings by ~8× depending on group commit, and
-            the two hit rates in the chain are assumptions with no universal value — both are worth
+            (MIT) ·{' '}
+            <a href="https://timilearning.com/posts/ddia/part-one/chapter-1/" target="_blank" rel="noreferrer">
+              DDIA Ch 1 (Twitter, 2012)
+            </a>{' '}
+            ·{' '}
+            <a href="https://blog.whatsapp.com/1-million-is-so-2011" target="_blank" rel="noreferrer">
+              WhatsApp engineering
+            </a>{' '}
+            ·{' '}
+            <a href="https://netflixtechblog.com/benchmarking-cassandra-scalability-on-aws-over-a-million-writes-per-second-39f45f066c9e" target="_blank" rel="noreferrer">
+              Netflix Tech Blog
+            </a>{' '}
+            ·{' '}
+            <a href="https://pdos.lcs.mit.edu/6.824/notes/l-memcached.txt" target="_blank" rel="noreferrer">
+              Scaling Memcache at Facebook
+            </a>{' '}
+            ·{' '}
+            <a href="https://www.scylladb.com/tech-talk/how-discord-migrated-trillions-of-messages-from-cassandra-to-scylladb/" target="_blank" rel="noreferrer">
+              Discord / ScyllaDB
+            </a>
+            . The honest gaps: the write ceiling swings by ~8× depending on group commit, and the
+            two hit rates in the chain are assumptions with no universal value — both are worth
             replacing with measurements from your own system before believing the after-table.
           </p>
         </div>

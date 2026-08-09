@@ -69,7 +69,8 @@ export const L = {
   amp: [1, 2, 3, 5, 10, 20],
   fan: [0, 1, 2, 5, 10, 50, 100, 500, 1000],
   onl: [1, 2, 5, 10, 20, 30, 50],
-  conns: [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6],
+  /** tops out at 2M — the published record for one tuned box (WhatsApp, 2012) */
+  conns: [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6, 2e6],
   views: [0, 1, 2, 3, 4, 5],
   hit: [50, 70, 80, 90, 95, 99],
 }
@@ -111,7 +112,7 @@ export const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
   { id: 'overhead', label: 'Protocol overhead / message', steps: [2, 10, 50, 100, 200, 500, 800, 1500], val: 800, src: 'assume', fmt: (v) => v + ' B', hint: 'Bytes each message costs beyond the payload. Set by the transport choice.', info: 'HTTP repays request and response headers on every exchange — often several hundred bytes, which dwarfs a short chat message. A WebSocket frame costs a handful of bytes. When payloads are small, the protocol can cost more than the data. The transport decision writes this value; you can still drag it.' },
   { id: 'readAmp', label: 'Files touched per read', steps: [0, 1, 2, 3, 5], val: 1, src: 'assume', fmt: (v) => (v === 0 ? 'none (RAM)' : '×' + v), hint: 'Disk lookups per read. Set by the engine choice.', info: 'A B-tree walks to exactly one leaf page. An LSM store may check the memtable and several sorted files before it finds the key — bloom filters skip most of them, but not for free. An in-memory store touches no disk at all. The engine decision writes this value.' },
   { id: 'writeAmp', label: 'Write amplification', steps: L.amp, val: 3, src: 'assume', fmt: (v) => '×' + int(v), hint: 'Bytes written per logical write. Set by the engine choice.', info: 'One logical row write touches the disk more than once: the write-ahead log, the page itself, and every index that must be updated. x3 is modest — a table with several indexes is worse. The engine decision writes this value; raise it if your tables carry many indexes.' },
-  { id: 'connsPerHost', label: 'Connections per host', steps: L.conns, val: 1e5, src: 'assume', fmt: (v) => compact(v), hint: 'Live connections one server can hold.', info: 'Bounded by memory per connection, file descriptors, and the CPU spent on heartbeats — not by request rate. Tuned servers hold hundreds of thousands; a default-configured one manages far fewer. This is the ceiling that sizes the edge tier of any chat or presence system.' },
+  { id: 'connsPerHost', label: 'Connections per host', steps: L.conns, val: 1e5, src: 'assume', fmt: (v) => compact(v), hint: 'Live connections one server can hold.', info: 'Bounded by memory per connection, file descriptors, and the CPU spent on heartbeats — not by request rate. The published record is ~2M on one heroically tuned FreeBSD box (WhatsApp, 2012); a default-configured server manages far fewer. 100k is a deliberately conservative default — 20× under the record.' },
   { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => int(v) + ' slots', hint: 'In-flight requests one app instance handles.', info: "How many requests one instance can have in flight at once — threads, workers, or async tasks. Little's Law turns it into a machine count. Raising it does not create capacity when the work is CPU-bound; it just lets more requests queue." },
   { id: 'ram', label: 'RAM per node', steps: [16, 32, 64, 128, 256, 512, 1024], val: 128, src: 'assume', fmt: (v) => v + ' GB', hint: 'For the “does it fit in memory” check.', info: 'The feasibility check for an in-memory store is not throughput — it is whether the dataset fits. Stored bytes divided by this number is how many machines of pure RAM you would be buying.' },
 ]
