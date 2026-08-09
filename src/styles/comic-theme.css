@@ -440,9 +440,12 @@
 .dd-page[class] .rec-tag.pinned { color: #97462a; border-color: #bd5f3d; margin-left: auto; }
 
 /* ---- what this calculator is, and is not ---- */
-.dd-page[class] .calc-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0 0 16px; border: 2px solid #1a1a1a; }
-.dd-page[class] .scope-col { padding: 12px 15px; background: var(--card); }
-.dd-page[class] .scope-col.in { border-right: 2px solid #1a1a1a; box-shadow: inset 4px 0 0 #3f6191; }
+/* Stacked, not side by side. The two halves contrast, but a paragraph split
+   across two columns is read as two paragraphs — the rails and labels carry
+   the contrast on their own. */
+.dd-page[class] .calc-scope { margin: 0 0 16px; border: 2px solid #1a1a1a; background: var(--card); }
+.dd-page[class] .scope-col { padding: 12px 15px; }
+.dd-page[class] .scope-col.in { border-bottom: 2px solid #1a1a1a; box-shadow: inset 4px 0 0 #3f6191; }
 .dd-page[class] .scope-col.out { box-shadow: inset 4px 0 0 #bd5f3d; }
 .dd-page[class] .scope-h {
   display: block; font-family: var(--gnf-mono); font-size: 10px; letter-spacing: .09em;
@@ -451,10 +454,6 @@
 .dd-page[class] .scope-col.in .scope-h { color: #29456c; }
 .dd-page[class] .scope-col.out .scope-h { color: #97462a; }
 .dd-page[class] .scope-col p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
-@media (max-width: 760px) {
-  .dd-page[class] .calc-scope { grid-template-columns: 1fr; }
-  .dd-page[class] .scope-col.in { border-right: 0; border-bottom: 2px solid #1a1a1a; }
-}
 
 /* the one property a reader can check for themselves: it is arithmetic.
    One paragraph, not a two-up — the split only existed to fill a wider
