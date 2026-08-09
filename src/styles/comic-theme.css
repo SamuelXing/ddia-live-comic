@@ -267,6 +267,55 @@
 .dd-page[class] .ctl:first-of-type .info-tip { bottom: auto; top: calc(100% + 8px); }
 @media (max-width: 760px) { .dd-page[class] .info-tip { max-width: 220px; } }
 
+/* decision cards: a choice as a computed comparison, losing columns visible */
+.dd-page[class] .decide {
+  border: 2px solid #1a1a1a; background: var(--card); box-shadow: 3px 3px 0 rgba(26, 26, 26, 0.14);
+  padding: 12px 14px 13px; margin: 0 0 14px;
+}
+.dd-page[class] .dc-h {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 9px;
+  font-family: var(--gnf-display); font-size: 16px; color: var(--ink);
+}
+.dd-page[class] .dc-unpin {
+  margin-left: auto; font-family: var(--gnf-mono); font-size: 10px; color: var(--ink-2);
+  background: transparent; border: 2px solid #1a1a1a; padding: 2px 8px; cursor: pointer;
+}
+.dd-page[class] .dc-unpin:hover { background: rgba(63, 97, 145, 0.12); color: #16130f; }
+.dd-page[class] .dc-scroll { overflow-x: auto; }
+.dd-page[class] .dc-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.dd-page[class] .dc-tbl th,
+.dd-page[class] .dc-tbl td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; line-height: 1.4; }
+.dd-page[class] .dc-tbl td.rl {
+  font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted); white-space: nowrap;
+}
+.dd-page[class] .dc-tbl th { padding: 0; border-bottom-width: 2px; }
+.dd-page[class] .dc-tbl th button {
+  display: block; width: 100%; text-align: left; padding: 7px 9px; cursor: pointer;
+  font-family: var(--gnf-mono); font-size: 11.5px; font-weight: 700; color: var(--ink);
+  background: transparent; border: 0;
+}
+.dd-page[class] .dc-tbl th button:hover { background: rgba(63, 97, 145, 0.1); }
+.dd-page[class] .dc-tag {
+  display: block; margin-top: 3px; font-size: 8.5px; font-weight: 500;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+/* the column the arithmetic picked (denim = built by the numbers) */
+.dd-page[class] .dc-tbl th.win, .dd-page[class] .dc-tbl td.win { background: rgba(63, 97, 145, 0.09); }
+.dd-page[class] .dc-tbl th.win { border-bottom: 3px solid #3f6191; }
+.dd-page[class] .dc-tbl th.win .dc-tag { color: #29456c; }
+/* a column pinned by hand (terra = your call, not the arithmetic's) */
+.dd-page[class] .dc-tbl th.pin, .dd-page[class] .dc-tbl td.pin { background: rgba(189, 95, 61, 0.09); }
+.dd-page[class] .dc-tbl th.pin { border-bottom: 3px solid #bd5f3d; }
+.dd-page[class] .dc-tbl th.pin .dc-tag { color: #97462a; }
+.dd-page[class] .dc-verdict {
+  margin-top: 10px; padding-left: 10px; border-left: 3px solid #3f6191;
+  font-size: 13px; line-height: 1.5; color: var(--ink-2);
+}
+.dd-page[class] .dc-pinnote {
+  margin-top: 7px; padding-left: 10px; border-left: 3px solid #bd5f3d;
+  font-family: var(--gnf-mono); font-size: 11px; color: #97462a;
+}
+
 /* ---- chapter number badge → ink block ---- */
 .dd-page[class] .ch-num {
   background: #16130f;
