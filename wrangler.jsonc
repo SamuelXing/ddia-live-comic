@@ -23,9 +23,18 @@
     "directory": "./dist",
     // Every route here is client-side: /components/s3 is a React Router match,
     // not a file. This serves index.html (200) for any path that is not a real
-    // asset, so deep links and hard refreshes work. It is the Workers-assets
-    // equivalent of the `/* /index.html 200` line in public/_redirects, which
-    // is kept for the classic-Pages path.
+    // asset, so deep links and hard refreshes work.
+    //
+    // This is the ONLY SPA fallback. There used to be a public/_redirects with
+    // the Pages-style `/* /index.html 200`, kept "in case we switch to Pages" —
+    // it failed the deploy outright. Workers validates _redirects server-side
+    // and rejects that rule:
+    //
+    //   Invalid _redirects configuration: Line 15: Infinite loop detected in
+    //   this rule. [code: 100324]
+    //
+    // which is fair: a catch-all rewriting to a path the catch-all also
+    // matches is self-triggering. Do not reintroduce it alongside this.
     "not_found_handling": "single-page-application"
   }
 }
