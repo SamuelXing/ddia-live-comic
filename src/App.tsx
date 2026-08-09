@@ -25,9 +25,13 @@ export default function App() {
         <Route path="/components/postgres" element={<PostgresPage />} />
         <Route path="/components/redis" element={<RedisPage />} />
         <Route path="/components/rabbitmq" element={<RabbitMQPage />} />
-        <Route path="/calculator" element={<CalculatorPage />} />
+        {/* Two tools, one nav item. Each tab is a real route so it can be
+            linked and shared; a tab held only in component state cannot. */}
+        <Route path="/calculator" element={<Navigate to="/calculator/capacity" replace />} />
+        <Route path="/calculator/capacity" element={<CalculatorPage tab="capacity" />} />
+        <Route path="/calculator/latency" element={<CalculatorPage tab="latency" />} />
         {/* the calculator used to live under /components */}
-        <Route path="/components/calculator" element={<Navigate to="/calculator" replace />} />
+        <Route path="/components/calculator" element={<Navigate to="/calculator/capacity" replace />} />
         <Route path="/components/:key" element={<ClassicModulePage />} />
         <Route path="/sims/feed" element={<FeedSimPage />} />
         <Route path="/sims/observability" element={<ObservabilityPage />} />

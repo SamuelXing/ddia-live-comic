@@ -6,6 +6,7 @@ import { scaleOutInputs as rabbitmq } from './rabbitmq/scaleout'
 import { webModule } from './modules/web'
 import { s3Module } from './modules/s3'
 import { LAD, snapIndex } from './ladder'
+import { WORKLOAD, DERIVED_INP, HW } from './calcModel'
 import type { InputDef } from './types'
 
 /* Two failure modes this file exists to prevent.
@@ -59,5 +60,23 @@ describe('the shared ladders', () => {
     expect(snapIndex(l, 49)).toBe(2)
     expect(snapIndex(l, 0)).toBe(0) // below the ladder
     expect(snapIndex(l, 1e9)).toBe(3) // above it
+  })
+})
+
+/* The calculator's own inputs were never covered by the sweep above — it walks
+   the six deep-dive sandboxes only. That gap shipped a real contradiction: the
+   fsync constant defaults to its MEASURED 300 µs while its ladder went
+   ...200, 500..., so the thumb rendered on 200 while the label read 300 µs.
+   Found by the latency page's copy of this same invariant. */
+describe('the calculator panels obey the same rules', () => {
+  it('every requirement, workload and hardware default sits on its ladder', () => {
+    ;[...WORKLOAD, DERIVED_INP, ...HW].forEach((i) => {
+      expect(i.steps, `${i.id} default ${i.val} is off its own ladder`).toContain(i.val)
+    })
+  })
+  it('every calculator ladder climbs', () => {
+    ;[...WORKLOAD, DERIVED_INP, ...HW].forEach((i) => {
+      i.steps.forEach((s, k) => k > 0 && expect(s, i.id).toBeGreaterThan(i.steps[k - 1]))
+    })
   })
 })

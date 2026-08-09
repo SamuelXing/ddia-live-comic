@@ -67,7 +67,11 @@ export const L = {
   mo: [1, 3, 6, 12, 24, 36, 60],
   growth: [0, 1, 2, 5, 10, 20, 50],
   pow2: [1, 2, 4, 8, 16, 32, 64],
-  us: [10, 20, 50, 100, 200, 500, 1000, 2000, 5000],
+  /* 300 breaks the 1-2-5 pattern on purpose: fsync is a MEASURED constant, and
+     a measured value has to be exactly representable or the slider thumb sits
+     on one number while the label prints another. The ladder rule is for
+     estimates; a measurement outranks it. */
+  us: [10, 20, 50, 100, 200, 300, 500, 1000, 2000, 5000],
   gbps: [1, 2, 5, 10, 25, 40, 100],
   slots: [4, 8, 16, 32, 64, 128, 256, 512, 1024],
   amp: [1, 2, 3, 5, 10, 20],
