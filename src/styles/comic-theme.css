@@ -252,11 +252,7 @@
 }
 .dd-page[class] .calc-help-b .tbl td.ok { color: #2f6b46; font-family: var(--gnf-mono); font-size: 11.5px; }
 .dd-page[class] .calc-help-b .tbl td.warn { color: #97462a; font-family: var(--gnf-mono); font-size: 11.5px; }
-/* small print closing a full-width table: two columns so it fills the panel
-   instead of stopping halfway across */
-.dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px;
-  max-width: none; columns: 2; column-gap: 44px; }
-@media (max-width: 900px) { .dd-page[class] .calc-src { columns: 1; } }
+.dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
 /* reset */
 .dd-page[class] .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 /* a button label that wraps reads as broken; the heading may wrap instead */
