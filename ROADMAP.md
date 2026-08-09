@@ -31,13 +31,28 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   still measures shipping geometry (verified green with animations running). Every
   declaration is gated on `prefers-reduced-motion: no-preference`, and the
   reduced-motion render was checked **byte-identical** to the pre-animation
-  diagrams. Reserved class prefix: `gn-an-*`. The capacity calculator
-  snaps every input to a 1-2-5 ladder (10k, 20k, 50k…) because at this level of
-  modelling the *scale* is the answer — but every flagship hardware envelope
-  (`kafka/redis/postgres/rabbitmq HardwareEnvelope.tsx`, plus `ModulePanel.tsx`)
-  still uses continuous sliders, so Kafka happily reports "557k/s → 2,175.8 MB/s",
-  a precision nobody has. Port the calculator's ladder-`Slider` pattern into the
-  envelopes and round the derived readouts to match.
+  diagrams. Reserved class prefix: `gn-an-*`.
+- ✅ **Order-of-magnitude sliders everywhere.** Every sandbox on the site now snaps
+  to a 1-2-5 ladder like the capacity calculator — no more "557k/s" implying a
+  measurement, and no more "2,175.8 MB/s" claiming six significant figures built on
+  a shrug. Derived readouts round to two significant figures (`fmt.sig`, `fmt.mbs`).
+  Shared ladders + slider live in `src/deepdives/ladder.tsx`; `InputDef.min/max/step`
+  became `InputDef.steps`. Not everything is a ladder — a count that is small and
+  exact (3 brokers, RF 2, RAM in powers of two) is a *choice*, not an estimate, so it
+  keeps every value. `inputs.test.ts` enforces two rules across all six sandboxes:
+  every default sits on a rung (an off-ladder default renders the thumb on the
+  nearest rung while the label prints the stored value — the panel contradicts itself
+  before you touch it), and every ladder climbs.
+- ✅ **Component math reconciled with the calculator.** Two real inconsistencies.
+  Redis assumed 5 µs per command (~194k ops/s at 512 B) — above the top of the
+  published unpipelined range; it now uses the calculator's 10 µs, which
+  `redis-benchmark`'s 72k–180k supports. Postgres modelled no fsync wall at all, so a
+  96-core box implied 80k TPS on CPU alone; it now carries a **commit durability**
+  meter derived exactly as the calculator does (8 commits per fsync ÷ 300 µs ≈
+  27k/s) — the ceiling cores cannot buy past, because a commit waits on the disk, not
+  the CPU. Kafka's "~10 MB/s per partition" is relabelled as the operational
+  guideline it is (recovery and rebalance time), not a disk limit: a partition is a
+  sequential append and the disk streams GB/s.
 - ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
   hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
   waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring
