@@ -1,4 +1,5 @@
 import type { Comic } from '../types'
+import { tailLatency } from './tail-latency'
 import { storage } from './storage'
 import { replicationLeader } from './replication-leader'
 import { replicationLag } from './replication-lag'
@@ -10,6 +11,7 @@ import { consensus } from './consensus'
 
 /** Reading order — roughly DDIA chapter order across the live set. */
 export const COMICS: Comic[] = [
+  tailLatency,
   storage,
   replicationLeader,
   replicationLag,

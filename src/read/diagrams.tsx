@@ -901,3 +901,94 @@ export function SplitVoteDiagram() {
     </svg>
   )
 }
+
+/* ---- Ch 1 · Tail Latency ---- */
+
+/** The distribution nobody draws: right-skewed, so the MEAN sits in the fat
+ *  part while the p99 lives far out where nobody is looking. */
+export function TailDiagram() {
+  const bars = [
+    [18, 10], [29, 30], [40, 52], [51, 62], [62, 54], [73, 40],
+    [84, 28], [95, 19], [106, 13], [117, 9], [128, 7], [139, 5], [150, 4],
+  ]
+  return (
+    <svg viewBox="0 0 180 132" role="img" aria-label="A right-skewed latency distribution: most requests are fast, a long tail is slow, and the mean sits above the median.">
+      <line x1="14" y1="100" x2="166" y2="100" stroke={INK} strokeWidth="2" />
+      {bars.map(([x, h]) => (
+        <rect key={x} x={x} y={100 - h} width="9" height={h} fill={x <= 84 ? DENIM : TERRA} stroke={INK} strokeWidth="1.5" />
+      ))}
+      {/* median: where half the requests are */}
+      <line x1="55" y1="18" x2="55" y2="100" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="55" y="14" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>p50</text>
+      {/* mean: dragged right by the tail, describing a request that rarely happens */}
+      <line x1="72" y1="30" x2="72" y2="100" stroke={DENIM} strokeWidth="1.5" strokeDasharray="2 2" />
+      <text x="76" y="27" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>mean</text>
+      {/* p99: out in the tail */}
+      <line x1="145" y1="44" x2="145" y2="100" stroke={TERRA} strokeWidth="2" strokeDasharray="3 2" />
+      <text x="145" y="40" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>p99</text>
+      <text x="90" y="115" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>response time →</text>
+      <text x="90" y="127" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the mean is not the middle</text>
+    </svg>
+  )
+}
+
+/** One request, many backends, and the answer waits for the slowest of them. */
+export function FanoutTailDiagram() {
+  return (
+    <svg viewBox="0 0 180 140" role="img" aria-label="One request fans out to five backends; four are fast and one is slow, so the whole request is slow.">
+      <defs>
+        <marker id="gn-ft" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} />
+        </marker>
+      </defs>
+      <rect x="62" y="8" width="56" height="22" rx="4" fill={INK} stroke={INK} strokeWidth="2" />
+      <text x="90" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8.5" fill="#fff">1 request</text>
+      {[18, 54, 90, 126, 162].map((x, i) => (
+        <g key={x}>
+          <path d={`M90 32 L${x} 60`} stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-ft)" />
+          <rect x={x - 14} y="64" width="28" height="24" rx="3" fill={i === 3 ? TERRA : DENIM} stroke={INK} strokeWidth="2" />
+          <text x={x} y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">
+            {i === 3 ? 'slow' : 'fast'}
+          </text>
+        </g>
+      ))}
+      <text x="90" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>
+        the answer waits for the slowest
+      </text>
+      <text x="90" y="122" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="9" fill={INK}>
+        1 − 0.99¹⁰⁰ = 63%
+      </text>
+      <text x="90" y="134" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>
+        of requests touch one slow backend
+      </text>
+    </svg>
+  )
+}
+
+/** A hedged request: send a second copy once the first passes its p95, and
+ *  take whichever returns. It only needs ONE of them to be fast. */
+export function HedgeDiagram() {
+  return (
+    <svg viewBox="0 0 180 116" role="img" aria-label="A hedged request: the first copy runs long, a second is sent at the p95 mark, and the earlier reply wins.">
+      <defs>
+        <marker id="gn-hg" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
+        </marker>
+      </defs>
+      {/* the unlucky first copy */}
+      <text x="6" y="26" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>copy 1</text>
+      <rect x="44" y="18" width="108" height="12" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      <text x="98" y="27" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">stuck behind something</text>
+      {/* the p95 mark, where the hedge fires */}
+      <line x1="86" y1="10" x2="86" y2="86" stroke={INK} strokeWidth="1.5" strokeDasharray="3 3" />
+      <text x="86" y="8" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>p95</text>
+      {/* the hedge */}
+      <text x="6" y="58" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>copy 2</text>
+      <rect x="86" y="50" width="30" height="12" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <path d="M116 56 L136 56" stroke={INK} strokeWidth="2" markerEnd="url(#gn-hg)" />
+      <text x="140" y="59" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>wins</text>
+      <text x="90" y="102" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>1,800 ms → 74 ms at the p99</text>
+      <text x="90" y="113" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>for 2% more requests</text>
+    </svg>
+  )
+}

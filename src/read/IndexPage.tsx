@@ -11,6 +11,7 @@ import {
   TimeoutDiagram,
   RaftDiagram,
   StorageDiagram,
+  TailDiagram,
 } from './diagrams'
 
 import '@fontsource/playfair-display/700.css'
@@ -28,6 +29,7 @@ import '../styles/comic.css'
 /** Each idea's inked panel — the graphic that leads the card. Pulled from the
  *  same diagrams the comics use, so the index is a peek at the panels inside. */
 const PANEL: Record<string, ReactNode> = {
+  'tail-latency': <TailDiagram />,
   storage: <StorageDiagram />,
   'replication-leader': <LeaderFollowerDiagram />,
   'replication-lag': <LagDiagram />,
@@ -58,7 +60,7 @@ const PARTS: Part[] = [
     pt: 'Foundations',
     ps: 'single node',
     ideas: [
-      { no: 'Ch 1', title: 'Tail Latency', hook: 'Why the average hides the pain, and percentiles don’t.' },
+      { no: 'Ch 1', title: 'Tail Latency', hook: 'Why the average hides the pain, and 1% of requests becomes 63% of them.', slug: 'tail-latency' },
       { no: 'Ch 3', title: 'B-trees vs LSM-trees', hook: 'The two ways a database turns keys into bytes on disk.', slug: 'storage' },
     ],
   },
@@ -125,7 +127,7 @@ export default function IndexPage() {
             short comic, then follow it into the real machines and architectures where it actually lives.
           </p>
           <div className="gn-tags">
-            <span className="gn-tag">8 ideas live</span>
+            <span className="gn-tag">9 ideas live</span>
             <span className="gn-tag">More drawing</span>
           </div>
         </header>
