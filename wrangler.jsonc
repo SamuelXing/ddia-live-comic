@@ -1,0 +1,31 @@
+{
+  // Static-assets-only Worker. There is no `main`, because there is no server
+  // side to this project — it is a Vite SPA and Cloudflare just serves the
+  // files.
+  //
+  // Why this file exists at all: Cloudflare's "Connect to Git" flow now
+  // creates a Worker rather than a classic Pages project, and its deploy step
+  // runs `npx wrangler deploy`. With no config present, wrangler tries to
+  // auto-configure a framework, detects Vite, and refuses:
+  //
+  //   ✘ The version of Vite used in the project ("5.4.21") cannot be
+  //     automatically configured. Please update the Vite version to at
+  //     least "6.0.0" and try again.
+  //
+  // That path exists for Workers apps that run server code through
+  // @cloudflare/vite-plugin. This site has none, so the answer is to state
+  // the deployment explicitly rather than to chase a major Vite upgrade for
+  // a feature we would not use.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ddia-live-comic",
+  "compatibility_date": "2026-08-09",
+  "assets": {
+    "directory": "./dist",
+    // Every route here is client-side: /components/s3 is a React Router match,
+    // not a file. This serves index.html (200) for any path that is not a real
+    // asset, so deep links and hard refreshes work. It is the Workers-assets
+    // equivalent of the `/* /index.html 200` line in public/_redirects, which
+    // is kept for the classic-Pages path.
+    "not_found_handling": "single-page-application"
+  }
+}
