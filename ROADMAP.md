@@ -29,7 +29,30 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
     per-node envelope with the alarm line, two-ceiling scale-out sandbox,
     slow-consumer-freeze cascade + runbook, production-estate trace with the
     Kafka handoff)
-  - Next: Web-tier / S3 upgraded to the flagship template.
+  - ✅ Web / app tier (request trace through four queues nobody instruments — the
+    kernel accept backlog and the pool checkout wait; the autoscaler as a control
+    loop with 3–5 minutes of dead time; a slot-not-CPU envelope carrying the M/M/1
+    multiplier imported from `latencyModel`; a scale-out sandbox that reports what
+    the clones *multiply* — connections, deploy headroom, queueing; the retry-storm
+    cascade as a metastable failure; and Stack Overflow's nine servers, where
+    `L = λW` on their published counters gives ≈ 6 requests in flight per box)
+  - ✅ S3 / object storage (a GET from SigV4 to first byte and a PUT showing
+    durable-first/visible-second, which is where strong read-after-write comes from;
+    an envelope for a service you do not own — rate limits and a price list, with
+    the SDK connection pool and the small-object tax as the two ceilings nobody
+    expects; a prefixes-and-CDN sandbox that reads the invoice as a capacity signal;
+    the date-prefix cascade where retrying prevents S3's own repartition from
+    finishing; 2013 → 2025 scale figures with the interface unchanged)
+  - **All six components are now flagship**, so `CLASSIC_MODULES`, `ClassicModulePage`
+    and the `/components/:key` catch-all are gone. `ModulePanel.tsx` is just the
+    `Sandbox` widget now, and `types.ts` lost `ModuleDef`/`ModuleContent` for a single
+    `SandboxContent`.
+  - `sandboxes.test.ts` makes "drag every slider to both extremes" permanent: it sweeps
+    all six `compute()` functions to both ends of every ladder and both corners, and
+    asserts no rendered string says NaN/Infinity and no meter percentage is non-finite.
+    It found a real one on its first run — a 0% target-utilization rung divided the web
+    fleet size by zero and reported `Infinity` connections.
+  - Next: the Topology Composer, or more components from the papers (Cassandra, etcd/Raft).
 - ✅ **The comic diagrams are live — where the idea is about time.** Five of the 33
   panels move, because what they explain is a process: replication lag (writes
   crossing a gap that never closes, stale plate breathing), the LSM write path

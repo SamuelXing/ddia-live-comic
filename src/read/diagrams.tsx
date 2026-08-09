@@ -1016,7 +1016,7 @@ export function ShuffleDiagram() {
         </g>
       ))}
       <text x="90" y="10" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>every key, sorted to one place</text>
-      <text x="90" y="132" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>M × R connections, all over the network</text>
+      <text x="90" y="132" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>M × R connections across the network</text>
     </svg>
   )
 }

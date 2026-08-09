@@ -4,8 +4,7 @@ import { CATALOG } from '../deepdives/catalog'
 import type { CatalogEntry } from '../deepdives/catalog'
 import '../styles/comic.css'
 
-const flagship = CATALOG.filter((c) => c.status === 'flagship')
-const classic = CATALOG.filter((c) => c.status === 'classic')
+const live = CATALOG.filter((c) => c.status !== 'planned')
 const planned = CATALOG.filter((c) => c.status === 'planned')
 
 /** A built, clickable component. Full deep-dive vs. lighter sandbox is the only
@@ -47,23 +46,9 @@ export default function ComponentsCatalog() {
           <h2>The machines, taken apart</h2>
         </div>
         <div className="gn-cat-grid">
-          {flagship.map((c) => (
+          {live.map((c) => (
             <LiveCard c={c} key={c.key} />
           ))}
-          {classic.map((c) => (
-            <LiveCard c={c} key={c.key} />
-          ))}
-          <Link className="gn-cat box lift" to="/calculator">
-            <div className="gn-cat-top">
-              <span className="dot" style={{ background: '#bd5f3d' }} />
-              <h3>Capacity calculator</h3>
-            </div>
-            <p>Describe one workload and size every tier together — the first bottleneck flagged, with a 12-month growth projection.</p>
-            <div className="gn-cat-foot">
-              <span className="gn-cat-tag tool">Tool</span>
-              <span className="go">Open →</span>
-            </div>
-          </Link>
         </div>
 
         <div className="gn-sechead">
