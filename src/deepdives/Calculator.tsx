@@ -65,10 +65,80 @@ const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
   { id: 'ioDepth', label: 'Concurrent disk reads', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'NVMe serves many reads at once; this multiplies read throughput.', info: "A spinning disk served one read at a time; NVMe keeps many in flight, so throughput is queue depth divided by latency rather than one over latency. Real drives sustain far deeper queues — x8 is a deliberately conservative stand-in for one database's effective read parallelism." },
   { id: 'cacheOp', label: 'Cache op, CPU cost', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' µs', hint: 'Two syscalls cost ~0.6 µs; parsing and the network stack are the rest.', info: 'What one cache command costs the server end to end. The floor is two syscalls (~0.6 us) plus a hash and a memory lookup; parsing, the event loop and the network stack are what actually dominate. Because a cache shard executes commands one at a time on one core, this number IS its throughput.' },
   { id: 'nic', label: 'Origin NIC', steps: L.gbps, val: 10, src: 'assume', fmt: (v) => v + ' Gbps', hint: 'Per-host egress capacity before you need more hosts or a CDN.', info: 'How many bits one host can push. For media-heavy systems bandwidth is usually the first ceiling you hit — you run out of network long before CPU or disk. Once peak egress exceeds this you either add hosts purely for bandwidth, or move the bytes to a CDN.' },
+  { id: 'overhead', label: 'Protocol overhead / message', steps: [2, 10, 50, 100, 200, 500, 800, 1500], val: 10, src: 'assume', fmt: (v) => v + ' B', hint: 'Bytes each message costs beyond the payload.', info: "HTTP repays request and response headers on every exchange — often several hundred bytes, which dwarfs a short chat message. A WebSocket frame costs a handful of bytes. When payloads are small, the protocol can cost more than the data." },
+  { id: 'readAmp', label: 'Files touched per read', steps: [0, 1, 2, 3, 5], val: 1, src: 'assume', fmt: (v) => (v === 0 ? 'none (RAM)' : '×' + v), hint: 'How many disk lookups one read costs.', info: "A B-tree walks to exactly one leaf page. An LSM store may check the memtable and several sorted files before it finds the key — bloom filters skip most of them, but not for free. An in-memory store touches no disk at all." },
   { id: 'connsPerHost', label: 'Connections per host', steps: L.conns, val: 1e5, src: 'assume', fmt: (v) => fmt.compact(v), hint: 'Live connections one server can hold.', info: "Bounded by memory per connection, file descriptors, and the CPU spent on heartbeats — not by request rate. Tuned servers hold hundreds of thousands; a default-configured one manages far fewer. This is the ceiling that sizes the edge tier of any chat or presence system." },
   { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => fmt.int(v) + ' slots', hint: 'In-flight requests one app instance handles.', info: "How many requests one instance can have in flight at once — threads, workers, or async tasks. Little's Law turns it into a machine count. Raising it does not create capacity when the work is CPU-bound; it just lets more requests queue." },
   { id: 'writeAmp', label: 'Write amplification', steps: L.amp, val: 3, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Bytes actually written per logical write: WAL + page + indexes.', info: 'One logical row write touches the disk more than once: the write-ahead log, the page itself, and every index that must be updated. x3 is modest — a table with several indexes is worse. This sets how much disk bandwidth you burn, not how many commits per second you can do.' },
 ]
+
+interface Profile {
+  id: string
+  label: string
+  info: string
+  /** the constants this choice implies */
+  sets: Record<string, number>
+}
+
+/** How clients talk to you. Decides whether connections are HELD, and what
+ *  each message costs in protocol bytes on top of the payload. */
+const PROTOCOLS: Profile[] = [
+  {
+    id: 'req', label: 'Request / response',
+    info: 'Plain HTTP. Nothing is held between requests, so there is no connection tier to size — but every message repays full headers, and the server cannot push. Fine for anything the client can ask for on its own schedule.',
+    sets: { online: 0, overhead: 800 },
+  },
+  {
+    id: 'poll', label: 'Long polling',
+    info: 'The client holds a request open waiting for news, then immediately reconnects. You pay for BOTH: a held connection per client and full headers on every message. It is the expensive way to fake push, and it is why WebSocket exists.',
+    sets: { online: 10, overhead: 800 },
+  },
+  {
+    id: 'ws', label: 'WebSocket / SSE',
+    info: 'One connection stays open and the server can push down it. Per-message overhead collapses to a few bytes, but every online user now costs memory and a file descriptor whether or not they are doing anything — so you size a connection tier.',
+    sets: { online: 10, overhead: 10 },
+  },
+]
+
+/** The storage engine. Decides how much disk one logical write really costs,
+ *  how many files a read may touch, and who does the sharding. */
+const ENGINES: (Profile & { scale: string })[] = [
+  {
+    id: 'btree', label: 'Single-primary SQL',
+    info: 'Postgres, MySQL. A write updates pages in place, so it pays the write-ahead log, the page itself and every index. You get transactions and predictable reads; you do the sharding yourself, and there is exactly one machine that accepts writes.',
+    sets: { writeAmp: 3, readAmp: 1 },
+    scale: 'You will do this by hand: choose a partition key, route to it, and rebalance later — the hard part is that the key is nearly impossible to change once data exists.',
+  },
+  {
+    id: 'lsm', label: 'LSM / wide-column',
+    info: 'Cassandra, Scylla, RocksDB. Writes append to memory and flush in sorted batches, so the disk work per write is smaller and sequential — but it comes back later as compaction, and a read may touch several files. Partitioning is built in; transactions largely are not.',
+    sets: { writeAmp: 1, readAmp: 2 },
+    scale: 'The ring does it for you — add nodes and the partitions move. You pay instead in compaction load and in giving up cross-partition transactions.',
+  },
+  {
+    id: 'mem', label: 'In-memory store',
+    info: 'Redis, Memcached. No disk on the read path at all, so the ceilings that matter become CPU per operation and RAM. Durability is optional and costs you the fsync you were avoiding — treat it as a cache unless you have thought hard about it.',
+    sets: { writeAmp: 1, readAmp: 0 },
+    scale: 'Add shards, each single-threaded — but first check the data still fits in RAM, which is usually the real limit.',
+  },
+]
+
+function Picker({ options, value, onPick }: { options: Profile[]; value: string; onPick: (p: Profile) => void }) {
+  return (
+    <div className="picker">
+      {options.map((o) => (
+        <button
+          key={o.id}
+          className={'pick' + (o.id === value ? ' on' : '')}
+          onClick={() => onPick(o)}
+          title={o.info}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 function Info({ text }: { text?: string }) {
   if (!text) return null
@@ -100,6 +170,13 @@ const INIT: Record<string, number> = {}
 export default function Calculator() {
   const [v, setV] = useState<Record<string, number>>(INIT)
   const [showHw, setShowHw] = useState(false)
+  const [proto, setProto] = useState('ws')
+  const [engine, setEngine] = useState('btree')
+  const pick = (setId: (s: string) => void) => (p: Profile) => {
+    setId(p.id)
+    setV((s) => ({ ...s, ...p.sets }))
+  }
+  const eng = ENGINES.find((e) => e.id === engine)!
   const set = (id: string) => (n: number) => setV((s) => ({ ...s, [id]: n }))
   const atDefaults = Object.keys(INIT).every((k) => v[k] === INIT[k])
 
@@ -119,7 +196,7 @@ export default function Calculator() {
   const bytesPerObj = v.payload * 1024
   const storagePerDay = writesPerDay * bytesPerObj
   const storageTotal = storagePerDay * 30 * v.retention
-  const egressGbps = (readSide * bytesPerObj * 8) / 1e9
+  const egressGbps = (readSide * (bytesPerObj + v.overhead) * 8) / 1e9
 
   // ---------- ceilings, derived from the constants ----------
   /** one fsync makes a group of commits durable */
@@ -132,7 +209,7 @@ export default function Calculator() {
   const webInstances = Math.max(1, Math.ceil((peakQps * (v.lat / 1000)) / v.slots))
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
   const cacheNodes = Math.max(1, Math.ceil(readSide / cacheCeiling))
-  const readUtil = readSide / diskReadCeiling
+  const readUtil = v.readAmp === 0 ? 0 : (readSide * v.readAmp) / diskReadCeiling
   const writeUtil = peakWrites / writeCeiling
 
   const derived: { k: string; v: string; how: string }[] = [
@@ -143,7 +220,7 @@ export default function Calculator() {
     { k: 'New data', v: `${fmt.bytes(storagePerDay)}/day`, how: `${fmt.compact(writesPerDay)} writes/day × ${fmt.bytes(bytesPerObj)}` },
     { k: 'Stored at retention', v: fmt.bytes(storageTotal), how: `${fmt.bytes(storagePerDay)}/day × 30 × ${v.retention} mo, before replication` },
     { k: 'Disk write rate', v: `${fmt.bytes(diskWriteBytes)}/s`, how: `${fmt.compact(peakWrites)} writes/s × ${fmt.bytes(bytesPerObj)} × ${v.writeAmp} amplification` },
-    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(readSide)}/s delivery side × ${fmt.bytes(bytesPerObj)} × 8 bits` },
+    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(readSide)}/s × (${fmt.bytes(bytesPerObj)} + ${v.overhead} B protocol) × 8 bits` },
     { k: 'Request workers', v: `~${fmt.int(webInstances)}`, how: `Little’s Law: ${fmt.compact(peakQps)}/s × ${v.lat} ms ÷ ${v.slots} slots${v.online > 0 ? ' — separate from the connection tier above' : ''}` },
   ]
 
@@ -210,7 +287,7 @@ export default function Calculator() {
       need: writeUtil > 1,
       what: 'Shard the write path',
       number: `${fmt.compact(peakWrites)} writes/s vs a ${fmt.compact(writeCeiling)}/s ceiling (${fmt.n1(writeUtil * 100)}% of one primary)`,
-      because: 'replicas do not help: every replica replays every write. Past one primary the only move left is to split the data',
+      because: `replicas do not help: every replica replays every write. Past one primary the only move left is to split the data. ${eng.scale}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/components/postgres' },
@@ -295,11 +372,37 @@ export default function Calculator() {
       <div className="card" style={{ padding: 0 }}>
         <div className="sandbox">
           <div className="sb-controls">
+            <p className="sb-title">The shape of the system</p>
+            <div className="ctl">
+              <div className="ctl-top">
+                <span className="ctl-label">
+                  How clients connect
+                  <Info text={PROTOCOLS.find((x) => x.id === proto)!.info} />
+                </span>
+              </div>
+              <Picker options={PROTOCOLS} value={proto} onPick={pick(setProto)} />
+              <div className="ctl-hint">{PROTOCOLS.find((x) => x.id === proto)!.info.split('.')[0]}.</div>
+            </div>
+            <div className="ctl">
+              <div className="ctl-top">
+                <span className="ctl-label">
+                  Where writes land
+                  <Info text={eng.info} />
+                </span>
+              </div>
+              <Picker options={ENGINES} value={engine} onPick={pick(setEngine)} />
+              <div className="ctl-hint">{eng.info.split('.')[0]}.</div>
+            </div>
+
             <div className="sb-head">
               <p className="sb-title" style={{ margin: 0 }}>The workload</p>
               <button
                 className="reset-btn"
-                onClick={() => setV(INIT)}
+                onClick={() => {
+                  setV(INIT)
+                  setProto('ws')
+                  setEngine('btree')
+                }}
                 disabled={atDefaults}
                 title={atDefaults ? 'Already at defaults' : 'Restore every input and constant to its default'}
               >

@@ -254,6 +254,15 @@
   opacity: 0; visibility: hidden; transition: opacity .12s;
 }
 .dd-page[class] .info:hover .info-tip, .dd-page[class] .info:focus-visible .info-tip { opacity: 1; visibility: visible; }
+
+/* profile pickers */
+.dd-page[class] .picker { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.dd-page[class] .pick {
+  font-family: var(--gnf-mono); font-size: 11px; color: var(--ink-2); background: var(--card);
+  border: 2px solid #1a1a1a; padding: 5px 9px; cursor: pointer; transition: .12s;
+}
+.dd-page[class] .pick:hover { background: rgba(63, 97, 145, 0.12); color: #16130f; }
+.dd-page[class] .pick.on { background: #16130f; color: #f7f4ef; box-shadow: 2px 2px 0 #3f6191; }
 /* keep the tooltip on screen at the panel edges */
 .dd-page[class] .ctl:first-of-type .info-tip { bottom: auto; top: calc(100% + 8px); }
 @media (max-width: 760px) { .dd-page[class] .info-tip { max-width: 220px; } }
