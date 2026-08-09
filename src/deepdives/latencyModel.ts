@@ -25,9 +25,16 @@
 
 import { L, HW, type Inp, type Opt, type Vals } from './calcModel'
 
-/** Light in fibre is about two-thirds of c: ~200 km per millisecond.
- *  This is the one constant on the page no engineering can move. */
+/** Light in a vacuum, measured: 299,792 km/s. */
+export const C_KM_PER_S = 299792
+/** Silica single-mode fibre has a refractive index around 1.47, and light in a
+ *  medium travels at c/n — so ~204,000 km/s, or ~204 km per millisecond. */
+export const FIBRE_INDEX = 1.47
+/** Rounded DOWN to 200 km/ms: a clean number, and ~2% conservative against the
+ *  derived 203.9. This is the one constant on the page no engineering moves. */
 export const FIBRE_KM_PER_MS = 200
+/** what the derivation actually gives, before the rounding */
+export const FIBRE_EXACT_KM_PER_MS = C_KM_PER_S / FIBRE_INDEX / 1000
 
 /** Below a few kilometres the wire stops being the cost and switching,
  *  serialization and the kernel take over. napkin-math measures a round
@@ -51,30 +58,32 @@ export const PATH: Opt[] = [
 /** where the user is, relative to where the data is */
 export interface Geo extends Opt {
   km: number
+  /** the actual pair the distance was taken from, so the number is checkable */
+  pair: string
 }
 export const GEO: Geo[] = [
   {
-    id: 'dc', label: 'Same datacenter', km: 1,
+    id: 'dc', label: 'Same datacenter', km: 1, pair: 'one building',
     info: 'Client and server in the same building. The wire is irrelevant at this distance; what you pay is switching and serialization, which napkin-math measures at about 500 µs round trip.',
   },
   {
-    id: 'metro', label: 'Same metro', km: 50,
+    id: 'metro', label: 'Same metro', km: 50, pair: 'a city and its suburbs',
     info: 'A city and its suburbs. Still under a millisecond of pure propagation, so the floor is barely above the datacenter case — this is what a well-placed edge POP buys you.',
   },
   {
-    id: 'region', label: 'Same region', km: 500,
+    id: 'region', label: 'Same region', km: 500, pair: 'across one cloud region',
     info: 'Roughly one cloud region: a few hundred kilometres, several milliseconds round trip. Cross-availability-zone traffic lives here, which is why synchronous cross-AZ replication costs real time on every write.',
   },
   {
-    id: 'country', label: 'Across a country', km: 4130,
+    id: 'country', label: 'Across a country', km: 4130, pair: 'New York → San Francisco',
     info: 'New York to San Francisco is about 4,130 km. Great-circle propagation alone is ~41 ms round trip; real routes measure 60–70 ms. No amount of engineering removes it — only moving the data closer does.',
   },
   {
-    id: 'ocean', label: 'Across an ocean', km: 5585,
+    id: 'ocean', label: 'Across an ocean', km: 5585, pair: 'New York → London',
     info: 'New York to London is about 5,585 km — ~56 ms of pure round-trip propagation, ~70–80 ms in practice. If your users are here and your primary is there, you have already spent a third of a 200 ms budget before any code runs.',
   },
   {
-    id: 'world', label: 'Halfway around the world', km: 17000,
+    id: 'world', label: 'Halfway around the world', km: 17000, pair: 'London → Sydney',
     info: 'London to Sydney, about 17,000 km. ~170 ms round trip at the speed of light in fibre, ~250–290 ms in practice. A single synchronous round trip at this distance costs more than most latency budgets contain.',
   },
 ]
@@ -255,8 +264,8 @@ export function latency(v: Vals, req: LReq) {
   const terms: Term[] = [
     {
       id: 'floor', label: 'Speed of light', ms: floor, kind: 'physics',
-      how: `2 × ${int(geo.km)} km ÷ ${FIBRE_KM_PER_MS} km/ms × ${v.route}`,
-      why: 'Light in fibre travels about 200 km per millisecond, and the request has to go there and come back. Nothing in your control changes this — only moving the data closer to the user does.',
+      how: `${geo.pair} · 2 × ${int(geo.km)} km ÷ ${FIBRE_KM_PER_MS} km/ms × ${v.route} routing`,
+      why: `The distance is ${geo.pair} — ${int(geo.km)} km great-circle — doubled because the request goes there and comes back. The 200 km/ms is derived, not remembered: light in a vacuum is 299,792 km/s, silica fibre has a refractive index near 1.47, and light in a medium travels at c/n — so 299,792 ÷ 1.47 ÷ 1,000 = ${Math.round(FIBRE_EXACT_KM_PER_MS * 10) / 10} km/ms, rounded down to 200. Nothing in your control changes this; only moving the data closer does.`,
     },
     {
       id: 'net', label: 'Hops between services', ms: internalNet, kind: 'work',

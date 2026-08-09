@@ -4,6 +4,18 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
 
 ## Now / in progress
 
+- ✅ **The concept lens is drawn — 11 of 11 ideas live.** Part I gained **Ch 1 · Tail
+  Latency** (the average is nobody's experience; `1 − 0.99¹⁰⁰ = 63%` for fan-out *and*
+  for a 100-request session; hedged requests taking 1,800 ms → 74 ms; and why the cache
+  did nothing for the tail). Part III gained both of its chapters: **Ch 10 · The Shuffle**
+  (the sort in the middle is the job; broadcast and pre-partitioned joins as ways to not
+  move data; one hot key making the cluster irrelevant — Amdahl in a third costume) and
+  **Ch 11 · Stream–Table Duality** (a log is not a queue, which is the entire trick;
+  compaction bounded by key cardinality rather than history; and dual writes as the bug
+  the duality actually fixes — the same "one log, many consumers" the capacity page starts
+  recommending at two derived systems). Nine new diagrams, all passing `check:diagrams`.
+  Chapter numbers now say **DDIA 1st edition** everywhere they appear, since the 2nd
+  edition renumbers.
 - **Component deep-dives** — flagship, 9-chapter treatment per infra component.
   - ✅ Kafka (flagship template: abstraction → anatomy w/ animated traces → hardware
     envelope → scale up/out → ops runbook + failure cascade → large-cluster reference → papers)

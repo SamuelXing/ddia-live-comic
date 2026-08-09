@@ -142,5 +142,5 @@ export const consensus: Comic = {
     title: 'See consensus running a real broker',
     body: 'Kafka’s KRaft mode and RabbitMQ’s quorum queues are Raft in production. Both deep-dives show where the leader, the log, and the majority live inside a system you already use.',
   },
-  next: { slug: 'storage', title: 'Storage & Retrieval' },
+  next: { slug: 'shuffle', title: 'The Shuffle' },
 }

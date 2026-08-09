@@ -175,7 +175,7 @@ export default function ComicView({ comic }: { comic: Comic }) {
 
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">Inspired by DDIA · {comic.chapter}</div>
+          <div className="gn-kicker">Inspired by DDIA, 1st ed. · {comic.chapter}</div>
           <h1>{comic.title}</h1>
           <p className="dek">{comic.dek}</p>
           <div className="gn-tags">

@@ -6,7 +6,7 @@ export default function SiteFooter() {
       <div className="wrap foot-in">
         <div>
           <b style={{ color: 'var(--ink-2)' }}>DDIA, as a live comic</b> — an unofficial, illustrated
-          companion to <i>Designing Data-Intensive Applications</i> by Martin Kleppmann; not affiliated
+          companion to <i>Designing Data-Intensive Applications</i> (1st edition) by Martin Kleppmann — chapter numbers follow that edition; not affiliated
           with the author or O’Reilly. The simulations are <b style={{ color: 'var(--ink-2)' }}>experimental</b> —
           one plausible design per app, built on order-of-magnitude rules of thumb. Verify against real
           load tests before sizing production.

@@ -179,7 +179,7 @@ export const tailLatency: Comic = {
       note: 'The origin of the 63% example and of hedged and tied requests, with the 1,800 ms → 74 ms measurement.',
     },
     {
-      title: 'Designing Data-Intensive Applications, Ch 1',
+      title: 'Designing Data-Intensive Applications (1st ed.), Ch 1',
       note: 'Percentiles, tail latency amplification, and the observation that the slowest requests belong to the customers with the most data.',
     },
     {

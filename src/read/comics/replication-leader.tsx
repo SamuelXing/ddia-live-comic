@@ -112,7 +112,7 @@ export const replicationLeader: Comic = {
   sources: [
     {
       year: '2017',
-      title: 'Designing Data-Intensive Applications, Ch. 5 — Kleppmann',
+      title: 'Designing Data-Intensive Applications (1st ed.), Ch. 5 — Kleppmann',
       url: 'https://dataintensive.net/',
       note: 'The full taxonomy: single-leader, multi-leader, leaderless, and their failure modes.',
     },

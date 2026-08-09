@@ -1398,7 +1398,7 @@ export default function Calculator() {
                   answers with fan-out workers + a partitioned cache tier
                 </td>
                 <td>
-                  Twitter’s published timeline numbers (2012, via DDIA Ch 1): 4.6k tweets/s becomes{' '}
+                  Twitter’s published timeline numbers (2012, via DDIA 1st ed., Ch 1): 4.6k tweets/s becomes{' '}
                   <b>345k</b> home-timeline cache writes/s — served by async fan-out workers and
                   Redis clusters, with fan-out-on-read for celebrity accounts.
                 </td>
@@ -1511,7 +1511,7 @@ export default function Calculator() {
             </a>{' '}
             (MIT) ·{' '}
             <a href="https://timilearning.com/posts/ddia/part-one/chapter-1/" target="_blank" rel="noreferrer">
-              DDIA Ch 1 (Twitter, 2012)
+              DDIA 1st ed., Ch 1 (Twitter, 2012)
             </a>{' '}
             ·{' '}
             <a href="https://blog.whatsapp.com/1-million-is-so-2011" target="_blank" rel="noreferrer">
