@@ -808,28 +808,20 @@ export default function Calculator() {
 
       {/* Worth stating plainly: this is a pure function, not a judgement.
           It is also the one property a reader can verify for themselves. */}
-      <div className="calc-scope calc-pure">
-        <div className="scope-col in">
-          <span className="scope-h">How the answer is produced</span>
-          <p>
-            <b>There is no model in the loop and nothing is inferred.</b> Every number here is a
-            division you could do on paper, from constants printed on the page and adjustable by
-            you. The arithmetic is a <em>pure function</em> — the same inputs give the same answer
-            every time, with no memory of what it said before — covered by unit tests whose
-            expected values were worked out by hand, and by a second suite pinned to figures real
-            operators published.
-          </p>
-        </div>
-        <div className="scope-col out">
-          <span className="scope-h">Where it is honestly uncertain</span>
-          <p>
-            The constants marked <span className="src-a">assumed</span> are modelling choices, not
-            measurements — nobody checked them against <em>your</em> system. Rather than hide that,
-            the page moves each one a rung and tells you which of them your answer is actually
-            resting on. If you disagree with a verdict, there is exactly one place to look: the
-            division printed next to it.
-          </p>
-        </div>
+      <div className="calc-pure">
+        <span className="scope-h">How the answer is produced</span>
+        <p>
+          <b>There is no model in the loop and nothing is inferred.</b> Every number here is a
+          division you could do on paper, from constants printed on the page and adjustable by you.
+          The arithmetic is a <em>pure function</em> — the same inputs give the same answer every
+          time, with no memory of what it said before — covered by unit tests whose expected values
+          were worked out by hand, and by a second suite pinned to figures real operators
+          published. The constants marked <span className="src-a">assumed</span> are the honest
+          exception: those are modelling choices, nobody checked them against <em>your</em> system,
+          and the sweep below tells you which of them your answer is actually resting on. If you
+          disagree with a verdict, there is exactly one place to look — the division printed next
+          to it.
+        </p>
       </div>
 
       <details className="calc-help">
