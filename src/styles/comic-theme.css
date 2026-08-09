@@ -307,6 +307,10 @@
 .dd-page[class] .dc-tbl th.pin, .dd-page[class] .dc-tbl td.pin { background: rgba(189, 95, 61, 0.09); }
 .dd-page[class] .dc-tbl th.pin { border-bottom: 3px solid #bd5f3d; }
 .dd-page[class] .dc-tbl th.pin .dc-tag { color: #97462a; }
+/* a column a requirement disqualified — greyed, the tag says OUT, the verdict says why */
+.dd-page[class] .dc-tbl th.dq button, .dd-page[class] .dc-tbl td.dq { color: var(--muted); }
+.dd-page[class] .dc-tbl td.dq { background: rgba(26, 26, 26, 0.03); }
+.dd-page[class] .dc-tbl th.dq .dc-tag { color: #97462a; }
 .dd-page[class] .dc-verdict {
   margin-top: 10px; padding-left: 10px; border-left: 3px solid #3f6191;
   font-size: 13px; line-height: 1.5; color: var(--ink-2);

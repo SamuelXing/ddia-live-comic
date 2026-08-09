@@ -6,10 +6,11 @@ import { fmt } from './format'
 /* ============================================================
    Capacity planning from first principles.
 
-   Inputs are REQUIREMENTS and workload facts. Component choices —
-   transport, storage engine, queue, analytical store — come out the
-   other end as computed comparisons, losing columns included, so the
-   decision is arithmetic you can check rather than advice you trust.
+   The thesis: REQUIREMENTS FILTER, LOAD RANKS, CEILINGS FORCE.
+   Requirement facts disqualify kinds of components outright —
+   arithmetic never overrules a promise. Load arithmetic ranks the
+   surviving candidates. Crossed ceilings force structural additions,
+   and each addition transforms the load every later tier sees.
    Every ceiling is derived from the hardware constants below
    (napkin-math, MIT, measured March 2026); pin a column when reality
    has already chosen for you, and everything downstream follows.
@@ -46,6 +47,7 @@ const L = {
   onl: [1, 2, 5, 10, 20, 30, 50],
   conns: [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6],
   views: [0, 1, 2, 3, 4, 5],
+  hit: [50, 70, 80, 90, 95, 99],
 }
 
 const WORKLOAD: Inp[] = [
@@ -55,13 +57,14 @@ const WORKLOAD: Inp[] = [
   { id: 'readPct', label: 'Read share', steps: L.pct, val: 85, fmt: (v) => v + '% reads', hint: 'Reads cache and replicate. Writes are the wall.', info: 'The split matters more than the total, because reads and writes scale differently: reads spread across caches and replicas, while writes all funnel to one place until you shard. A system that is 99% reads is a very different machine from one that is 50% writes.' },
   { id: 'fanout', label: 'Deliveries per write', steps: L.fan, val: 1, fmt: (v) => (v === 0 ? 'none' : '×' + fmt.int(v)), hint: 'A message to a 50-person group is 50 deliveries. 0 = write-only ingest.', info: "How many people a single write must reach. For 1:1 messaging it is 1; for a group chat it is the group size; for a social feed it is the follower count; for sensor ingest nobody is waiting, so it is 0. This is the multiplier that decides whether you fan out on write or on read — and it is usually the number that breaks a design, because the write side is cheap while the delivery side is not." },
   { id: 'online', label: 'Peak concurrently online', steps: L.onl, val: 10, fmt: (v) => v + '% of DAU', hint: 'Share of daily users present at the same moment.', info: 'What fraction of a day’s users are present at the busiest moment. It only turns into held connections if the transport keeps one open per user — which is exactly what the transport decision on the right computes.' },
-  { id: 'payload', label: 'Avg object / response size', steps: L.kb, val: 50, fmt: (v) => fmt.bytes(v * 1024), hint: 'Drives bandwidth and storage.', info: 'The average size of one object or response. It multiplies into three different ceilings — storage, disk bandwidth and network egress — so it is often the number with the most leverage on cost.' },
+  { id: 'writeSize', label: 'Avg written object', steps: L.kb, val: 2, fmt: (v) => fmt.bytes(v * 1024), hint: 'What one write stores. Drives disk and storage.', info: 'The size of what a write actually persists — a message, an order row, an event. It multiplies into storage, disk bandwidth and delivery egress. Kept separate from the read response below, because in most systems they differ wildly: you write a 2 KB message and read back a 50 KB page.' },
+  { id: 'readSize', label: 'Avg read response', steps: L.kb, val: 50, fmt: (v) => fmt.bytes(v * 1024), hint: 'What one read returns. Drives egress.', info: 'The size of what a read sends back — a page, a timeline, an API response, usually an assembly of many stored objects. This is what network egress is made of, which is why it is a different slider from the written object: conflating them muddles the disk bill with the bandwidth bill.' },
   { id: 'lat', label: 'Avg request latency', steps: L.ms, val: 100, fmt: (v) => v + ' ms', hint: 'Service time per request, for Little’s Law.', info: "How long the server spends on one request. With Little's Law it decides how many instances you need: halve the latency and you halve the fleet, which is why profiling often beats autoscaling." },
   { id: 'retention', label: 'Data retention', steps: L.mo, val: 12, fmt: (v) => v + ' mo', hint: 'How long writes are kept.', info: 'How long you keep writes before deleting or archiving them. Storage is retention times daily volume, so a policy decision — not a technical one — usually sets your disk bill.' },
   { id: 'growth', label: 'Monthly growth', steps: L.growth, val: 10, fmt: (v) => v + '%/mo', hint: 'Compounded, for the runway estimate.', info: "Compounded month over month. Its real use is not the 12-month number but the runway: how long before today's comfortable headroom becomes next quarter's incident." },
 ]
 
-/** the third requirement is a count, so it lives with the sliders */
+/** the derived-views requirement is a count, so it renders as a slider */
 const DERIVED_INP: Inp = {
   id: 'derived', label: 'Systems fed by every change', steps: L.views, val: 1,
   fmt: (v) => (v === 0 ? 'none' : fmt.int(v)),
@@ -78,6 +81,8 @@ const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
   { id: 'seqRead', label: 'Sequential SSD read', steps: [1, 2, 4, 8, 16], val: 8, src: 'napkin', fmt: (v) => v + ' GiB/s', hint: 'Streaming a file end to end. Sets full-scan time.', info: 'Reading a file front to back streams ~80x faster than hopping around it — 8 GiB/s vs the equivalent of ~70 MiB/s for random 8 KiB reads. Dividing your stored bytes by this number tells you how long a full table scan takes, which is the arithmetic behind “do not run analytics on the primary.”' },
   { id: 'seqWrite', label: 'Sequential SSD write', steps: [1, 2, 3, 5, 10], val: 3, src: 'napkin', fmt: (v) => v + ' GiB/s', hint: 'Streaming bandwidth, before fsync. The write-stream budget.', info: 'How fast one node can stream bytes to disk when it does not wait for fsync on each one. The engine decision compares each engine’s write stream — logical writes times its amplification — against this budget.' },
   { id: 'cacheOp', label: 'Cache op, CPU cost', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' µs', hint: 'Two syscalls cost ~0.6 µs; parsing and the network stack are the rest.', info: 'What one cache command costs the server end to end. The floor is two syscalls (~0.6 us) plus a hash and a memory lookup; parsing, the event loop and the network stack are what actually dominate. Because a cache shard executes commands one at a time on one core, this number IS its throughput.' },
+  { id: 'cacheHit', label: 'Cache hit rate', steps: L.hit, val: 90, src: 'assume', fmt: (v) => v + '%', hint: 'Reads the cache absorbs before the database sees them.', info: 'The share of reads answered from memory instead of disk. It depends entirely on access skew — a feed where everyone reads the same hot posts caches beautifully; uniform random access barely caches at all. This is the single most consequential assumption on the page: it decides how much read load survives to hit the database.' },
+  { id: 'cdnHit', label: 'CDN offload', steps: L.hit, val: 80, src: 'assume', fmt: (v) => v + '%', hint: 'Egress served from the edge instead of your origin.', info: 'The share of bytes the CDN serves from its edge instead of your origin. High for static objects and popular media; low for personalized or private responses. Whatever it does not absorb still needs origin NICs.' },
   { id: 'nic', label: 'Origin NIC', steps: L.gbps, val: 10, src: 'assume', fmt: (v) => v + ' Gbps', hint: 'Per-host egress capacity before you need more hosts or a CDN.', info: 'How many bits one host can push. For media-heavy systems bandwidth is usually the first ceiling you hit — you run out of network long before CPU or disk. Once peak egress exceeds this you either add hosts purely for bandwidth, or move the bytes to a CDN.' },
   { id: 'overhead', label: 'Protocol overhead / message', steps: [2, 10, 50, 100, 200, 500, 800, 1500], val: 800, src: 'assume', fmt: (v) => v + ' B', hint: 'Bytes each message costs beyond the payload. Set by the transport choice.', info: 'HTTP repays request and response headers on every exchange — often several hundred bytes, which dwarfs a short chat message. A WebSocket frame costs a handful of bytes. When payloads are small, the protocol can cost more than the data. The transport decision writes this value; you can still drag it.' },
   { id: 'readAmp', label: 'Files touched per read', steps: [0, 1, 2, 3, 5], val: 1, src: 'assume', fmt: (v) => (v === 0 ? 'none (RAM)' : '×' + v), hint: 'Disk lookups per read. Set by the engine choice.', info: 'A B-tree walks to exactly one leaf page. An LSM store may check the memtable and several sorted files before it finds the key — bloom filters skip most of them, but not for free. An in-memory store touches no disk at all. The engine decision writes this value.' },
@@ -93,10 +98,19 @@ interface Opt {
   info: string
 }
 
-/** requirement questions — plain-language facts about what the system must do */
+/** requirement questions — facts about the promises the system makes.
+ *  These FILTER candidates; the load arithmetic only ranks survivors. */
 const FRESH: Opt[] = [
   { id: 'pull', label: 'Users ask for it', info: 'New data appears when the client asks — a refresh, a page load, an occasional poll. Nothing has to be held open, so the transport can stay plain request/response.' },
   { id: 'push', label: 'It must appear', info: 'Chat, presence, live dashboards, collaborative editing: the server must deliver the moment something happens, which means holding something open to every online client.' },
+]
+const TXN: Opt[] = [
+  { id: 'single', label: 'One key at a time', info: 'Each write touches one row, document or key. Per-key atomicity — which every engine on this page provides — is enough.' },
+  { id: 'multi', label: 'Atomic across keys', info: 'Money moves between two accounts; an order reserves stock and charges a card. Several keys must change together or not at all. That is a cross-key transaction, and engines that cannot span partitions are disqualified — arithmetic never overrules this.' },
+]
+const LOSS: Opt[] = [
+  { id: 'keep', label: 'Must survive', info: 'This is the system of record: an acknowledged write is a promise, even if the node dies a millisecond later. Engines whose durability is optional are disqualified from holding it.' },
+  { id: 'rebuild', label: 'Can be rebuilt', info: 'A cache, a session, a feed — losing a node costs a recompute from the source of record, not an apology. Durability stops being a filter, and the in-memory column becomes a real candidate.' },
 ]
 const ANALYTICS: Opt[] = [
   { id: 'no', label: 'Serve it back', info: 'The data is read back the way it was written — a profile, a message, an order. Point lookups and short ranges; the primary handles it.' },
@@ -122,21 +136,21 @@ const PROTOCOLS = [
 /** engines the tool decides between */
 const ENGINES = [
   {
-    id: 'btree', label: 'Single-primary SQL', sets: { writeAmp: 3, readAmp: 1 },
+    id: 'btree', label: 'Single-primary SQL', short: 'B-tree', sets: { writeAmp: 3, readAmp: 1 },
     info: 'Postgres, MySQL. A write updates pages in place, so it pays the write-ahead log, the page itself and every index. You get transactions and predictable reads; you do the sharding yourself.',
     scale: 'You will do this by hand: choose a partition key, route to it, and rebalance later — the hard part is that the key is nearly impossible to change once data exists.',
     giveUp: 'nothing extra — but you shard by hand',
     perWrite: '×3 — WAL + page + indexes',
   },
   {
-    id: 'lsm', label: 'LSM / wide-column', sets: { writeAmp: 1, readAmp: 2 },
+    id: 'lsm', label: 'LSM / wide-column', short: 'LSM', sets: { writeAmp: 1, readAmp: 2 },
     info: 'Cassandra, Scylla, RocksDB. Writes append to memory and flush in sorted batches, so the disk work per write is small and sequential — but it comes back later as background compaction, and a read may touch several files. Partitioning is built in; transactions largely are not.',
     scale: 'The ring does it for you — add nodes and the partitions move. You pay instead in compaction load and in giving up cross-partition transactions.',
     giveUp: 'cross-partition transactions',
     perWrite: '×1 now — compaction repays later',
   },
   {
-    id: 'mem', label: 'In-memory store', sets: { writeAmp: 1, readAmp: 0 },
+    id: 'mem', label: 'In-memory store', short: 'In-memory', sets: { writeAmp: 1, readAmp: 0 },
     info: 'Redis, Memcached. No disk on the read path at all, so the ceilings that matter become CPU per operation and RAM. Durability is optional — and turning it on costs you the fsync you were avoiding.',
     scale: 'Add shards, each single-threaded — but first check the data still fits in RAM, which is usually the real limit.',
     giveUp: 'durability, by default',
@@ -180,28 +194,47 @@ function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: number)
   )
 }
 
-/** one decision, laid out as a computed comparison — losing columns stay visible */
+function Ctl({ label, info, hint, children, val }: { label: string; info?: string; hint: string; children: ReactNode; val?: string }) {
+  return (
+    <div className="ctl">
+      <div className="ctl-top">
+        <span className="ctl-label">
+          {label}
+          <Info text={info} />
+        </span>
+        {val && <span className="ctl-val">{val}</span>}
+      </div>
+      {children}
+      <div className="ctl-hint">{hint}</div>
+    </div>
+  )
+}
+
+/** one decision, laid out as a computed comparison — losing columns stay
+ *  visible, disqualified columns say which requirement removed them */
 function Decision({
   title, info, rowLabels, cols, winner, pinned, onPin, verdict,
 }: {
   title: string
   info: string
   rowLabels: string[]
-  cols: { id: string; label: string; cells: ReactNode[] }[]
+  cols: { id: string; label: string; cells: ReactNode[]; dq?: string | null }[]
   winner: string
   pinned: string | null
   onPin: (id: string) => void
   verdict: ReactNode
 }) {
   const eff = pinned ?? winner
-  const cls = (id: string) => (id !== eff ? '' : pinned ? ' pin' : ' win')
+  const cls = (c: { id: string; dq?: string | null }) =>
+    c.id === eff ? (pinned ? 'pin' : 'win') : c.dq ? 'dq' : ''
+  const pinnedCol = pinned ? cols.find((c) => c.id === pinned) : null
   return (
     <div className="decide">
       <div className="dc-h">
         <b>{title}</b>
         <Info text={info} />
         {pinned && (
-          <button className="dc-unpin" onClick={() => onPin(winner)} title="Clear the pin and let the arithmetic choose">
+          <button className="dc-unpin" onClick={() => onPin(winner)} title="Clear the pin and let the requirements and arithmetic choose">
             let the numbers pick
           </button>
         )}
@@ -212,10 +245,11 @@ function Decision({
             <tr>
               <th />
               {cols.map((c) => (
-                <th key={c.id} className={cls(c.id).trim()}>
-                  <button onClick={() => onPin(c.id)} title={c.id === eff ? undefined : 'Pin this choice — everything downstream follows'}>
+                <th key={c.id} className={cls(c)}>
+                  <button onClick={() => onPin(c.id)} title={c.id === eff ? undefined : c.dq ? c.dq : 'Pin this choice — everything downstream follows'}>
                     {c.label}
                     {c.id === eff && <span className="dc-tag">{pinned ? 'pinned' : 'the numbers pick'}</span>}
+                    {c.id !== eff && c.dq && <span className="dc-tag">out</span>}
                   </button>
                 </th>
               ))}
@@ -226,7 +260,7 @@ function Decision({
               <tr key={rl}>
                 <td className="rl">{rl}</td>
                 {cols.map((c) => (
-                  <td key={c.id} className={cls(c.id).trim()}>{c.cells[i]}</td>
+                  <td key={c.id} className={cls(c)}>{c.cells[i]}</td>
                 ))}
               </tr>
             ))}
@@ -234,7 +268,10 @@ function Decision({
         </table>
       </div>
       <div className="dc-verdict">{verdict}</div>
-      {pinned && pinned !== winner && (
+      {pinnedCol && pinnedCol.dq && (
+        <div className="dc-pinnote">Pinned against a requirement — {pinnedCol.dq}.</div>
+      )}
+      {pinnedCol && !pinnedCol.dq && pinned !== winner && (
         <div className="dc-pinnote">
           Pinned by you — on these numbers the arithmetic would pick {cols.find((c) => c.id === winner)?.label}.
         </div>
@@ -254,12 +291,15 @@ export default function Calculator() {
   const [v, setV] = useState<Record<string, number>>(INIT)
   const [showHw, setShowHw] = useState(false)
   const [fresh, setFresh] = useState('pull')
+  const [txn, setTxn] = useState('single')
+  const [loss, setLoss] = useState('keep')
   const [analytics, setAnalytics] = useState('no')
   const [pinT, setPinT] = useState<string | null>(null)
   const [pinE, setPinE] = useState<string | null>(null)
   const set = (id: string) => (n: number) => setV((s) => ({ ...s, [id]: n }))
   const atDefaults =
-    Object.keys(INIT).every((k) => v[k] === INIT[k]) && fresh === 'pull' && analytics === 'no' && pinT === null && pinE === null
+    Object.keys(INIT).every((k) => v[k] === INIT[k]) &&
+    fresh === 'pull' && txn === 'single' && loss === 'keep' && analytics === 'no' && pinT === null && pinE === null
 
   // ---------- workload ----------
   const actionsPerDay = v.dau * v.actions
@@ -272,8 +312,9 @@ export default function Calculator() {
   const deliveries = peakWrites * v.fanout
   /** everything the read path serves: direct reads plus fan-out deliveries */
   const readSide = peakReads + deliveries
-  const bytesPerObj = v.payload * 1024
-  const storagePerDay = writesPerDay * bytesPerObj
+  const bytesW = v.writeSize * 1024
+  const bytesR = v.readSize * 1024
+  const storagePerDay = writesPerDay * bytesW
   const storageTotal = storagePerDay * 30 * v.retention
 
   // ---------- ceilings, derived from the constants ----------
@@ -286,17 +327,21 @@ export default function Calculator() {
   const seqWriteBps = v.seqWrite * 2 ** 30
   const seqReadBps = v.seqRead * 2 ** 30
   const ramBytes = v.ram * 2 ** 30
+  const ramHosts = Math.ceil(storageTotal / ramBytes)
 
-  // ---------- decision 1: transport, from the freshness requirement ----------
+  // ---------- decision 1: transport, filtered by the freshness requirement ----------
   const heldConns = (v.dau * v.online) / 100
+  /** egress = responses to readers + pushed deliveries, each plus protocol bytes */
+  const egressFor = (oh: number) => (peakReads * (bytesR + oh) + deliveries * (bytesW + oh)) * 8 / 1e9
   const tCols = PROTOCOLS.map((p) => {
     const hosts = p.holds ? Math.ceil(heldConns / v.connsPerHost) : 0
-    const eg = (readSide * (bytesPerObj + p.sets.overhead) * 8) / 1e9
+    const eg = egressFor(p.sets.overhead)
     return {
       id: p.id,
       label: p.label,
       hosts,
       eg,
+      dq: fresh === 'push' && !p.holds ? 'data must appear on its own — nothing is held open to push down' : null,
       cells: [
         p.id === 'req' ? 'no' : 'yes',
         p.holds ? `${fmt.compact(heldConns)} · ${fmt.int(hosts)} host${hosts === 1 ? '' : 's'}` : '—',
@@ -309,43 +354,59 @@ export default function Calculator() {
   const effT = PROTOCOLS.find((p) => p.id === (pinT ?? transportWin))!
   const tVerdict =
     fresh === 'push'
-      ? `Push is required, so it is long polling vs WebSocket: both hold ${fmt.compact(heldConns)} connections, but polling repays full headers on every message — ${fmt.n1(tCols[1].eg)} vs ${fmt.n1(tCols[2].eg)} Gbps at ${fmt.compact(readSide)} deliveries/s. WebSocket wins on arithmetic; polling loses on both columns at once.`
+      ? `Request/response is out — data must appear on its own, and nothing is held open to push down. Between the survivors: both hold ${fmt.compact(heldConns)} connections, but polling repays full headers on every message — ${fmt.n1(tCols[1].eg)} vs ${fmt.n1(tCols[2].eg)} Gbps at ${fmt.compact(readSide)} deliveries/s. WebSocket wins on arithmetic.`
       : `Nothing must be pushed, so plain request/response wins: the other columns would hold ${fmt.compact(heldConns)} sockets open — ${fmt.int(tCols[2].hosts)} host${tCols[2].hosts === 1 ? '' : 's'} of connection tier — to deliver nothing the client could not ask for.`
 
-  // ---------- decision 2: engine, from the utilizations ----------
+  // ---------- decision 2: engine — requirements filter, then utilization ranks ----------
+  /** why each column is disqualified, or null if it survives the requirements */
+  const engDq: Record<string, string | null> = {
+    btree: null,
+    lsm: txn === 'multi' ? 'several keys must change atomically, and transactions do not span partitions' : null,
+    mem:
+      loss === 'keep'
+        ? 'this data must survive a node death, and durability is off by default'
+        : txn === 'multi'
+          ? 'several keys must change atomically, and transactions do not span shards'
+          : ramHosts > 8
+            ? `${fmt.bytes(storageTotal)} ÷ ${v.ram} GB = ${fmt.int(ramHosts)} nodes of pure RAM`
+            : null,
+  }
   const eCols = ENGINES.map((e) => {
-    const bw = peakWrites * bytesPerObj * e.sets.writeAmp
+    const bw = peakWrites * bytesW * e.sets.writeAmp
     const bwU = e.id === 'mem' ? 0 : bw / seqWriteBps
     const rU = e.sets.readAmp === 0 ? 0 : (readSide * e.sets.readAmp) / diskReadCeiling
-    const worst = Math.max(bwU, rU)
-    const worstName = bwU >= rU ? 'the write stream' : 'read pressure'
-    return { id: e.id, label: e.label, bw, bwU, rU, worst, worstName, e }
+    /** in-memory pays CPU per op instead of disk: all ops against one core */
+    const worst = e.id === 'mem' ? (readSide + peakWrites) / cacheCeiling : Math.max(bwU, rU)
+    const worstName = e.id === 'mem' ? 'ops on one core' : bwU >= rU ? 'the write stream' : 'read pressure'
+    return { id: e.id, label: e.label, short: e.short, bw, bwU, rU, worst, worstName, dq: engDq[e.id], e }
   })
-  const [bt, ls] = eCols
-  const ramHosts = Math.ceil(storageTotal / ramBytes)
-  const engineWin = bt.worst <= ls.worst ? 'btree' : 'lsm'
+  const alive = eCols.filter((c) => !c.dq)
+  const engineWin = alive.reduce((best, c) => (c.worst < best.worst ? c : best), alive[0]).id
   const effE = ENGINES.find((e) => e.id === (pinE ?? engineWin))!
+  const [bt, ls] = eCols
   const engCols = eCols.map((c) => ({
     id: c.id,
     label: c.label,
+    dq: c.dq,
     cells: [
       c.e.perWrite,
       c.id === 'mem' ? '—' : `${fmt.bytes(c.bw)}/s · ${pc(c.bwU)} of ${v.seqWrite} GiB/s`,
-      pc(c.rU),
+      c.id === 'mem' ? `${pc(c.worst)} of one core` : pc(c.rU),
       c.id === 'mem' ? `${fmt.int(ramHosts)} host${ramHosts === 1 ? '' : 's'} × ${v.ram} GB` : '—',
       c.e.giveUp,
     ] as ReactNode[],
   }))
-  const memNote =
-    ramHosts <= 4
-      ? ` In-memory would even fit — ${fmt.int(ramHosts)} host${ramHosts === 1 ? '' : 's'} of RAM — but pin it only if this data may die with a process.`
-      : ` In-memory is out on arithmetic alone: ${fmt.bytes(storageTotal)} would need ${fmt.int(ramHosts)} hosts of pure RAM.`
-  const eVerdict =
-    engineWin === 'btree'
-      ? bt.worst > 1
-        ? `One node is over either way — ${pc(bt.worst)} for the B-tree (${bt.worstName}), ${pc(ls.worst)} for the LSM (${ls.worstName}) — so this data gets partitioned regardless. The B-tree's lower worst means fewer shards, and the shard count below scales from it.` + memNote
-        : `Each column's worst ceiling: ${pc(bt.worst)} for the B-tree (${bt.worstName}), ${pc(ls.worst)} for the LSM (${ls.worstName}). The lower worst wins, and with nothing over, transactions and predictable reads break the tie toward the B-tree.` + memNote
-      : `The B-tree's ×${ENGINES[0].sets.writeAmp} write stream reaches ${pc(bt.worst)} (${bt.worstName}); appending in sorted batches holds the LSM at ${pc(ls.worst)} worst-case (${ls.worstName}). The LSM wins — and repays the difference later as background compaction, off the commit path.` + memNote
+  const outSentences = eCols.filter((c) => c.dq).map((c) => `${c.short} is out — ${c.dq}`)
+  let cmp: string
+  if (alive.length === 1) {
+    cmp = `Only ${alive[0].short} satisfies the requirements; the comparison is moot until a requirement changes.`
+  } else {
+    const list = alive.map((c) => `${c.short} ${pc(c.worst)} (${c.worstName})`).join(' · ')
+    cmp = `Worst ceiling per surviving column: ${list}. The lowest wins; ties go to the simpler machine.`
+    if (engineWin === 'lsm') cmp += ' Appending in sorted batches is what holds the LSM lower — it repays the difference later as background compaction, off the commit path.'
+    if (!bt.dq && !ls.dq && bt.worst > 1 && ls.worst > 1) cmp += ' Both disk engines are over one node either way, so this data gets partitioned regardless — the lower worst just means fewer shards.'
+  }
+  const eVerdict = [...outSentences, cmp].join('. ')
 
   /** the chosen shape writes its constants into the visible panel below */
   useEffect(() => {
@@ -356,8 +417,8 @@ export default function Calculator() {
   // ---------- consequences of the chosen shape ----------
   const connections = effT.holds ? heldConns : 0
   const connHosts = effT.holds ? Math.ceil(connections / v.connsPerHost) : 0
-  const egressGbps = (readSide * (bytesPerObj + v.overhead) * 8) / 1e9
-  const diskWriteBytes = peakWrites * bytesPerObj * v.writeAmp
+  const egressGbps = egressFor(v.overhead)
+  const diskWriteBytes = peakWrites * bytesW * v.writeAmp
   const webInstances = Math.max(1, Math.ceil((peakQps * (v.lat / 1000)) / v.slots))
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
   const cacheNodes = Math.max(1, Math.ceil(readSide / cacheCeiling))
@@ -365,15 +426,29 @@ export default function Calculator() {
   const writeUtil = peakWrites / writeCeiling
   const scanSeconds = storageTotal / seqReadBps
 
+  // ---------- the chain: each forced addition transforms the load downstream ----------
+  const cdnNeed = originHosts > 1
+  const originAfter = cdnNeed ? egressGbps * (1 - v.cdnHit / 100) : egressGbps
+  const originHostsAfter = Math.max(1, Math.ceil(originAfter / v.nic))
+  const cacheNeed = readUtil > 0.3
+  const missReads = cacheNeed ? readSide * (1 - v.cacheHit / 100) : readSide
+  const readUtilAfter = v.readAmp === 0 ? 0 : (missReads * v.readAmp) / diskReadCeiling
+  const logNeed = writeUtil > 0.5 && v.peak >= 2
+  /** behind a log the database consumes at the daily average, not the worst minute */
+  const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
+  const writeUtilAfter = dbWrites / writeCeiling
+  const shardNeed = writeUtilAfter > 1
+  const shards = Math.max(1, Math.ceil(writeUtilAfter))
+
   const derived: { k: string; v: string; how: string }[] = [
     { k: 'Requests', v: `${fmt.compact(avgQps)}/s avg · ${fmt.compact(peakQps)}/s peak`, how: `${fmt.compact(v.dau)} × ${v.actions} ÷ 86,400 × ${fmt.n1(v.peak)}` },
     { k: 'Split at peak', v: `${fmt.compact(peakReads)}/s reads · ${fmt.compact(peakWrites)}/s writes`, how: `peak × ${v.readPct}% / ${100 - v.readPct}%` },
     { k: 'Delivery side', v: `${fmt.compact(readSide)}/s`, how: v.fanout === 0 ? `${fmt.compact(peakReads)} reads — ingest, nothing is delivered` : `${fmt.compact(peakReads)} reads + ${fmt.compact(peakWrites)} writes × ${v.fanout} fan-out` },
     { k: 'Live connections', v: effT.holds ? `${fmt.compact(connections)} · ~${fmt.int(connHosts)} host${connHosts === 1 ? '' : 's'}` : 'none', how: effT.holds ? `${fmt.compact(v.dau)} × ${v.online}% ÷ ${fmt.compact(v.connsPerHost)} per host` : `${effT.label.toLowerCase()} holds nothing open` },
-    { k: 'New data', v: `${fmt.bytes(storagePerDay)}/day`, how: `${fmt.compact(writesPerDay)} writes/day × ${fmt.bytes(bytesPerObj)}` },
+    { k: 'New data', v: `${fmt.bytes(storagePerDay)}/day`, how: `${fmt.compact(writesPerDay)} writes/day × ${fmt.bytes(bytesW)} written` },
     { k: 'Stored at retention', v: fmt.bytes(storageTotal), how: `${fmt.bytes(storagePerDay)}/day × 30 × ${v.retention} mo, before replication` },
-    { k: 'Disk write rate', v: `${fmt.bytes(diskWriteBytes)}/s`, how: `${fmt.compact(peakWrites)} writes/s × ${fmt.bytes(bytesPerObj)} × ${v.writeAmp} amplification` },
-    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(readSide)}/s × (${fmt.bytes(bytesPerObj)} + ${v.overhead} B protocol) × 8 bits` },
+    { k: 'Disk write rate', v: `${fmt.bytes(diskWriteBytes)}/s`, how: `${fmt.compact(peakWrites)} writes/s × ${fmt.bytes(bytesW)} × ${v.writeAmp} amplification` },
+    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(peakReads)} reads × ${fmt.bytes(bytesR)} + ${fmt.compact(deliveries)} deliveries × ${fmt.bytes(bytesW)}, +${v.overhead} B protocol each` },
     { k: 'Request workers', v: `~${fmt.int(webInstances)}`, how: `Little’s Law: ${fmt.compact(peakQps)}/s × ${v.lat} ms ÷ ${v.slots} slots${effT.holds ? ' — separate from the connection tier' : ''}` },
   ]
 
@@ -411,24 +486,24 @@ export default function Calculator() {
       ],
     },
     {
-      need: originHosts > 1,
-      what: 'A CDN, or more origin hosts',
-      number: `${fmt.n1(egressGbps)} Gbps ÷ ${v.nic} Gbps per host = ${originHosts} host${originHosts === 1 ? '' : 's'} of pure bandwidth`,
-      because: 'serving these bytes from your own origin costs hosts and egress; a CDN moves the copy next to the user and the bill off your origin',
+      need: cdnNeed,
+      what: 'A CDN in front of the origin',
+      number: `${fmt.n1(egressGbps)} Gbps ÷ ${v.nic} Gbps per host = ${originHosts} hosts of pure bandwidth — after ${v.cdnHit}% offload, ${fmt.n1(originAfter)} Gbps and ${originHostsAfter} host${originHostsAfter === 1 ? '' : 's'}`,
+      because: 'serving these bytes from your own origin costs hosts and egress; a CDN moves the copy next to the user and the bill off your origin. What it cannot absorb — personalized, private — still needs origin NICs',
       to: [{ label: 'S3 / object storage', href: '/components/s3' }],
     },
     {
-      need: v.payload >= 500,
+      need: v.writeSize >= 500,
       what: 'Blobs out of the database',
-      number: `${fmt.bytes(bytesPerObj)} per object — a database page is 8 KB, so one object spans ~${fmt.int(bytesPerObj / 8192)} pages`,
+      number: `${fmt.bytes(bytesW)} written per object — a database page is 8 KB, so one object spans ~${fmt.int(bytesW / 8192)} pages`,
       because:
         'a row store is built for KB-scale rows: replication, backups and vacuuming all re-carry every byte you put in it. Store a pointer in the row and the bytes in object storage, and let the CDN serve them from there',
       to: [{ label: 'S3 / object storage', href: '/components/s3' }],
     },
     {
-      need: readUtil > 0.3,
+      need: cacheNeed,
       what: 'A cache in front of the database',
-      number: `${fmt.compact(readSide)}/s of read+delivery work is ${fmt.n1(readUtil * 100)}% of one node’s ${fmt.compact(diskReadCeiling)}/s random-read ceiling`,
+      number: `${fmt.compact(readSide)}/s of read+delivery work is ${fmt.n1(readUtil * 100)}% of one node’s ${fmt.compact(diskReadCeiling)}/s random-read ceiling — at ${v.cacheHit}% hits, ${fmt.compact(missReads)}/s survives to disk`,
       because: `a disk read costs ${v.randRead} µs; the same read from memory costs ~20 ns. Caching is not only about throughput — it is a 1000× latency difference`,
       to: [
         { label: 'Redis deep-dive', href: '/components/redis' },
@@ -446,21 +521,21 @@ export default function Calculator() {
       ],
     },
     {
-      need: writeUtil > 1,
+      need: logNeed,
+      what: 'A log in front of the writes',
+      number: `peaks reach ${fmt.n1(writeUtil * 100)}% of the write ceiling, ×${fmt.n1(v.peak)} above average — behind the log the primary consumes ${fmt.compact(dbWrites)}/s sustained`,
+      because: 'a durable log absorbs the spike at sequential-write speed and lets the database consume at its own pace, instead of sizing the database for the worst minute of the day',
+      to: [{ label: 'Kafka deep-dive', href: '/components/kafka' }],
+    },
+    {
+      need: shardNeed,
       what: 'Shard the write path',
-      number: `${fmt.compact(peakWrites)} writes/s vs a ${fmt.compact(writeCeiling)}/s ceiling (${fmt.n1(writeUtil * 100)}% of one primary)`,
+      number: `${fmt.compact(dbWrites)} writes/s${logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(writeCeiling)}/s ceiling (${fmt.n1(writeUtilAfter * 100)}% of one primary)`,
       because: `replicas do not help: every replica replays every write. Past one primary the only move left is to split the data. ${effE.scale}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/components/postgres' },
       ],
-    },
-    {
-      need: writeUtil > 0.5 && v.peak >= 2,
-      what: 'A log in front of the writes',
-      number: `peaks reach ${fmt.n1(writeUtil * 100)}% of the write ceiling, ×${fmt.n1(v.peak)} above average`,
-      because: 'a durable log absorbs the spike at sequential-write speed and lets the database consume at its own pace, instead of sizing the database for the worst minute of the day',
-      to: [{ label: 'Kafka deep-dive', href: '/components/kafka' }],
     },
     {
       need: v.derived >= 2,
@@ -488,6 +563,19 @@ export default function Calculator() {
   const needed = recs.filter((r) => r.need)
   const notYet = recs.filter((r) => !r.need)
 
+  /** the load each tier sees once the forced additions exist */
+  const after: { k: string; v: string; how: string }[] = []
+  if (cdnNeed)
+    after.push({ k: 'Origin egress', v: `${fmt.n1(egressGbps)} → ${fmt.n1(originAfter)} Gbps`, how: `× (1 − ${v.cdnHit}% CDN offload) → ${originHostsAfter} origin host${originHostsAfter === 1 ? '' : 's'}` })
+  if (cacheNeed)
+    after.push({ k: 'Reads reaching the database', v: `${fmt.compact(readSide)} → ${fmt.compact(missReads)}/s`, how: `misses only: × (1 − ${v.cacheHit}% hit rate) → ${pc(readUtilAfter)} of the read ceiling` })
+  if (logNeed)
+    after.push({ k: 'Writes reaching the primary', v: `${fmt.compact(peakWrites)} → ${fmt.compact(dbWrites)}/s`, how: `the log absorbs the ×${fmt.n1(v.peak)} peak; the primary consumes at the daily average` })
+  if (shardNeed)
+    after.push({ k: 'Writes per shard', v: `${fmt.compact(dbWrites / shards)}/s × ${shards} shards`, how: `${pc(dbWrites / shards / writeCeiling)} of one primary each` })
+  else if (cacheNeed || logNeed)
+    after.push({ k: 'Primary write headroom', v: pc(writeUtilAfter), how: `${fmt.compact(dbWrites)}/s ÷ ${fmt.compact(writeCeiling)}/s ceiling — no sharding yet` })
+
   const g = v.growth / 100
   const monthsToWall =
     peakWrites >= writeCeiling ? 0 : g > 0 ? Math.log(writeCeiling / Math.max(1, peakWrites)) / Math.log(1 + g) : Infinity
@@ -497,11 +585,12 @@ export default function Calculator() {
       <p className="h-kicker">Capacity planning</p>
       <h1 className="title">What does this system actually need?</h1>
       <p className="lede">
-        State the <b>requirements</b> and the <b>workload</b>, and the arithmetic decides the rest —
-        which transport, which storage engine, and <b>which components the numbers force you to
-        add</b>. Every decision is shown as a computed comparison with the losing columns still
-        visible, and every ceiling comes from the <b>hardware constants below</b>; none of it is a
-        remembered rule of thumb.
+        <b>Requirements filter, load ranks, ceilings force.</b> State the promises the system makes
+        and the load it carries; requirement facts disqualify kinds of components outright —
+        arithmetic never overrules a promise — the load arithmetic ranks what survives, and every
+        crossed ceiling forces a structural addition, which changes the load every later tier sees.
+        Every ceiling comes from the <b>hardware constants below</b>; none of it is a remembered
+        rule of thumb.
       </p>
 
       <details className="calc-help">
@@ -512,27 +601,31 @@ export default function Calculator() {
           <h4>Using it</h4>
           <ol>
             <li>
-              <b>State the requirements</b> — must data appear on its own, will anyone run analytics
-              across all of it, how many other systems must see every change. These are facts about
-              the product, not technology choices; the technology falls out of them.
+              <b>State the requirements</b> — must data appear on its own, do writes span keys, can
+              the data be rebuilt, will anyone run analytics across all of it. These are facts about
+              the product, not technology choices — and they act as <em>filters</em>: a requirement
+              can disqualify a column outright, and no throughput number un-disqualifies it.
             </li>
             <li>
               <b>Describe the workload</b> — how many people, how often each one acts, how much
-              bigger the busiest moment is, how large one object is. Every input snaps to a round
-              step (10k, 20k, 50k…) because at this level of modelling the <em>scale</em> is the
-              answer; “16k users” implies a precision nobody has.
+              bigger the busiest moment is, how large one written object and one read response are.
+              Every input snaps to a round step (10k, 20k, 50k…) because at this level of modelling
+              the <em>scale</em> is the answer; “16k users” implies a precision nobody has.
             </li>
             <li>
               <b>Read “the choices the numbers make.”</b> Transport and storage engine are computed
-              comparisons: every option is a column, the winner is marked, and the losing columns
-              stay visible so you can see what they would have cost. If reality has already chosen —
-              you run Postgres, the client is stuck behind HTTP — <b>click that column to pin it</b>,
-              and everything downstream follows the pinned choice instead.
+              comparisons: every option is a column, disqualified columns are greyed with the
+              requirement that removed them, and among survivors the winner is the column whose
+              worst ceiling utilization is lowest. If reality has already chosen — you run Postgres,
+              the client is stuck behind HTTP — <b>click that column to pin it</b>, and everything
+              downstream follows the pinned choice instead.
             </li>
             <li>
-              <b>Read “what the numbers force.”</b> A component appears only when a computed ceiling
-              is crossed, and it names the number that crossed it. Anything not needed is listed
-              underneath with the figure to watch, so “we don’t need that yet” stays a real answer.
+              <b>Read “what the numbers force,”</b> then <b>“the load, after the additions.”</b> A
+              component appears only when a computed ceiling is crossed, and each addition
+              transforms the load downstream: the cache absorbs hits, the log absorbs the peak, the
+              CDN absorbs egress. The after-table shows what actually survives to each tier — which
+              is why adding a log can make sharding unnecessary.
             </li>
             <li>
               <b>Open “the hardware underneath”</b> and change a constant to see how sensitive the
@@ -548,14 +641,14 @@ export default function Calculator() {
             <li><code>random reads/s = concurrent reads ÷ random read latency</code> — an SSD serves many reads at once, so the queue depth multiplies throughput.</li>
             <li><code>cache ops/s = 1 ÷ per-op CPU cost</code> — a cache shard runs one command at a time on one core.</li>
             <li><code>full scan = stored bytes ÷ sequential read rate</code> — the arithmetic behind “don’t run analytics on the primary.”</li>
-            <li><code>egress = deliveries/s × (object + protocol bytes) × 8</code> — bytes to bits, compared against one host’s NIC.</li>
+            <li><code>egress = reads × response size + deliveries × object size, ×8</code> — bytes to bits, against one host’s NIC.</li>
             <li><code>app instances = peak rate × latency ÷ concurrency</code> — Little’s Law: concurrency is arrival rate times service time.</li>
           </ul>
           <p>
-            A decision comparison works the same way: each option’s columns are computed from the
-            constants, and the winner is simply <b>the column whose worst ceiling utilization is
-            lowest</b> — ties go to the simpler machine. That rule is visible, so you can disagree
-            with it.
+            The chain works the same way: <code>misses = reads × (1 − hit rate)</code>,{' '}
+            <code>sustained writes = peak ÷ peak factor</code>,{' '}
+            <code>origin egress = egress × (1 − offload)</code>. Each is one line, and the two hit
+            rates are <span className="src-a">assumed</span> constants you should challenge.
           </p>
 
           <h4>What it will not tell you</h4>
@@ -579,6 +672,8 @@ export default function Calculator() {
                 onClick={() => {
                   setV(INIT)
                   setFresh('pull')
+                  setTxn('single')
+                  setLoss('keep')
                   setAnalytics('no')
                   setPinT(null)
                   setPinE(null)
@@ -589,51 +684,27 @@ export default function Calculator() {
                 Reset all
               </button>
             </div>
-            <div className="ctl">
-              <div className="ctl-top">
-                <span className="ctl-label">
-                  How users get new data
-                  <Info text={FRESH.find((o) => o.id === fresh)!.info} />
-                </span>
-              </div>
+            <Ctl label="How users get new data" info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
               <Picker options={FRESH} value={fresh} onPick={setFresh} />
-              <div className="ctl-hint">{FRESH.find((o) => o.id === fresh)!.info.split('.')[0]}.</div>
-            </div>
-            <div className="ctl">
-              <div className="ctl-top">
-                <span className="ctl-label">
-                  What the data must answer
-                  <Info text={ANALYTICS.find((o) => o.id === analytics)!.info} />
-                </span>
-              </div>
+            </Ctl>
+            <Ctl label="Writes that span keys" info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
+              <Picker options={TXN} value={txn} onPick={setTxn} />
+            </Ctl>
+            <Ctl label="If a node dies, this data" info={LOSS.find((o) => o.id === loss)!.info} hint={LOSS.find((o) => o.id === loss)!.info.split('.')[0] + '.'}>
+              <Picker options={LOSS} value={loss} onPick={setLoss} />
+            </Ctl>
+            <Ctl label="What the data must answer" info={ANALYTICS.find((o) => o.id === analytics)!.info} hint={ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0] + '.'}>
               <Picker options={ANALYTICS} value={analytics} onPick={setAnalytics} />
-              <div className="ctl-hint">{ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0]}.</div>
-            </div>
-            <div className="ctl">
-              <div className="ctl-top">
-                <span className="ctl-label">
-                  {DERIVED_INP.label}
-                  <Info text={DERIVED_INP.info} />
-                </span>
-                <span className="ctl-val">{DERIVED_INP.fmt(v.derived)}</span>
-              </div>
+            </Ctl>
+            <Ctl label={DERIVED_INP.label} info={DERIVED_INP.info} hint={DERIVED_INP.hint} val={DERIVED_INP.fmt(v.derived)}>
               <Slider inp={DERIVED_INP} value={v.derived} set={set('derived')} />
-              <div className="ctl-hint">{DERIVED_INP.hint}</div>
-            </div>
+            </Ctl>
 
             <p className="sb-title" style={{ marginTop: 18 }}>The workload</p>
             {WORKLOAD.map((inp) => (
-              <div className="ctl" key={inp.id}>
-                <div className="ctl-top">
-                  <span className="ctl-label">
-                    {inp.label}
-                    <Info text={inp.info} />
-                  </span>
-                  <span className="ctl-val">{inp.fmt(v[inp.id])}</span>
-                </div>
+              <Ctl key={inp.id} label={inp.label} info={inp.info} hint={inp.hint} val={inp.fmt(v[inp.id])}>
                 <Slider inp={inp} value={v[inp.id]} set={set(inp.id)} />
-                <div className="ctl-hint">{inp.hint}</div>
-              </div>
+              </Ctl>
             ))}
 
             <button className="hw-toggle" onClick={() => setShowHw((s) => !s)}>
@@ -701,7 +772,7 @@ export default function Calculator() {
             <p className="sb-title">The choices the numbers make</p>
             <Decision
               title="How clients connect"
-              info="Derived from one requirement: whether data must appear on its own. Each column is computed from the workload — held connections from the online share, egress from payload plus that protocol's per-message overhead."
+              info="Filtered by one requirement: whether data must appear on its own — if it must, request/response is disqualified no matter what it costs. Among survivors, each column is computed from the workload: held connections from the online share, egress from the two payload sizes plus that protocol's per-message overhead."
               rowLabels={['Server can push', 'Held connections', 'Protocol cost / message', 'Peak egress']}
               cols={tCols}
               winner={transportWin}
@@ -711,7 +782,7 @@ export default function Calculator() {
             />
             <Decision
               title="Where writes land"
-              info="Each engine's columns are computed from the workload: its write stream is logical writes times its amplification, compared to sequential-write bandwidth; its read pressure is the delivery side times the files one read touches, compared to the random-read ceiling. Lowest worst-case wins."
+              info="Requirements filter first: cross-key atomicity disqualifies engines that cannot span partitions, and must-survive data disqualifies optional durability — no throughput number overrules that. Among survivors, each engine's columns are computed from the workload, and the lowest worst-case utilization wins."
               rowLabels={['Disk per logical write', 'Write stream at peak', 'Read pressure, one node', 'Whole dataset in RAM', 'You give up']}
               cols={engCols}
               winner={engineWin}
@@ -748,6 +819,23 @@ export default function Calculator() {
               </div>
             ))}
 
+            {after.length > 0 && (
+              <>
+                <p className="sb-title">The load, after the additions</p>
+                <table className="tbl">
+                  <tbody>
+                    {after.map((r) => (
+                      <tr key={r.k}>
+                        <td>{r.k}</td>
+                        <td>{r.v}</td>
+                        <td className="how">{r.how}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+
             {notYet.length > 0 && (
               <>
                 <p className="sb-title">Not yet — and the number to watch</p>
@@ -778,7 +866,7 @@ export default function Calculator() {
               <div className="tile">
                 <div className="k">Time to that wall</div>
                 <div className="v">{monthsToWall === 0 ? 'now' : isFinite(monthsToWall) ? Math.round(monthsToWall) + ' mo' : '∞'}</div>
-                <div className="u">at {v.growth}%/mo</div>
+                <div className="u">at {v.growth}%/mo, unmitigated</div>
               </div>
               <div className="tile">
                 <div className="k">Users in 12 mo</div>
@@ -873,8 +961,9 @@ export default function Calculator() {
             <a href="https://github.com/sirupsen/napkin-math" target="_blank" rel="noreferrer">
               sirupsen/napkin-math
             </a>{' '}
-            (MIT). The honest gap: the write ceiling swings by ~8× depending on group commit, which
-            is the one assumption most worth replacing with a measurement from your own database.
+            (MIT). The honest gaps: the write ceiling swings by ~8× depending on group commit, and
+            the two hit rates in the chain are assumptions with no universal value — both are worth
+            replacing with measurements from your own system before believing the after-table.
           </p>
         </div>
       </details>
@@ -885,11 +974,11 @@ export default function Calculator() {
           sirupsen/napkin-math
         </a>{' '}
         (MIT), last measured March 2026 on a 24-core Xeon with local SSD. The rest is arithmetic:
-        Little’s Law sizes the app tier, every ceiling divides a constant by the work one operation
-        costs, and every decision picks the column whose worst utilization is lowest. What is{' '}
-        <em>not</em> measured are the modelling choices marked{' '}
-        <span className="src-a">assumed</span> — group commit size, write amplification, cache op
-        cost. Those depend on your rows, indexes and access pattern, so treat the output as an
+        requirements disqualify, Little’s Law sizes the app tier, every ceiling divides a constant
+        by the work one operation costs, and every decision picks the surviving column whose worst
+        utilization is lowest. What is <em>not</em> measured are the modelling choices marked{' '}
+        <span className="src-a">assumed</span> — group commit size, write amplification, the two
+        hit rates. Those depend on your rows, indexes and access pattern, so treat the output as an
         order-of-magnitude starting point and then measure your own system. A calculator is for
         knowing which wall you are walking towards, not for sizing a purchase order.
       </div>
