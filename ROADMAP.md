@@ -18,6 +18,13 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
     slow-consumer-freeze cascade + runbook, production-estate trace with the
     Kafka handoff)
   - Next: Web-tier / S3 upgraded to the flagship template.
+- **Order-of-magnitude sliders in the deep-dive sandboxes.** The capacity calculator
+  snaps every input to a 1-2-5 ladder (10k, 20k, 50k…) because at this level of
+  modelling the *scale* is the answer — but every flagship hardware envelope
+  (`kafka/redis/postgres/rabbitmq HardwareEnvelope.tsx`, plus `ModulePanel.tsx`)
+  still uses continuous sliders, so Kafka happily reports "557k/s → 2,175.8 MB/s",
+  a precision nobody has. Port the calculator's ladder-`Slider` pattern into the
+  envelopes and round the derived readouts to match.
 - ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
   hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
   waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring
