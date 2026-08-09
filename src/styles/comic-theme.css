@@ -596,10 +596,20 @@
 .dd-page[class] .dc-tbl tbody tr:first-child .info-tip { bottom: auto; top: calc(100% + 8px); }
 /* three columns of prose cannot shrink to a phone: scroll the table inside its
    own box rather than pushing the whole page sideways */
-.dd-page[class] .tbl-anchor { min-width: 660px; }
+.dd-page[class] .tbl-anchor { min-width: 660px; table-layout: fixed; }
+/* Base .tbl sets `nowrap` on the label column, which sizes it to its longest
+   unbroken line. Here that column is a sentence, so it claimed 72% of the
+   table and squeezed the published evidence — the column that carries the
+   most text — into 17%. Fixed layout, and the widths say what they are. */
+.dd-page[class] .tbl-anchor td,
+.dd-page[class] .tbl-anchor th { white-space: normal; }
+.dd-page[class] .tbl-anchor td:nth-child(1),
+.dd-page[class] .tbl-anchor th:nth-child(1) { width: 34%; }
+.dd-page[class] .tbl-anchor td:nth-child(2),
+.dd-page[class] .tbl-anchor th:nth-child(2) { width: 51%; }
 /* a one-word verdict must never break mid-word */
-.dd-page[class] .tbl-anchor td:last-child,
-.dd-page[class] .tbl-anchor th:last-child { white-space: nowrap; width: 1%; }
+.dd-page[class] .tbl-anchor td:nth-child(3),
+.dd-page[class] .tbl-anchor th:nth-child(3) { width: 15%; white-space: nowrap; }
 /* The output tables set their own min-content floor — `nowrap` labels plus long
    mono arithmetic — which pushed the whole grid wider than the page below
    ~1000px. Same fix .tbl-ceil already carries: let them wrap. */
