@@ -1,6 +1,6 @@
 # DDIA, as a live comic
 
-**[Read it →](https://ddia-live-comic.pages.dev)**
+**[Read it →](https://ddia-live-comic.sam1796896099.workers.dev)**
 
 An unofficial, illustrated companion to *Designing Data-Intensive Applications* (1st edition).
 The arcane ideas of distributed systems, drawn as comics — then pushed until they break, in
@@ -23,9 +23,9 @@ you size it, with arithmetic you can check.
 
 | | | |
 |---|---|---|
-| **[Read the Ideas](https://ddia-live-comic.pages.dev/read)** | 11 chapters | The concept lens. Tail latency, storage engines, replication, partitioning, transactions, consensus, the shuffle, stream–table duality — each a six-panel comic with a misconception it exists to kill, and where it shows up in the wild. |
-| **[Deep-Dives](https://ddia-live-comic.pages.dev/components)** | 6 components | Kafka, Postgres, Redis, RabbitMQ, the web tier, S3 — each a nine-chapter treatment: the core abstraction, animated request traces, a hardware envelope you can overload, the scaling ladder, a 3am runbook, and the primary sources. |
-| **[Calculators](https://ddia-live-comic.pages.dev/calculator)** | 2 tools | Capacity (what a workload forces you to build) and latency budget (where the milliseconds go). Both are pure arithmetic — no model, no guessing. |
+| **[Read the Ideas](https://ddia-live-comic.sam1796896099.workers.dev/read)** | 11 chapters | The concept lens. Tail latency, storage engines, replication, partitioning, transactions, consensus, the shuffle, stream–table duality — each a six-panel comic with a misconception it exists to kill, and where it shows up in the wild. |
+| **[Deep-Dives](https://ddia-live-comic.sam1796896099.workers.dev/components)** | 6 components | Kafka, Postgres, Redis, RabbitMQ, the web tier, S3 — each a nine-chapter treatment: the core abstraction, animated request traces, a hardware envelope you can overload, the scaling ladder, a 3am runbook, and the primary sources. |
+| **[Calculators](https://ddia-live-comic.sam1796896099.workers.dev/calculator)** | 2 tools | Capacity (what a workload forces you to build) and latency budget (where the milliseconds go). Both are pure arithmetic — no model, no guessing. |
 
 ## What makes it different
 
