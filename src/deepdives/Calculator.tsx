@@ -77,12 +77,14 @@ function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: number)
   )
 }
 
+const INIT: Record<string, number> = {}
+;[...WORKLOAD, ...HW].forEach((i) => (INIT[i.id] = i.val))
+
 export default function Calculator() {
-  const init: Record<string, number> = {}
-  ;[...WORKLOAD, ...HW].forEach((i) => (init[i.id] = i.val))
-  const [v, setV] = useState<Record<string, number>>(init)
+  const [v, setV] = useState<Record<string, number>>(INIT)
   const [showHw, setShowHw] = useState(false)
   const set = (id: string) => (n: number) => setV((s) => ({ ...s, [id]: n }))
+  const atDefaults = Object.keys(INIT).every((k) => v[k] === INIT[k])
 
   // ---------- workload ----------
   const actionsPerDay = v.dau * v.actions
@@ -192,10 +194,70 @@ export default function Calculator() {
         are remembered rules of thumb.
       </p>
 
+      <details className="calc-help">
+        <summary>
+          <span className="chev">▸</span> How to use this, and how it works
+        </summary>
+        <div className="calc-help-b">
+          <h4>Using it</h4>
+          <ol>
+            <li>
+              <b>Describe the workload</b> on the left — how many people, how often each one acts,
+              how much bigger the busiest moment is, and how large one object is. Every input snaps
+              to a round step (10k, 20k, 50k…) because at this level of modelling the{' '}
+              <em>scale</em> is the answer; “16k users” implies a precision nobody has.
+            </li>
+            <li>
+              <b>Read “so the system is.”</b> Each row shows its arithmetic beside the result, so you
+              can check the number rather than trust it.
+            </li>
+            <li>
+              <b>Read “what the numbers force.”</b> A component appears only when a computed ceiling
+              is crossed, and it tells you which number crossed it. Anything not needed yet is listed
+              underneath with the figure to watch, so “we don’t need that yet” stays a real answer.
+            </li>
+            <li>
+              <b>Open “the hardware underneath”</b> and change a constant to see how sensitive the
+              conclusion is. If a recommendation flips when you nudge an assumption, that
+              recommendation was never solid.
+            </li>
+          </ol>
+
+          <h4>How the ceilings are computed</h4>
+          <p>Nothing here is a remembered rule of thumb. Each ceiling is one division:</p>
+          <ul className="calc-formulas">
+            <li><code>durable writes/s = commits per fsync ÷ fsync latency</code> — a commit is not durable until the write reaches disk, and one fsync can cover a batch of commits.</li>
+            <li><code>random reads/s = concurrent reads ÷ random read latency</code> — an SSD serves many reads at once, so the queue depth multiplies throughput.</li>
+            <li><code>cache ops/s = 1 ÷ per-op CPU cost</code> — a cache shard runs one command at a time on one core.</li>
+            <li><code>egress = reads/s × object size × 8</code> — bytes to bits, compared against one host’s NIC.</li>
+            <li><code>app instances = peak rate × latency ÷ concurrency</code> — Little’s Law: concurrency is arrival rate times service time.</li>
+          </ul>
+
+          <h4>What it will not tell you</h4>
+          <p>
+            It sizes <em>throughput and capacity</em>, not correctness, cost, or tail latency. It
+            assumes an even spread — one hot key or one celebrity row breaks every average on this
+            page. And the constants marked <span className="src-a">assumed</span> depend on your
+            rows, indexes and access pattern. Treat the output as the order of magnitude you are
+            dealing with, then measure the real thing.
+          </p>
+        </div>
+      </details>
+
       <div className="card" style={{ padding: 0 }}>
         <div className="sandbox">
           <div className="sb-controls">
-            <p className="sb-title">The workload</p>
+            <div className="sb-head">
+              <p className="sb-title" style={{ margin: 0 }}>The workload</p>
+              <button
+                className="reset-btn"
+                onClick={() => setV(INIT)}
+                disabled={atDefaults}
+                title={atDefaults ? 'Already at defaults' : 'Restore every input and constant to its default'}
+              >
+                Reset all
+              </button>
+            </div>
             {WORKLOAD.map((inp) => (
               <div className="ctl" key={inp.id}>
                 <div className="ctl-top">
@@ -336,6 +398,84 @@ export default function Calculator() {
           </div>
         </div>
       </div>
+
+      <details className="calc-help">
+        <summary>
+          <span className="chev">▸</span> Checked against published measurements
+        </summary>
+        <div className="calc-help-b">
+          <p>
+            A model nobody has checked is just tidier folklore. These are the points where this
+            page&apos;s arithmetic can be compared against numbers somebody else published.
+          </p>
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th>What this page computes</th>
+                <th>What is published</th>
+                <th>Verdict</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  Bandwidth: 100k ops/s × 4 KB ={' '}
+                  <b>{fmt.n1((100000 * 4096 * 8) / 1e9)} Gbps</b>
+                </td>
+                <td>
+                  The Redis docs work the same example and state <b>3.2 Gbit/s</b>, noting it fits a
+                  10 Gbit/s link but not a 1 Gbit/s one.
+                </td>
+                <td className="ok">matches</td>
+              </tr>
+              <tr>
+                <td>
+                  Cache ceiling: 1 ÷ {v.cacheOp} µs = <b>{fmt.compact(cacheCeiling)}/s</b> per core
+                </td>
+                <td>
+                  <code>redis-benchmark</code> reports <b>72k/s</b> on random keys and{' '}
+                  <b>180k/s</b> on a single key, without pipelining — and <b>1.5M/s</b> with
+                  pipelining ×16.
+                </td>
+                <td className="ok">in range</td>
+              </tr>
+              <tr>
+                <td>
+                  Write ceiling: {v.group} ÷ {v.fsync} µs = <b>{fmt.compact(writeCeiling)}/s</b>
+                </td>
+                <td>
+                  fsync is measured at <b>300 µs</b>. With no group commit that is only{' '}
+                  <b>{fmt.compact(1 / (v.fsync / 1e6))}/s</b> — the batch size is doing the work
+                  here, and it is an assumption, not a measurement.
+                </td>
+                <td className="warn">sensitive</td>
+              </tr>
+              <tr>
+                <td>
+                  Random reads: {v.ioDepth} ÷ {v.randRead} µs = <b>{fmt.compact(diskReadCeiling)}/s</b>
+                </td>
+                <td>
+                  Modern NVMe drives are rated for several hundred thousand IOPS at high queue
+                  depth, so this is deliberately conservative at queue depth {v.ioDepth}.
+                </td>
+                <td className="ok">conservative</td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="calc-src">
+            Sources:{' '}
+            <a href="https://redis.io/docs/latest/operate/oss_and_stack/management/optimization/benchmarks/" target="_blank" rel="noreferrer">
+              redis.io benchmarks
+            </a>{' '}
+            ·{' '}
+            <a href="https://github.com/sirupsen/napkin-math" target="_blank" rel="noreferrer">
+              sirupsen/napkin-math
+            </a>{' '}
+            (MIT). The honest gap: the write ceiling swings by ~8× depending on group commit, which
+            is the one assumption most worth replacing with a measurement from your own database.
+          </p>
+        </div>
+      </details>
 
       <div className="note">
         <b>Where these numbers come from.</b> The hardware constants are measured, not folklore —{' '}

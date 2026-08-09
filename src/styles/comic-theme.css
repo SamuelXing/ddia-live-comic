@@ -203,6 +203,40 @@
 .dd-page[class] .src-n { color: #29456c; border-color: #3f6191; }
 .dd-page[class] .src-a { color: #97462a; border-color: #bd5f3d; }
 
+/* calculator: instructions + verification panels */
+.dd-page[class] .calc-help { border: 2px solid #1a1a1a; background: var(--card); margin: 0 0 16px; }
+.dd-page[class] .calc-help > summary {
+  cursor: pointer; list-style: none; padding: 11px 14px; font-family: var(--gnf-mono);
+  font-size: 12.5px; color: var(--ink); display: flex; align-items: center; gap: 9px;
+}
+.dd-page[class] .calc-help > summary::-webkit-details-marker { display: none; }
+.dd-page[class] .calc-help > summary:hover { background: rgba(63, 97, 145, 0.08); }
+.dd-page[class] .calc-help .chev { display: inline-block; transition: transform .15s; color: #3f6191; }
+.dd-page[class] .calc-help[open] .chev { transform: rotate(90deg); }
+.dd-page[class] .calc-help-b { padding: 4px 16px 16px; border-top: 2px dashed var(--line); }
+.dd-page[class] .calc-help-b h4 {
+  font-family: var(--gnf-display); font-size: 15px; margin: 16px 0 6px; color: var(--ink);
+}
+.dd-page[class] .calc-help-b p,
+.dd-page[class] .calc-help-b li { font-size: 13.5px; line-height: 1.55; color: var(--ink-2); }
+.dd-page[class] .calc-help-b ol,
+.dd-page[class] .calc-help-b ul { padding-left: 20px; margin: 8px 0; }
+.dd-page[class] .calc-help-b li { margin: 6px 0; }
+.dd-page[class] .calc-formulas code {
+  font-family: var(--gnf-mono); font-size: 11.5px; background: var(--panel-2); padding: 1px 5px;
+}
+.dd-page[class] .calc-help-b .tbl td.ok { color: #2f6b46; font-family: var(--gnf-mono); font-size: 11.5px; }
+.dd-page[class] .calc-help-b .tbl td.warn { color: #97462a; font-family: var(--gnf-mono); font-size: 11.5px; }
+.dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+/* reset */
+.dd-page[class] .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.dd-page[class] .reset-btn {
+  font-family: var(--gnf-mono); font-size: 11px; color: var(--ink-2); background: transparent;
+  border: 2px solid #1a1a1a; padding: 4px 10px; cursor: pointer;
+}
+.dd-page[class] .reset-btn:hover:not(:disabled) { background: rgba(189, 95, 61, 0.14); color: #16130f; }
+.dd-page[class] .reset-btn:disabled { opacity: .35; cursor: default; border-color: var(--line); }
+
 /* ---- chapter number badge → ink block ---- */
 .dd-page[class] .ch-num {
   background: #16130f;
