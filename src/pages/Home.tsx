@@ -4,7 +4,6 @@ import SiteNav from '../components/SiteNav'
 import ThumbCanvas from '../components/ThumbCanvas'
 import { SIMS, STATUS_META } from '../sims/registry'
 
-import '../styles/comic.css'
 
 /** Wordmark lives in one place so a rename is a one-line change. */
 const BRAND = 'DDIA, as a live comic'

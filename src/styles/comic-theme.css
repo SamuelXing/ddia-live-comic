@@ -617,13 +617,26 @@
    most text — into 17%. Fixed layout, and the widths say what they are. */
 .dd-page[class] .tbl-anchor td,
 .dd-page[class] .tbl-anchor th { white-space: normal; }
+/* `.dd-page .tbl td:first-child {white-space: nowrap}` in deepdives.css ties
+   this rule exactly on specificity — both (0,3,1) — so which one wins is pure
+   source order. That is far too fragile to leave: when routes became lazy the
+   order flipped, the label column stopped wrapping, and it overflowed its
+   fixed 34% cell straight across the column beside it. Naming :first-child
+   here makes these (0,4,1) and settles it by specificity instead. */
+.dd-page[class] .tbl-anchor td:first-child,
+.dd-page[class] .tbl-anchor th:first-child,
+.dd-page[class] .tbl-ceil td:first-child,
+.dd-page[class] .tbl-ceil th:first-child { white-space: normal; }
 .dd-page[class] .tbl-anchor td:nth-child(1),
 .dd-page[class] .tbl-anchor th:nth-child(1) { width: 34%; }
 .dd-page[class] .tbl-anchor td:nth-child(2),
-.dd-page[class] .tbl-anchor th:nth-child(2) { width: 51%; }
-/* a one-word verdict must never break mid-word */
+.dd-page[class] .tbl-anchor th:nth-child(2) { width: 49%; }
+/* A verdict must never break mid-word — but `nowrap` was the wrong tool for
+   that and it showed the moment a verdict grew past one word: "shape, not a
+   prediction" simply ran out of the column. `normal` wraps at spaces and
+   still never breaks inside a word, since overflow-wrap defaults to normal. */
 .dd-page[class] .tbl-anchor td:nth-child(3),
-.dd-page[class] .tbl-anchor th:nth-child(3) { width: 15%; white-space: nowrap; }
+.dd-page[class] .tbl-anchor th:nth-child(3) { width: 17%; white-space: normal; }
 /* The output tables set their own min-content floor — `nowrap` labels plus long
    mono arithmetic — which pushed the whole grid wider than the page below
    ~1000px. Same fix .tbl-ceil already carries: let them wrap. */
@@ -675,7 +688,11 @@
 }
 /* the terms table: a narrow cost column broke "57.8 ms" across two lines and
    the header "SHARE" into "SHAR/E". Fixed layout, and a number never wraps. */
-.dd-page[class] .tbl-terms { table-layout: fixed; }
+/* A floor, because the two nowrap columns cannot shrink: below ~900px, 14%
+   and 10% stop fitting "57.8 ms" and the header "Share", and a fixed-layout
+   cell that cannot fit its contents spills over the column beside it rather
+   than clipping. Past the floor the table scrolls in its own box instead. */
+.dd-page[class] .tbl-terms { table-layout: fixed; min-width: 560px; }
 .dd-page[class] .tbl-terms td:nth-child(1), .dd-page[class] .tbl-terms th:nth-child(1) { width: 27%; }
 .dd-page[class] .tbl-terms td:nth-child(2), .dd-page[class] .tbl-terms th:nth-child(2) { width: 14%; white-space: nowrap; }
 .dd-page[class] .tbl-terms td:nth-child(3), .dd-page[class] .tbl-terms th:nth-child(3) { width: 10%; white-space: nowrap; }

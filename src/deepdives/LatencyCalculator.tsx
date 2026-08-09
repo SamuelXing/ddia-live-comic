@@ -273,6 +273,9 @@ export default function LatencyCalculator() {
               </div>
             </div>
 
+            {/* the terms table has a min-width floor (two columns cannot wrap),
+                so it needs its own scroll box or it widens the whole page */}
+            <div className="dc-scroll">
             <table className="tbl tbl-terms">
               <thead>
                 <tr>
@@ -296,6 +299,7 @@ export default function LatencyCalculator() {
                 ))}
               </tbody>
             </table>
+            </div>
             <p className="tbl-note">
               The floor is the only term nothing but geography moves — {fmtMs(m.irreducible)} of this
               budget is already spent before your code runs. Everything below it is yours.

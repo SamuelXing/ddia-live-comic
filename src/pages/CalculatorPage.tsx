@@ -3,7 +3,6 @@ import SiteNav from '../components/SiteNav'
 import SiteFooter from '../components/SiteFooter'
 import Calculator from '../deepdives/Calculator'
 import LatencyCalculator from '../deepdives/LatencyCalculator'
-import '../styles/deepdives.css'
 
 /* Two calculators, one nav item. They answer the same question from opposite
    sides — "will this design carry the load" and "will it answer in time" — and

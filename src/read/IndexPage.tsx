@@ -16,7 +16,6 @@ import {
   DualityDiagram,
 } from './diagrams'
 
-import '../styles/comic.css'
 
 /** Each idea's inked panel — the graphic that leads the card. Pulled from the
  *  same diagrams the comics use, so the index is a peek at the panels inside. */

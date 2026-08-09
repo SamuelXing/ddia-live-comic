@@ -4,7 +4,6 @@ import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
 import { rich } from './rich'
 
 // self-hosted fonts (no runtime network dependency)
-import '../styles/comic.css'
 
 /** render one code line, colouring text after `#` as a comment */
 function codeLine(t: string) {
