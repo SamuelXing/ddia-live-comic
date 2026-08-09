@@ -16,16 +16,6 @@ import {
   DualityDiagram,
 } from './diagrams'
 
-import '@fontsource/playfair-display/700.css'
-import '@fontsource/playfair-display/800.css'
-import '@fontsource/playfair-display/900.css'
-import '@fontsource/comic-neue/400.css'
-import '@fontsource/comic-neue/700.css'
-import '@fontsource/newsreader/400.css'
-import '@fontsource/newsreader/500.css'
-import '@fontsource/newsreader/600.css'
-import '@fontsource/jetbrains-mono/400.css'
-import '@fontsource/jetbrains-mono/500.css'
 import '../styles/comic.css'
 
 /** Each idea's inked panel — the graphic that leads the card. Pulled from the

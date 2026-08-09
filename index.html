@@ -6,6 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="DDIA, as a live comic — an unofficial, illustrated companion to Designing Data-Intensive Applications. Read the arcane ideas of distributed systems as comics, then see them in real components and simulations." />
     <title>DDIA, as a live comic — an illustrated companion to Designing Data-Intensive Applications</title>
+
+    <!--
+      Social preview. Without these, pasting a link into Slack, X, LinkedIn or
+      Discord renders a bare URL — which is most of how a project like this
+      gets read at all.
+
+      og:image MUST be absolute: every scraper rejects a relative path, and it
+      fails silently, so the card just quietly appears without a picture. The
+      origin below is duplicated in src/site.ts (SITE_URL) because a static
+      index.html cannot import from the app — change both together when the
+      first deploy assigns a hostname or a custom domain is attached.
+    -->
+    <link rel="canonical" href="https://ddia-live-comic.pages.dev/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="DDIA, as a live comic" />
+    <meta property="og:url" content="https://ddia-live-comic.pages.dev/" />
+    <meta property="og:title" content="DDIA, as a live comic" />
+    <meta property="og:description" content="The arcane ideas of distributed systems, drawn as comics — then pushed until they break, in deep-dives you can drag and calculators that show their work." />
+    <meta property="og:image" content="https://ddia-live-comic.pages.dev/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="DDIA, as a live comic — 11 ideas, 6 components, 2 calculators." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DDIA, as a live comic" />
+    <meta name="twitter:description" content="The arcane ideas of distributed systems, drawn as comics — then pushed until they break, in deep-dives you can drag and calculators that show their work." />
+    <meta name="twitter:image" content="https://ddia-live-comic.pages.dev/og.png" />
+    <meta name="theme-color" content="#f7f4ef" />
   </head>
   <body>
     <div id="root"></div>

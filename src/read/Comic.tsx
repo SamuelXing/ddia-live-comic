@@ -4,16 +4,6 @@ import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
 import { rich } from './rich'
 
 // self-hosted fonts (no runtime network dependency)
-import '@fontsource/playfair-display/700.css'
-import '@fontsource/playfair-display/800.css'
-import '@fontsource/playfair-display/900.css'
-import '@fontsource/comic-neue/400.css'
-import '@fontsource/comic-neue/700.css'
-import '@fontsource/newsreader/400.css'
-import '@fontsource/newsreader/500.css'
-import '@fontsource/newsreader/600.css'
-import '@fontsource/jetbrains-mono/400.css'
-import '@fontsource/jetbrains-mono/500.css'
 import '../styles/comic.css'
 
 /** render one code line, colouring text after `#` as a comment */

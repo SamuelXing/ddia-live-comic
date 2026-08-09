@@ -29,7 +29,13 @@
    ============================================================ */
 .gn-nav { position: sticky; top: 0; z-index: 40; background: #f7f4ef;
   border-bottom: 2px solid #1a1a1a; }
-.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center; gap: 8px; }
+/* flex-wrap, because the nav is wider than a phone. Five links plus the
+   wordmark overflow below ~700px on every route — the links ran off the right
+   edge and were simply unreachable. Wrapping is the whole fix: the spacer
+   below still pushes the links right on desktop, and once they wrap it
+   collapses to zero so they sit under the wordmark instead of beside it. */
+.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap; row-gap: 4px; }
 .gn-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; font-size: 17px; letter-spacing: -.01em;
   color: #16130f; text-decoration: none; white-space: nowrap; }
 .gn-brand b { color: #97462a; }
@@ -43,6 +49,12 @@
 .gn-nav a.gn-link.active { color: #16130f; border-color: #1a1a1a; background: rgba(63, 97, 145, .12); }
 .gn-nav a.gn-link .exp { color: #97462a; font-size: .85em; }
 @media (max-width: 460px) { .gn-nav a.gn-link { padding: 6px 7px; font-size: 11px; } }
+/* Source link. The mark is inline SVG so it inherits the link's ink colour and
+   its hover; the word drops away first when space runs short, because the
+   octocat is recognised without it. */
+.gn-nav a.gn-gh { display: inline-flex; align-items: center; gap: 6px; }
+.gn-nav a.gn-gh svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+@media (max-width: 620px) { .gn-nav a.gn-gh .lbl { display: none; } }
 
 /* ---- token flip (specificity of .dd-page/.sim-page beats :root) ---- */
 .dd-page,
