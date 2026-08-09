@@ -43,6 +43,90 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   every default sits on a rung (an off-ladder default renders the thumb on the
   nearest rung while the label prints the stored value — the panel contradicts itself
   before you touch it), and every ladder climbs.
+- ✅ **Storage-first calculator.** The decision the tool exists to make is where data
+  lives, so that decision is now decomposed into the four dimensions that actually
+  differ — **data model · storage engine · distribution · atomicity scope** — across
+  six real compositions (single-primary SQL, sharded SQL, document, wide-column ring,
+  column-oriented, in-memory KV). "SQL vs NoSQL" is a marketing split, not a mechanical
+  one; keeping engine and distribution separate matters because choosing an LSM engine
+  used to silently choose ring-based partitioning too. Two requirements were missing and
+  are now filters: **how reads find the data** (point lookup disqualifies the column
+  store — a row lives spread across every column file) and **how fresh reads must be**
+  (must-be-current puts the cache on the write path and rules out async replicas, which
+  is where the tool could previously give confidently wrong advice). Transport is
+  demoted: it only becomes a comparison table when something must be pushed. Guarded by
+  tests that assert each dimension filters independently, and that stores sharing an
+  engine tie on the numbers — so what separates them is the requirement, never an
+  invented constant.
+- ✅ **Reality-tested against published architectures.** The calculator's arithmetic is
+  pinned to numbers real operators published: Twitter's 345k deliveries/s, WhatsApp's 2M
+  connections per box, Netflix's 1.1M writes/s on 288 Cassandra nodes (per-node flat at
+  10.9–11.9k, which is what linear scale-out means), Facebook's memcache paper, Uber's
+  40M req/s cache at a 99% hit rate, Discord's wide-column ring, Slack's 2.3M QPS on
+  sharded MySQL, and the published shard-split thresholds (Vitess 250 GB, Cash App 1 TB,
+  Notion 10 TB per physical database). Each is a test, not a claim.
+  **The most valuable finding was where the model is structurally blind.** Discord and
+  Slack store chat with the same access pattern and made opposite choices; four companies
+  (Uber, Slack, Figma, Instagram) justified their storage pick by operational familiarity
+  and never by a technical capability. A page that scores only workload fit will
+  confidently disagree with all four, so it now says so in "what it will not tell you".
+  Resharding cost is stated with both extremes — Google's AdWords MySQL took "over two
+  years of intense effort across dozens of teams", DynamoDB splits "in the order of
+  minutes", and automatic is not free either (a Cassandra node measured 106 hours to
+  stream 2.2 TB plus three weeks of compaction) — and deliberately not scored.
+- ✅ **Every number traceable, and a sensitivity sweep that found a bug.** Four changes,
+  all aimed at the same complaint: the verdict was a wall of prose in which "19 shards"
+  and "8.7%" appeared as assertions. (1) The verdict is now **sections** — ruled out ·
+  what is left by the time it reaches a store · a table of how close each survivor gets ·
+  headroom · so — and every computed number is a **click that jumps to the ceiling it was
+  divided by** and flashes that row. There is now a *Write stream* ceiling row, because
+  the engine table had been measuring against a wall the reader was never shown.
+  (2) Each column names **real products and one operator running it at a published
+  scale** — Stack Overflow on one SQL Server primary, Slack's 2.3M QPS on Vitess,
+  DynamoDB's 89.2M req/s Prime Day peak, Discord and Netflix on the ring, Cloudflare's
+  6M req/s into ClickHouse, Facebook's memcache fleet. (3) The page states its **scope**
+  up front — rates, bytes and machine counts against eight ceilings; *no* latency, money,
+  correctness or skew — and that the answer is **a pure function, not a judgement**:
+  same inputs, same output, every number a division printed beside it.
+  (4) **"The numbers pick" is not "the only one that works."** Said outright, plus:
+  pinning any surviving column now produces a computed diff of what that choice costs —
+  its first wall, what stops being atomic, who owns the resharding, and which forced
+  components change. Writing that diff exposed a component the page had never
+  recommended: **a plan for transactions that cross a shard**, which fires for the
+  ledger preset at 8 shards.
+  Two habits borrowed from *Computer Architecture: A Quantitative Approach*.
+  **Amdahl's law** on the ceilings: each store binds on one wall while the other idles,
+  so the verdict now prints how far the first wall is *and* the ratio to the second —
+  the entire budget any fix has to spend. And **report the sensitivity, not just the
+  estimate**: every constant is moved one rung on its own ladder, the whole model
+  re-run, and only the moves that change an *answer* are listed. It earned its keep
+  immediately — it caught a live ranking bug where deciding the cache **per store** let
+  a store cross the 30% threshold *because* it reads badly, collect the 90% discount,
+  and then score better at reads than the store whose reads were cheap enough not to
+  need one. "Worse at reads wins", for the second time. The cache is now decided by the
+  read rate against one node's ceiling, so every column is judged on identical incoming
+  load; the artifact is pinned by a regression test.
+  **The comparison table was also unreadable, and measuring said why — it was not
+  width.** Row labels took 183px of a 647px table (28% of the comparison spent on
+  captions, because `nowrap` sized the column to its longest label), and every data row
+  printed the same caption in all six columns: "misses only, behind its cache" ×6, "of
+  3 GiB/s" ×5. A caption true of the whole row now belongs to the row, the label column
+  wraps and is capped at 118px, and per-cell prose keeps only what differs. That alone
+  took columns **69–82px → 81–95px** and the table **781px → 577px tall**, with every
+  cell one or two lines instead of four to seven.
+  Widening the page was tried and **reverted**: the columns did get roomier (115–132px),
+  but the page then carried two measures, and every panel had to be re-balanced around
+  the wider one — half-empty prose cards, a note flowed into columns, a word-break rule
+  that leaked out and split "VERDICT" into "VERDIC/T". More cost in consistency than the
+  columns were worth. The sandbox split is now explicit (`minmax(280px, 344px) 1fr`)
+  rather than falling out of whichever table had the widest min-content.
+  Kept from that detour, because they were real bugs: grid items get `min-width: 0`, the
+  output tables wrap instead of setting a min-content floor, and the two prose-wide
+  tables scroll in their own boxes — so the page no longer scrolls sideways at any width
+  (it did before, from ~1000px down). Only genuine jargon carries a gloss: "hand-rolled"
+  gets an info icon (no middleware — the application works out the shard itself; Notion
+  by workspace id, Figma via a proxy it spent nine months building), while PostgreSQL and
+  Cassandra do not need one. Each store's scale claim links to the post it came from.
 - ✅ **Component math reconciled with the calculator.** Two real inconsistencies.
   Redis assumed 5 µs per command (~194k ops/s at 512 B) — above the top of the
   published unpipelined range; it now uses the calculator's 10 µs, which

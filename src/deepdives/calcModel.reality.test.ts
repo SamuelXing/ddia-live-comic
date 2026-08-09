@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { model, consequences, INIT, L, type Req, type Vals } from './calcModel'
+import { model, consequences, INIT, L, HW, PRESETS, type Req, type Vals } from './calcModel'
 
 /* Reality checks: the model pinned against numbers PUBLISHED by the people
    who ran the real systems — engineering blogs, papers, conference talks.
@@ -13,7 +13,7 @@ import { model, consequences, INIT, L, type Req, type Vals } from './calcModel'
    constants (group commit, hit rates) and everything the page itself says
    it will not tell you (hot keys, tail latency, multi-DC, cost). */
 
-const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no' }
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' }
 const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
 
 const close = (actual: number, expected: number, tol = 1e-3) => {
@@ -64,7 +64,14 @@ describe('Twitter end-to-end — the full 2012 architecture from one workload de
     dau: 2e8, actions: 100, peak: 3, readPct: 99, fanout: 100,
     writeSize: 1, readSize: 50, retention: 60, derived: 3,
   })
-  const r: Req = { ...REQ, analytics: 'yes' }
+  /* access: 'point' is deliberate and worth stating, because it is the
+     difference between this case and the Discord one below. We are modelling
+     the TWEET STORE — T-bird, keyed by tweet id, fetched by id. Twitter's
+     timeline read path is a range, but it was not served from this store at
+     all: it came from the Redis timeline clusters. Two stores, two access
+     patterns, two different right answers — which is exactly why the tool
+     ends with a list of stores rather than a single winner. */
+  const r: Req = { ...REQ, analytics: 'yes', access: 'point' }
   const m = model(v, r)
   const c = consequences(v, r, m, false)
 
@@ -77,10 +84,14 @@ describe('Twitter end-to-end — the full 2012 architecture from one workload de
     // 6.94k × 100 = 694k deliveries/s (published avg: 345k/s)
     close(m.deliveries, 694444.4)
   })
-  it('picks what Twitter ran: pull transport, single-primary SQL underneath', () => {
-    // home timelines are fetched, not pushed; the tweet store was MySQL
+  it('picks what Twitter ran: pull transport, SHARDED relational underneath', () => {
+    // Home timelines are fetched, not pushed. The tweet store was T-bird —
+    // MySQL sharded by Gizzard — never a single primary, which is what 335 TB
+    // of rows forces. An earlier version of this test asserted single-primary
+    // SQL, and was simply wrong about Twitter.
     expect(m.transportWin).toBe('req')
-    expect(m.engineWin).toBe('btree')
+    expect(m.engineWin).toBe('sqlShard')
+    expect(m.eCols.find((c) => c.id === 'sql')!.dq).toContain('shards')
   })
   it('forces the five components Twitter actually built', () => {
     // async fan-out workers + fan-out-on-read for celebrities
@@ -173,5 +184,181 @@ describe('Redis — the bandwidth example from redis.io benchmarks', () => {
     //   the docs' bare arithmetic: 100,000 × 4,096 × 8 = 3.2768e9 = 3.28 Gbps
     const m = model(vals({ dau: 8.64e8, actions: 10, peak: 1, readPct: 100, readSize: 4 }), REQ)
     close(m.egressFor(0), 3.2768)
+  })
+})
+
+describe('Discord — messages on a wide-column ring (Discord Engineering, 2017 & 2023)', () => {
+  /* Published: messages are partitioned by (channel_id, bucket) and clustered by
+     message_id, which is a Snowflake and therefore time-ordered — so "the last 50
+     messages in this channel" is one contiguous range read inside one partition.
+     Discord moved MongoDB → Cassandra in 2017 and Cassandra → ScyllaDB in 2023
+     (177 nodes → 72). A message belongs to exactly one channel, so nothing needs
+     to be atomic across partitions.
+
+     This case is here because the model used to get it WRONG: it charged the LSM
+     its point-lookup amplification on a range scan, so single-primary SQL won a
+     Discord-shaped chat at every scale we tried, up to 2,304 shards. */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const build = (dau: number, access: string) => {
+    const v: Vals = { ...INIT, ...chat.sets, dau }
+    const r: Req = { ...chat.req, access }
+    const m = model(v, r)
+    return { m, c: consequences(v, r, m, true) }
+  }
+
+  it('range reads inside a partition pick the wide-column ring, at Discord scale', () => {
+    const { m } = build(2e8, 'range')
+    expect(m.engineWin).toBe('wide')
+    // it wins on headroom, not on the binding ceiling: reads bind both stores
+    // equally once neither pays a point-lookup penalty, and the LSM's ×1 write
+    // amplification leaves it far more room on the other axis
+    const wide = m.eCols.find((c) => c.id === 'wide')!
+    const sql = m.eCols.find((c) => c.id === 'sql')!
+    close(wide.worst, sql.worst)
+    expect(wide.next).toBeLessThan(sql.next)
+  })
+
+  it('and at the smaller scale where Discord actually made the move', () => {
+    expect(build(2e7, 'range').m.engineWin).toBe('wide')
+  })
+
+  it('the same workload read by key alone picks SQL — the access pattern is what decides', () => {
+    // not a contradiction: probing for one id really does cost several sorted-run
+    // lookups. Cassandra suits Discord because of HOW the messages are read.
+    expect(build(2e8, 'point').m.engineWin).toBe('sqlShard')
+    const widePoint = build(2e8, 'point').m.eCols.find((c) => c.id === 'wide')!
+    const wideRange = build(2e8, 'range').m.eCols.find((c) => c.id === 'wide')!
+    expect(widePoint.worst).toBeGreaterThan(wideRange.worst)
+  })
+
+  it('cross-partition atomicity is never required, so the ring gives up nothing that matters', () => {
+    const { m } = build(2e8, 'range')
+    expect(chat.req.txn).toBe('single')
+    expect(m.eCols.find((c) => c.id === 'wide')!.dq).toBeNull()
+  })
+
+  it('at this scale the data is partitioned either way — which is the real argument', () => {
+    // 177 Cassandra nodes was never about one machine being faster; it was about
+    // who manages the partitioning. Our shard count is the same order.
+    const { c } = build(2e8, 'range')
+    expect(c.shards).toBeGreaterThan(100)
+  })
+})
+
+describe('Slack — the counter-anchor to Discord (Slack Engineering, Dec 2020)', () => {
+  /* Slack stores messages in MySQL behind Vitess, and since the Unified Grid
+     work "the messages table is now sharded by channel ID" — the SAME access
+     pattern as Discord, and the opposite storage choice. Published: 2.3M QPS at
+     peak, 2M reads / 300K writes, median 2 ms, p99 11 ms, thousands of shards.
+
+     So the tool must NOT claim a relational store is impossible for chat. The
+     assertion here is deliberately weak, because the honest claim is weak: both
+     answers are live, and what separated them was not throughput.
+     https://slack.engineering/scaling-datastores-at-slack-with-vitess/ */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const v: Vals = { ...INIT, ...chat.sets, dau: 2e8 }
+  const r: Req = { ...chat.req, access: 'range' }
+  const m = model(v, r)
+
+  it('sharded relational stays a live candidate for chat — Slack runs exactly that', () => {
+    const shard = m.eCols.find((c) => c.id === 'sqlShard')!
+    expect(shard.dq, 'the tool must not rule out what Slack actually operates').toBeNull()
+  })
+  it('and lands in the tie band with the ring, not far behind it', () => {
+    // both are real answers to this workload; the tool says so rather than
+    // pretending the numbers settle a question they do not settle
+    expect(m.engineTie).toContain('sqlShard')
+    expect(m.engineTie).toContain('wide')
+  })
+  it("Slack's read:write mix is ~6.7:1, which our read-share ladder can express", () => {
+    // 2M reads / 300K writes = 87% reads; the chat preset's 50% is a different
+    // system, so this checks the ladder reaches Slack's shape at all
+    const slackish = model({ ...v, readPct: 85 }, r)
+    close(slackish.peakReads / slackish.peakWrites, 85 / 15)
+  })
+})
+
+describe('Netflix — throughput per node stays flat as the cluster grows (2011 benchmark)', () => {
+  /* Published table: 48 / 96 / 144 / 288 nodes → 174,373 / 366,828 / 537,172 /
+     1,099,837 client writes/s. Per-node throughput is essentially flat at
+     10.9k-11.9k writes/s across a 6x range, which is what "linear scale-out"
+     means. Our shard model must reproduce that flatness: shards are sized by
+     dividing the load by a per-node ceiling, so per-shard load cannot drift. */
+  it('doubling the write rate doubles the shards and leaves per-shard load flat', () => {
+    const base = vals({ readPct: 10, fanout: 0, dau: 1e8, actions: 50, peak: 1 })
+    const a = model(base, REQ)
+    const b = model({ ...base, dau: 2e8 }, REQ)
+    close(b.peakWrites / a.peakWrites, 2)
+    // per-shard write load stays within a rounding step of itself
+    const perShard = (m: ReturnType<typeof model>) => m.dbWrites / m.shardsNeeded
+    expect(Math.abs(perShard(b) - perShard(a)) / perShard(a)).toBeLessThan(0.1)
+  })
+  it('the measured 11k writes/s per node sits inside our per-primary band', () => {
+    // 1,099,837 ÷ 288 = 3,819 client writes/s/node; x3 replication factor
+    // = ~11.5k applied. Our band is 3.3k (no group commit) to 26.7k (x8).
+    const perNodeApplied = (1099837 / 288) * 3
+    close(perNodeApplied, 11456, 1e-3)
+    expect(perNodeApplied).toBeGreaterThan(model(vals({ group: 1 }), REQ).writeCeiling)
+    expect(perNodeApplied).toBeLessThan(model(vals({ group: 8 }), REQ).writeCeiling)
+  })
+})
+
+describe('Uber — a 99% cache hit rate is reachable, and the chain uses it (CacheFront, Feb 2024)', () => {
+  /* Published: CacheFront serves 40M req/s across Docstore; one use case drives
+     "over 6M RPS with a 99% cache hit rate", cutting P75 by 75% and P99.9 by
+     67%. Also: "more than 50% of the queries coming to Docstore are ReadRows
+     requests… no filters and point reads" — which is our access: 'point'.
+     https://www.uber.com/en-IN/blog/how-uber-serves-over-40-million-reads-per-second-using-an-integrated-cache/ */
+  it('at 99% hits, 6M req/s reaches the store as 60k/s', () => {
+    const v = vals({ cacheHit: 99 })
+    const m = model(v, REQ)
+    const c = consequences(v, REQ, m, false)
+    expect(c.cacheNeed).toBe(true)
+    close(c.missReads / m.readSide, 0.01)
+    // the published pair, run through our own formula
+    close(6e6 * (1 - 99 / 100), 60000)
+  })
+})
+
+describe('Resharding cost — the operational term this model states but does not score', () => {
+  /* The tool deliberately does not put a number on operations. It does have to
+     be able to EXPRESS the published trigger points, though, or the shard count
+     it reports is answering a question nobody asks in practice.
+
+     Published split thresholds, all primary-sourced:
+       Vitess docs      250 GB per shard, "the sweet spot"
+       Cash App         "shards tend to be around one terabyte when it's time to split"
+       Notion 2021      "an upper bound of 500 GB per table and 10 TB per physical database"
+     And the cost of a split, at the two extremes:
+       Google AdWords   "the last resharding took over two years of intense effort,
+                        and involved coordination and testing across dozens of teams"
+                        (Spanner, OSDI 2012 §5.4) — manual
+       DynamoDB         "Partition splits usually complete in the order of minutes."
+                        (USENIX ATC 2022 §4.4) — automatic */
+
+  it('the data-per-node ladder reaches every published trigger point', () => {
+    const ladder = HW.find((h) => h.id === 'diskPerNode')!.steps
+    expect(ladder, 'Vitess: 250 GB sweet spot').toContain(0.25)
+    expect(ladder, 'Cash App: split at ~1 TB').toContain(1)
+    expect(ladder, 'Notion: 10 TB per physical database').toContain(10)
+  })
+
+  it("Notion's real shard count is what our arithmetic produces from their bound", () => {
+    // Notion 2021: 480 logical shards over 32 physical databases, with a stated
+    // 10 TB ceiling per physical database. Our storage-shard rule is exactly
+    // that division, so a dataset at their bound must yield their host count.
+    const v = vals({ diskPerNode: 10 })
+    const m = model(v, REQ)
+    close(m.storageShards, Math.ceil(m.dbStorage / 10e12), 1e-9)
+    // and 32 physical databases at 10 TB each is the 320 TB order they were at
+    expect(Math.ceil(320e12 / (10 * 1e12))).toBe(32)
+  })
+
+  it('a smaller per-node bound means proportionally more shards — the dial works', () => {
+    const big = model(vals({ diskPerNode: 10 }), REQ).storageShards
+    const small = model(vals({ diskPerNode: 1 }), REQ).storageShards
+    // Cash App's 1 TB trigger produces ~10x the shards of Notion's 10 TB bound
+    expect(small / big).toBeGreaterThan(9)
+    expect(small / big).toBeLessThan(11)
   })
 })

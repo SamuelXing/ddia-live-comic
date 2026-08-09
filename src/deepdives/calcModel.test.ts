@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { model, consequences, INIT, PRESETS, WORKLOAD, DERIVED_INP, POINTER_BYTES, type Req, type Vals } from './calcModel'
+import {
+  model, consequences, outcome, sensitivity, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
+  type Req, type Vals,
+} from './calcModel'
 
 /* Every expected value in this file is computed BY HAND in the comment above
    it, from the stated formula — never copied from the implementation's output.
@@ -7,7 +10,7 @@ import { model, consequences, INIT, PRESETS, WORKLOAD, DERIVED_INP, POINTER_BYTE
    right, the model is wrong. This tool recommends real infrastructure — a
    silently wrong number here is the most expensive kind of bug we can ship. */
 
-const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no' }
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' }
 const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
 const req = (over: Partial<Req> = {}): Req => ({ ...REQ, ...over })
 
@@ -94,17 +97,20 @@ describe('transport: the freshness requirement filters, arithmetic ranks survivo
 })
 
 describe('engine: requirements filter before any arithmetic', () => {
-  it('cross-key atomicity disqualifies LSM and in-memory; only B-tree survives', () => {
+  it('cross-key atomicity disqualifies LSM and in-memory; only relational survives', () => {
     const m = model(vals(), req({ txn: 'multi' }))
-    expect(m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
+    expect(m.eCols.find((c) => c.id === 'wide')!.dq).toBeTruthy()
     expect(m.eCols.find((c) => c.id === 'mem')!.dq).toBeTruthy()
-    expect(m.engineWin).toBe('btree')
+    // sharded, not single-primary: the default 101 TB of rows needs 12 shards,
+    // and one primary over 12 shards is a contradiction, not a trade-off
+    expect(m.engineWin).toBe('sqlShard')
+    expect(m.eCols.find((c) => c.id === 'sql')!.dq).toContain('shards')
   })
   it('a write-heavy ledger still refuses LSM — arithmetic never overrules the filter', () => {
     // write-dominant load that would rank LSM first if only utilization counted
     const m = model(vals({ readPct: 10, fanout: 0, dau: 5e8, actions: 50 }), req({ txn: 'multi' }))
-    expect(m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
-    expect(m.engineWin).toBe('btree')
+    expect(m.eCols.find((c) => c.id === 'wide')!.dq).toBeTruthy()
+    expect(m.engineWin).toBe('sqlShard')
   })
   it('must-survive data disqualifies in-memory; rebuildable data readmits it', () => {
     expect(model(vals(), req({ loss: 'keep' })).eCols.find((c) => c.id === 'mem')!.dq).toBeTruthy()
@@ -116,8 +122,8 @@ describe('engine: requirements filter before any arithmetic', () => {
 describe('engine: each column is judged on the load that REACHES it', () => {
   it('defaults: both disk engines sit behind their own cache; B-tree wins on read pressure', () => {
     const m = model(vals(), req())
-    const bt = m.eCols.find((c) => c.id === 'btree')!
-    const ls = m.eCols.find((c) => c.id === 'lsm')!
+    const bt = m.eCols.find((c) => c.id === 'sql')!
+    const ls = m.eCols.find((c) => c.id === 'wide')!
     // B-tree raw read pressure: 34,722.22 × 1 ÷ 80,000 = 43.4% → forces a cache
     close(bt.rawRU, 0.43403)
     expect(bt.colCache).toBe(true)
@@ -128,7 +134,7 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     close(bt.worst, 0.043403)
     // LSM: ×2 amp → misses 3,472.22 × 2 ÷ 80,000 = 8.68%; worst 8.68% → B-tree wins
     close(ls.rU, 0.086806)
-    expect(m.engineWin).toBe('btree')
+    expect(m.engineWin).toBe('sqlShard')
   })
 
   it("REGRESSION (user-reported): 781k writes/s of ingest picks LSM once the chain applies", () => {
@@ -139,8 +145,8 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     expect(m.logNeed).toBe(true)
     // behind the log: 781,250 ÷ 3 = 260,416.7/s sustained
     close(m.dbWrites, 260416.67)
-    const bt = m.eCols.find((c) => c.id === 'btree')!
-    const ls = m.eCols.find((c) => c.id === 'lsm')!
+    const bt = m.eCols.find((c) => c.id === 'sql')!
+    const ls = m.eCols.find((c) => c.id === 'wide')!
     // B-tree write stream: 260,416.7 × 2,048 × 3 = 1.6e9 B/s ÷ 3.2212e9 = 49.7%
     close(bt.bwU, 0.49671)
     expect(bt.worstName).toBe('the write stream')
@@ -148,15 +154,15 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     close(ls.rU, 0.21701)
     close(ls.worst, 0.21701)
     // 21.7% < 49.7% → LSM wins, for the right reason
-    expect(m.engineWin).toBe('lsm')
+    expect(m.engineWin).toBe('wide')
   })
 
   it('moderate ingest honestly stays on the B-tree — one primary behind a log handles it', () => {
     // 50M × 20/day, 10% reads, 5 KB writes: writes 31,250/s peak → 10,416.7 sustained
     const m = model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req())
     // B-tree bw: 10,416.7 × 5,120 × 3 = 1.6e8 ÷ 3.2212e9 = 4.97%; reads 3,472.2 ÷ 80k = 4.34%
-    // worst 4.97% vs LSM worst = reads ×2 = 8.68% → B-tree
-    expect(m.engineWin).toBe('btree')
+    // worst 4.97% vs LSM worst = reads ×2 = 8.68% → relational
+    expect(m.engineWin).toBe('sqlShard')
   })
 
   it('small rebuildable dataset: in-memory competes and wins on ops-per-core', () => {
@@ -178,7 +184,7 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     const m = model(vals({ writeSize: 5000 }), req())
     expect(m.blobNeed).toBe(true)
     expect(m.dbBytesW).toBe(POINTER_BYTES)
-    close(m.eCols.find((c) => c.id === 'btree')!.bwU, 0.0049671)
+    close(m.eCols.find((c) => c.id === 'sql')!.bwU, 0.0049671)
     // and so are RAM, scan and storage-shard checks: 1.5e8 pointers/day × 1,024 B
     // × 360 = 5.5296e13 B of rows (not the 270 PB of blobs)
     close(m.dbStorage, 5.5296e13)
@@ -289,13 +295,171 @@ describe('presets', () => {
     expect(run('chat').m.transportWin).toBe('ws')
     expect(run('chat').c.needs.connTier).toBe(true)
     // ingest: 104k sustained writes/s of 2 KB — the LSM workload, plus the analytical store
-    expect(run('ingest').m.engineWin).toBe('lsm')
+    expect(run('ingest').m.engineWin).toBe('wide')
     expect(run('ingest').c.needs.analytical).toBe(true)
     // ledger: the transaction filter, not arithmetic, decides
-    expect(run('ledger').m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
+    expect(run('ledger').m.eCols.find((c) => c.id === 'wide')!.dq).toBeTruthy()
     // media: blobs out of the database, CDN forced, metadata stays on the B-tree
     expect(run('media').m.blobNeed).toBe(true)
     expect(run('media').c.needs.cdn).toBe(true)
-    expect(run('media').m.engineWin).toBe('btree')
+    // 184 TB of POINTER rows (the blobs live in object storage) needs 19 shards
+    expect(run('media').m.engineWin).toBe('sqlShard')
+  })
+})
+
+describe('the storage decision is decomposed, and each dimension filters', () => {
+  it('cross-key atomicity keeps only the stores that can span keys', () => {
+    const m = model(vals(), req({ txn: 'multi' }))
+    const alive = m.eCols.filter((c) => !c.dq).map((c) => c.id)
+    // per-document, per-partition and per-key atomicity are all disqualified;
+    // relational stores survive (sharded SQL with a cross-shard caveat)
+    // single-primary is out on shard count at the default 101 TB, so the only
+    // store that both spans keys AND fits the data is the sharded relational one
+    expect(alive).toEqual(['sqlShard'])
+    expect(m.engineWin).toBe('sqlShard')
+  })
+  it('point-lookup reads disqualify the column store, for a reason it states', () => {
+    const m = model(vals(), req({ access: 'point' }))
+    expect(m.eCols.find((c) => c.id === 'col')!.dq).toContain('column file')
+    // ...and a range workload lets it compete
+    expect(model(vals(), req({ access: 'range' })).eCols.find((c) => c.id === 'col')!.dq).toBeNull()
+  })
+  it('every store carries all four dimensions, so none of them hide inside another', () => {
+    for (const c of model(vals(), req()).eCols) {
+      for (const k of ['model', 'engine', 'dist', 'txnScope'] as const) {
+        expect(c.store[k], `${c.id} is missing ${k}`).toBeTruthy()
+      }
+    }
+  })
+  it('single-primary SQL still wins when the data actually fits one primary', () => {
+    // the disqualification is load-driven, not a blanket ban: shrink the data
+    // until one machine holds it and the simplest store comes back
+    const m = model(vals({ dau: 1e5, retention: 1 }), req())
+    expect(m.shardsNeeded).toBe(1)
+    expect(m.eCols.find((c) => c.id === 'sql')!.dq).toBeNull()
+    expect(m.engineWin).toBe('sql')
+  })
+  it('relational stores are not separated by invented constants — only by requirements', () => {
+    // sql, sharded sql and the document store share an engine, so their
+    // computed numbers must tie; what separates them is atomicity scope
+    const m = model(vals({ dau: 1e5, retention: 1 }), req())
+    const [sql, shard, doc] = ['sql', 'sqlShard', 'doc'].map((id) => m.eCols.find((c) => c.id === id)!)
+    close(sql.worst, shard.worst)
+    close(sql.worst, doc.worst)
+  })
+  it('reads that must be current put the cache on the write path', () => {
+    expect(model(vals(), req({ recency: 'current' })).cacheOnWritePath).toBe(true)
+    expect(model(vals(), req({ recency: 'stale' })).cacheOnWritePath).toBe(false)
+  })
+})
+
+describe('the cache is decided by the read rate, never by the engine', () => {
+  /* THE ARTIFACT THIS PREVENTS. When each store decided its own cache from its
+     own amplified read pressure, a store could cross the 30% threshold BECAUSE
+     it reads badly, collect the 90% cache discount, and then score better at
+     reads than the store whose reads were cheap enough not to need one.
+     "Worse at reads wins" — the second time this page produced that artifact,
+     and it was the sensitivity sweep that caught it. */
+  it('every disk store is judged on the same incoming read load', () => {
+    const m = model(vals(), req({ access: 'point' }))
+    const disk = m.eCols.filter((c) => c.id !== 'mem')
+    disk.forEach((c) => close(c.colReads, disk[0].colReads))
+    // and the decision itself is the raw rate against one node's ceiling
+    // 34,722.22 ÷ 80,000 = 43.4% > 30% → a cache, for everyone
+    expect(m.cacheAbsorbs).toBe(true)
+    disk.forEach((c) => expect(c.colCache, c.id).toBe(true))
+  })
+
+  it('REGRESSION: a better disk must not hand the win to the store that reads worse', () => {
+    // At ×16 queue depth the ceiling is 160,000/s, so 34,722.22 raw reads are
+    // 21.7% — under the threshold, so NOBODY gets a cache. Judged on the same
+    // load, the B-tree's ×1 (21.7%) beats the LSM's ×2 (43.4%).
+    const at = (ioDepth: number) => model(vals({ ioDepth }), req({ access: 'point' }))
+    expect(at(8).engineWin).toBe('sqlShard')
+    const m = at(16)
+    expect(m.cacheAbsorbs).toBe(false)
+    close(m.eCols.find((c) => c.id === 'sqlShard')!.worst, 0.21701)
+    close(m.eCols.find((c) => c.id === 'wide')!.worst, 0.43403)
+    expect(m.engineWin).toBe('sqlShard')
+  })
+})
+
+describe("Amdahl's law: the fix is capped by the wall you did not move", () => {
+  it('the gain is the distance between the binding wall and the next one', () => {
+    const m = model(vals(), req())
+    const w = m.eCols.find((c) => c.id === m.engineWin)!
+    // defaults: read pressure 4.3403%, write stream 0.99341% → 4.3403 ÷ 0.99341
+    expect(m.amdahl.binding).toBe('read pressure')
+    close(m.amdahl.bindingUtil, 0.043403)
+    close(m.amdahl.nextUtil, 0.0099341)
+    close(m.amdahl.gain, 4.36907)
+    // the identity that makes it Amdahl: load-to-first-wall × gain = load-to-second
+    close((1 / m.amdahl.bindingUtil) * m.amdahl.gain, 1 / m.amdahl.nextUtil)
+    close(m.amdahl.gain, w.worst / w.next)
+  })
+  it('a store with only one modelled wall reports an unbounded gain', () => {
+    // in-memory pays CPU per op and touches no disk, so nothing else binds
+    const m = model(vals({ dau: 1e5, retention: 1 }), req({ loss: 'rebuild' }))
+    const mem = m.eCols.find((c) => c.id === 'mem')!
+    expect(mem.next).toBe(0)
+  })
+})
+
+describe('sensitivity: which assumption is load-bearing', () => {
+  it('every reported flip really happens when you make that move', () => {
+    const v = vals()
+    const before = JSON.stringify(outcome(v, req()))
+    const flips = sensitivity(v, req())
+    expect(flips.length).toBeGreaterThan(0)
+    for (const f of flips) {
+      const h = HW.find((x) => x.id === f.id)!
+      const i = h.steps.indexOf(v[f.id])
+      const after = outcome({ ...v, [f.id]: h.steps[f.dir === 'up' ? i + 1 : i - 1] }, req())
+      expect(JSON.stringify(after), `${f.label} ${f.dir}`).not.toBe(before)
+    }
+  })
+
+  it('never perturbs a constant the decisions themselves write', () => {
+    // read/write amplification and protocol overhead are OUTPUTS of the store
+    // and transport picks — moving them models nothing, it just contradicts
+    const ids = PRESETS.flatMap((p) => sensitivity({ ...INIT, ...p.sets }, p.req).map((f) => f.id))
+    expect(ids).not.toContain('readAmp')
+    expect(ids).not.toContain('writeAmp')
+    expect(ids).not.toContain('overhead')
+  })
+
+  it('assumptions are listed before measurements', () => {
+    // a measured constant being load-bearing is a fact about hardware; an
+    // assumed one being load-bearing means the answer rests on a guess
+    const flips = sensitivity(vals(), req())
+    const firstNapkin = flips.findIndex((f) => f.src === 'napkin')
+    const lastAssume = flips.map((f) => f.src).lastIndexOf('assume')
+    if (firstNapkin >= 0 && lastAssume >= 0) expect(lastAssume).toBeLessThan(firstNapkin)
+  })
+
+  it('defaults: doubling disk read parallelism removes the forced cache', () => {
+    // 8 ÷ 100 µs = 80,000/s → 16 ÷ 100 µs = 160,000/s.
+    // 34,722.22 ÷ 160,000 = 21.7%, under the 30% that forces a cache.
+    const f = sensitivity(vals(), req()).find((x) => x.id === 'ioDepth' && x.dir === 'up')!
+    expect(f.src).toBe('assume')
+    expect(f.changes).toContain('a cache is no longer forced')
+  })
+
+  it('defaults: the shard count is a linear function of an assumed constant', () => {
+    // published thresholds span 250 GB to 10 TB per node — a 40x range — so
+    // this dial, not the workload, is what sets the shard count
+    const f = sensitivity(vals(), req()).find((x) => x.id === 'diskPerNode' && x.dir === 'up')!
+    expect(f.changes.some((c) => /shards go from \d+ to \d+/.test(c))).toBe(true)
+  })
+})
+
+describe('a column is a thing you could install', () => {
+  it('every store names real products and one operator running it', () => {
+    // "wide-column ring" is an abstraction until you can name what to install,
+    // and a scale claim with an operator attached is one someone can check
+    STORES.forEach((s) => {
+      expect(s.examples.length, s.id).toBeGreaterThan(8)
+      expect(s.wild.length, s.id).toBeGreaterThan(40)
+    })
   })
 })
