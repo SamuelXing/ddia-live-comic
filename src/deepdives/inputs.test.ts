@@ -3,8 +3,8 @@ import { scaleOutInputs as kafka } from './kafka/scaleout'
 import { scaleOutInputs as redis } from './redis/scaleout'
 import { scaleOutInputs as postgres } from './postgres/scaleout'
 import { scaleOutInputs as rabbitmq } from './rabbitmq/scaleout'
-import { webModule } from './modules/web'
-import { s3Module } from './modules/s3'
+import { scaleOutInputs as web } from './web/scaleout'
+import { scaleOutInputs as s3 } from './s3/scaleout'
 import { LAD, snapIndex } from './ladder'
 import { WORKLOAD, DERIVED_INP, HW } from './calcModel'
 import type { InputDef } from './types'
@@ -17,16 +17,21 @@ import type { InputDef } from './types'
       before the reader has touched anything.
    2. A ladder that is not monotonic, which makes the thumb travel backwards.
 
-   Every sandbox input on the site is covered; the same rule is enforced for
-   the capacity calculator's presets in calcModel.test.ts. */
+   Every chapter-5 sandbox on the site is covered, plus the capacity
+   calculator's presets in calcModel.test.ts.
+
+   Known gap: the chapter-3 hardware-envelope widgets declare their sliders
+   inline in JSX, so their defaults are not swept here. Same invariant, no
+   test — the first one that drifts will show a thumb on one rung and a label
+   reading another, exactly as the fsync bug below did. */
 
 const SANDBOXES: [string, InputDef[]][] = [
   ['kafka', kafka],
   ['redis', redis],
   ['postgres', postgres],
   ['rabbitmq', rabbitmq],
-  ['web', webModule.content!.inputs],
-  ['s3', s3Module.content!.inputs],
+  ['web', web],
+  ['s3', s3],
 ]
 
 describe('sandbox inputs are order-of-magnitude ladders', () => {

@@ -40,34 +40,11 @@ export interface ComputeResult {
   verdict: Verdict
 }
 
-/** [limit name, rough value, why it matters] */
-export type LimitRow = [string, string, string]
-/** [failure name, description] */
-export type FailRow = [string, string]
-
-/** The body of one explorable component (or one variant of a dual module). */
-export interface ModuleContent {
-  /** Present on variants (e.g. "Kafka" / "RabbitMQ"). */
-  name?: string
-  /** HTML intro paragraphs. */
-  intro: string
+/** One sandbox: the sliders, and the pure function they feed. Every flagship
+ *  chapter 5 is this shape, and it is deliberately the *only* shape — the
+ *  maths lives in an exported `compute`, never inside JSX, so the future
+ *  Topology Composer can import it without rendering anything. */
+export interface SandboxContent {
   inputs: InputDef[]
   compute: (v: Values) => ComputeResult
-  limits: LimitRow[]
-  fails: FailRow[]
-  /** HTML strings, ordered cheapest-first. */
-  ladder: string[]
-}
-
-/** A deep-dive module: header + either a single body or toggled variants. */
-export interface ModuleDef {
-  key: string
-  tab: string
-  emoji: string
-  title: string
-  kicker: string
-  /** HTML lede paragraph. */
-  lede: string
-  content?: ModuleContent
-  variants?: Record<string, ModuleContent & { name: string }>
 }

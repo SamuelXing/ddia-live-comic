@@ -17,7 +17,7 @@ import { chromium } from 'playwright-core';
 const exe=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const b=await chromium.launch({executablePath:exe});
 const BASE=process.env.BASE_URL||'http://localhost:5173';
-const slugs=['storage','replication-leader','replication-lag','replication-quorum','partitioning','transactions','distributed-troubles','consensus'];
+const slugs=['tail-latency','storage','replication-leader','replication-lag','replication-quorum','partitioning','transactions','distributed-troubles','consensus','shuffle','stream-table'];
 const all=[];
 for (const s of slugs){
   const p=await b.newPage({viewport:{width:1200,height:1200}});

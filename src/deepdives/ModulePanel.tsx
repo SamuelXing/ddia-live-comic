@@ -1,5 +1,9 @@
+/* The sandbox widget: sliders on the left, tiles + meters + verdict on the
+   right, shared by chapter 5 of every flagship deep-dive. It renders a
+   SandboxContent and knows nothing about the system being modelled — all the
+   arithmetic arrives as a pure `compute` from that page's scaleout.ts. */
 import { useMemo, useState } from 'react'
-import type { InputDef, ModuleContent, ModuleDef, Values } from './types'
+import type { InputDef, SandboxContent, Values } from './types'
 import { clampPct, statusFromPct } from './format'
 import { LadderSlider } from './ladder'
 
@@ -24,7 +28,7 @@ function SliderCtl({
   )
 }
 
-export function Sandbox({ content }: { content: Pick<ModuleContent, 'inputs' | 'compute'> }) {
+export function Sandbox({ content }: { content: SandboxContent }) {
   const defaults = useMemo(() => {
     const d: Values = {}
     content.inputs.forEach((i) => (d[i.id] = i.val))
@@ -96,93 +100,5 @@ export function Sandbox({ content }: { content: Pick<ModuleContent, 'inputs' | '
         </div>
       </div>
     </div>
-  )
-}
-
-export default function ModulePanel({ module }: { module: ModuleDef }) {
-  const variantKeys = module.variants ? Object.keys(module.variants) : []
-  const [variantKey, setVariantKey] = useState(variantKeys[0] ?? '')
-  const content: ModuleContent | undefined = module.variants
-    ? module.variants[variantKey]
-    : module.content
-  if (!content) return null
-
-  return (
-    <section>
-      <p className="h-kicker">
-        {module.emoji} &nbsp;{module.kicker}
-      </p>
-      <h1 className="title">{module.title}</h1>
-      <p className="lede" dangerouslySetInnerHTML={{ __html: module.lede }} />
-
-      {module.variants && (
-        <div style={{ margin: '18px 0 2px' }}>
-          <span style={{ fontSize: 13, color: 'var(--muted)', fontWeight: 600, marginRight: 10 }}>
-            Compare:
-          </span>
-          <div className="seg">
-            {variantKeys.map((vk) => (
-              <button
-                key={vk}
-                aria-pressed={vk === variantKey}
-                onClick={() => setVariantKey(vk)}
-              >
-                {module.variants![vk].name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div dangerouslySetInnerHTML={{ __html: content.intro }} />
-
-      <h2>Live sandbox — push it until something breaks</h2>
-      <Sandbox content={content} />
-
-      <h2>The hard numbers</h2>
-      <table className="tbl">
-        <thead>
-          <tr>
-            <th>Limit</th>
-            <th>Rough value</th>
-            <th>Why it matters</th>
-          </tr>
-        </thead>
-        <tbody>
-          {content.limits.map((row) => (
-            <tr key={row[0]}>
-              <td>{row[0]}</td>
-              <td>
-                <code>{row[1]}</code>
-              </td>
-              <td dangerouslySetInnerHTML={{ __html: row[2] }} />
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2>How it fails at scale</h2>
-      <div className="fails">
-        {content.fails.map((f) => (
-          <div className="fail" key={f[0]}>
-            <div className="fn">{f[0]}</div>
-            <p className="fd" dangerouslySetInnerHTML={{ __html: f[1] }} />
-          </div>
-        ))}
-      </div>
-
-      <div className="boundary">
-        <h3>The scaling ladder — apply in order</h3>
-        <p style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-          Each rung is cheaper and safer than the one below it. Climb only as far as your load
-          forces you to.
-        </p>
-        <ol className="ladder">
-          {content.ladder.map((step, i) => (
-            <li key={i} dangerouslySetInnerHTML={{ __html: step }} />
-          ))}
-        </ol>
-      </div>
-    </section>
   )
 }
