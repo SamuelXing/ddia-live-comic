@@ -992,3 +992,164 @@ export function HedgeDiagram() {
     </svg>
   )
 }
+
+/* ---- Ch 10 · Batch Processing ---- */
+
+/** The shuffle: every mapper sends to every reducer, because a key can appear
+ *  in any input split and all of its records must land in one place. */
+export function ShuffleDiagram() {
+  const M = [30, 90, 150]
+  const R = [30, 90, 150]
+  return (
+    <svg viewBox="0 0 180 140" role="img" aria-label="Three mappers each sending to all three reducers, an all-to-all shuffle across the network.">
+      {M.map((x) => R.map((r) => <line key={`${x}-${r}`} x1={x} y1="42" x2={r} y2="94" stroke={MUTED} strokeWidth="1" />))}
+      {M.map((x, i) => (
+        <g key={x}>
+          <rect x={x - 22} y="18" width="44" height="24" rx="3" fill={DENIM} stroke={INK} strokeWidth="2" />
+          <text x={x} y="34" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill="#fff">map {i + 1}</text>
+        </g>
+      ))}
+      {R.map((x, i) => (
+        <g key={x}>
+          <rect x={x - 22} y="94" width="44" height="24" rx="3" fill={INK} stroke={INK} strokeWidth="2" />
+          <text x={x} y="110" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill="#fff">red {i + 1}</text>
+        </g>
+      ))}
+      <text x="90" y="10" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>every key, sorted to one place</text>
+      <text x="90" y="132" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>M × R connections, all over the network</text>
+    </svg>
+  )
+}
+
+/** The join that skips the shuffle entirely: if one side fits in memory, ship a
+ *  copy to every mapper and never move the big side at all. */
+export function BroadcastJoinDiagram() {
+  return (
+    <svg viewBox="0 0 180 126" role="img" aria-label="A small table broadcast to every mapper, so the large table never moves across the network.">
+      <defs>
+        <marker id="gn-bj" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} />
+        </marker>
+      </defs>
+      <rect x="60" y="8" width="60" height="20" rx="3" fill={DENIM} stroke={INK} strokeWidth="2" />
+      <text x="90" y="22" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill="#fff">small side</text>
+      {[30, 90, 150].map((x) => (
+        <g key={x}>
+          <path d={`M90 30 L${x} 54`} stroke={DENIM} strokeWidth="1.5" strokeDasharray="3 2" markerEnd="url(#gn-bj)" />
+          <rect x={x - 24} y="58" width="48" height="26" rx="3" fill="#fff" stroke={INK} strokeWidth="2" />
+          <text x={x} y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>mapper</text>
+          <text x={x} y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>+ its split</text>
+        </g>
+      ))}
+      <text x="90" y="102" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>no shuffle at all</text>
+      <text x="90" y="118" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the big side never moves</text>
+    </svg>
+  )
+}
+
+/** Skew: one hot key means one reducer, and one reducer means one job. */
+export function SkewDiagram() {
+  const bars = [[20, 12], [44, 10], [68, 14], [92, 74], [116, 11], [140, 13]]
+  return (
+    <svg viewBox="0 0 180 130" role="img" aria-label="Six reducers, one of them doing far more work than the rest because a single key is hot.">
+      <line x1="12" y1="96" x2="168" y2="96" stroke={INK} strokeWidth="2" />
+      {bars.map(([x, h], i) => (
+        <g key={x}>
+          <rect x={x} y={96 - h} width="20" height={h} fill={i === 3 ? TERRA : DENIM} stroke={INK} strokeWidth="1.5" />
+          <text x={x + 10} y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>r{i + 1}</text>
+        </g>
+      ))}
+      <text x="102" y="16" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>one hot key</text>
+      <text x="90" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>the job ends when r4 ends</text>
+    </svg>
+  )
+}
+
+/* ---- Ch 11 · Stream Processing ---- */
+
+/** The duality, drawn: a table is the current state, a stream is the changes,
+ *  and each one turns into the other. */
+export function DualityDiagram() {
+  return (
+    <svg viewBox="0 0 180 128" role="img" aria-label="A table and a stream converting into each other: a changelog turns a table into a stream, replay turns a stream back into a table.">
+      <defs>
+        <marker id="gn-du" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
+        </marker>
+      </defs>
+      <rect x="10" y="42" width="56" height="40" rx="3" fill={DENIM} stroke={INK} strokeWidth="2" />
+      <text x="38" y="60" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8.5" fill="#fff">table</text>
+      <text x="38" y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#dbe3ee">state now</text>
+      <rect x="114" y="42" width="56" height="40" rx="3" fill={INK} stroke={INK} strokeWidth="2" />
+      <text x="142" y="60" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8.5" fill="#fff">stream</text>
+      <text x="142" y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill="#c9c2b6">every change</text>
+      <path d="M68 52 L112 52" stroke={INK} strokeWidth="2" markerEnd="url(#gn-du)" />
+      <text x="90" y="46" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>changelog</text>
+      <path d="M112 74 L68 74" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-du)" />
+      <text x="90" y="90" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>replay</text>
+      <text x="90" y="112" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={MUTED}>two views of one fact</text>
+      <text x="90" y="124" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the log is the one that is true</text>
+    </svg>
+  )
+}
+
+/** Log compaction: keep the newest value per key and the log becomes the table. */
+export function CompactionDiagram() {
+  const before = [['a', 1], ['b', 1], ['a', 2], ['c', 1], ['b', 2], ['a', 3]] as [string, number][]
+  const after = [['b', 2], ['c', 1], ['a', 3]] as [string, number][]
+  return (
+    <svg viewBox="0 0 180 118" role="img" aria-label="A log with repeated keys compacting down to one record per key, which is the table.">
+      <defs>
+        <marker id="gn-cp" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
+        </marker>
+      </defs>
+      <text x="6" y="16" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>log</text>
+      {before.map(([k, val], i) => (
+        <g key={i}>
+          <rect x={6 + i * 28} y="22" width="24" height="20" rx="2"
+            fill={(k === 'a' && val < 3) || (k === 'b' && val < 2) ? '#fff' : DENIM}
+            stroke={INK} strokeWidth="1.5" />
+          <text x={18 + i * 28} y="36" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5"
+            fill={(k === 'a' && val < 3) || (k === 'b' && val < 2) ? MUTED : '#fff'}>{k}={val}</text>
+        </g>
+      ))}
+      <path d="M90 48 L90 62" stroke={INK} strokeWidth="2" markerEnd="url(#gn-cp)" />
+      <text x="96" y="59" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>compact</text>
+      <text x="6" y="80" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>table</text>
+      {after.map(([k, val], i) => (
+        <g key={i}>
+          <rect x={40 + i * 34} y="70" width="30" height="20" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+          <text x={55 + i * 34} y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">{k}={val}</text>
+        </g>
+      ))}
+      <text x="90" y="110" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>one record per key, whatever the history</text>
+    </svg>
+  )
+}
+
+/** Windows: the same events, cut three different ways. */
+export function WindowDiagram() {
+  return (
+    <svg viewBox="0 0 180 132" role="img" aria-label="A timeline of events cut into tumbling, hopping and session windows.">
+      {[22, 62, 102].map((y, row) => (
+        <g key={y}>
+          <line x1="10" y1={y + 16} x2="170" y2={y + 16} stroke={MUTED} strokeWidth="1" />
+          {row === 0 && [10, 62, 114].map((x) => (
+            <rect key={x} x={x} y={y} width="50" height="16" rx="2" fill="none" stroke={DENIM} strokeWidth="2" />
+          ))}
+          {row === 1 && [10, 40, 70, 100, 130].map((x, i) => (
+            <rect key={x} x={x} y={y + (i % 2) * 4 - 2} width="46" height="14" rx="2" fill="none" stroke={DENIM} strokeWidth="1.5" opacity="0.9" />
+          ))}
+          {row === 2 && [[12, 34], [70, 26], [120, 44]].map(([x, w]) => (
+            <rect key={x} x={x} y={y} width={w} height="16" rx="2" fill="none" stroke={TERRA} strokeWidth="2" />
+          ))}
+        </g>
+      ))}
+      <text x="10" y="14" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>tumbling · fixed, no overlap</text>
+      <text x="10" y="54" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>hopping · fixed, overlapping</text>
+      <text x="10" y="94" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>session · gaps decide the edges</text>
+      <text x="90" y="128" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>same events, three answers</text>
+    </svg>
+  )
+}

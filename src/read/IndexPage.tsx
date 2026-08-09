@@ -12,6 +12,8 @@ import {
   RaftDiagram,
   StorageDiagram,
   TailDiagram,
+  ShuffleDiagram,
+  DualityDiagram,
 } from './diagrams'
 
 import '@fontsource/playfair-display/700.css'
@@ -38,6 +40,8 @@ const PANEL: Record<string, ReactNode> = {
   transactions: <WriteSkewDiagram />,
   'distributed-troubles': <TimeoutDiagram />,
   consensus: <RaftDiagram />,
+  shuffle: <ShuffleDiagram />,
+  'stream-table': <DualityDiagram />,
 }
 
 interface Idea {
@@ -83,8 +87,8 @@ const PARTS: Part[] = [
     pt: 'Derived Data',
     ps: 'batch & stream',
     ideas: [
-      { no: 'Ch 10', title: 'The Shuffle', hook: 'How batch jobs move data between stages — and the join strategies that race.' },
-      { no: 'Ch 11', title: 'Stream–Table Duality', hook: 'Where a stream and a table turn out to be two views of one thing.' },
+      { no: 'Ch 10', title: 'The Shuffle', hook: 'The sort in the middle — and why one hot key makes the cluster stop mattering.', slug: 'shuffle' },
+      { no: 'Ch 11', title: 'Stream–Table Duality', hook: 'A table is a cached answer; the log is the thing that is true.', slug: 'stream-table' },
     ],
   },
 ]
@@ -120,15 +124,15 @@ export default function IndexPage() {
 
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">The concept lens · inspired by DDIA</div>
+          <div className="gn-kicker">The concept lens · inspired by DDIA, 1st edition</div>
           <h1>The hard ideas, drawn out.</h1>
           <p className="dek">
             Distributed systems are full of arcane ideas — replication, partitioning, consensus. Read each one as a
             short comic, then follow it into the real machines and architectures where it actually lives.
           </p>
           <div className="gn-tags">
-            <span className="gn-tag">9 ideas live</span>
-            <span className="gn-tag">More drawing</span>
+            <span className="gn-tag">11 ideas live</span>
+            <span className="gn-tag">Parts I–III drawn</span>
           </div>
         </header>
 

@@ -5,7 +5,7 @@ import { Picker, Info, Num, Slider, Ctl } from './calcUI'
 import type { Vals } from './calcModel'
 import {
   PATH, GEO, LWORKLOAD, LHW, LINIT, LPRESETS, latency, fmtMs, queueMultiplier, floorMs,
-  FIBRE_KM_PER_MS, DC_FLOOR_MS, type LReq,
+  FIBRE_KM_PER_MS, FIBRE_EXACT_KM_PER_MS, DC_FLOOR_MS, type LReq,
 } from './latencyModel'
 
 /* ============================================================
@@ -299,6 +299,18 @@ export default function LatencyCalculator() {
             <p className="tbl-note">
               The floor is the only term nothing but geography moves — {fmtMs(m.irreducible)} of this
               budget is already spent before your code runs. Everything below it is yours.
+            </p>
+            <p className="tbl-note">
+              <b>Where those two constants come from.</b> The distance is a great-circle figure for a
+              named pair — {m.geo.pair}, {m.geo.km.toLocaleString()} km — doubled because a request goes
+              there and comes back. The <b>200 km/ms</b> is derived rather than remembered: light in a
+              vacuum is a measured <b>299,792 km/s</b>, silica single-mode fibre has a refractive index
+              near <b>1.47</b>, and light in a medium travels at <code>c ÷ n</code> — so 299,792 ÷ 1.47
+              ÷ 1,000 = <b>{Math.round(FIBRE_EXACT_KM_PER_MS * 10) / 10} km/ms</b>, which this page
+              rounds down to 200. The routing factor on top is the one part that is a{' '}
+              <span className="src-a">modelling choice</span>: real fibre follows seabeds and roads
+              rather than great circles, and ×1.4 is what puts New York–London at 78 ms against its
+              measured 70–80.
             </p>
 
             <p className="sb-title">What would actually help, in order</p>

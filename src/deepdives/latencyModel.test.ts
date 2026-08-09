@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   latency, floorMs, queueMultiplier, anySlow, percentileNeeded, fanoutP99, cacheEffect,
-  FIBRE_KM_PER_MS, DC_FLOOR_MS, GEO, LINIT, LPRESETS, LWORKLOAD, LHW,
+  FIBRE_KM_PER_MS, FIBRE_EXACT_KM_PER_MS, C_KM_PER_S, DC_FLOOR_MS, GEO, LINIT, LPRESETS, LWORKLOAD, LHW,
   type LReq,
 } from './latencyModel'
 import type { Vals } from './calcModel'
@@ -19,9 +19,21 @@ const close = (actual: number, expected: number, tol = 1e-3) => {
 }
 
 describe('the floor: light in fibre, which no engineering moves', () => {
-  it('is 200 km per millisecond, one way', () => {
-    // ~2/3 of c (299,792 km/s) is ~200,000 km/s = 200 km/ms
+  it('200 km/ms is derived from c and the refractive index, not remembered', () => {
+    // light in a medium travels at c/n. Silica single-mode fibre: n ~ 1.47.
+    // 299,792 km/s ÷ 1.47 = 203,940 km/s = 203.94 km/ms
+    expect(C_KM_PER_S).toBe(299792)
+    close(FIBRE_EXACT_KM_PER_MS, 203.940, 1e-4)
+    // the page rounds DOWN to 200 — a clean number, ~2% conservative
     expect(FIBRE_KM_PER_MS).toBe(200)
+    expect(FIBRE_KM_PER_MS).toBeLessThan(FIBRE_EXACT_KM_PER_MS)
+    expect(FIBRE_EXACT_KM_PER_MS / FIBRE_KM_PER_MS - 1).toBeLessThan(0.025)
+  })
+
+  it('every distance names the pair it was taken from', () => {
+    // a bare "4,130 km" is unfalsifiable; "New York to San Francisco" is not
+    GEO.forEach((g) => expect(g.pair.length, g.id).toBeGreaterThan(6))
+    expect(GEO.find((g) => g.id === 'country')!.pair).toContain('San Francisco')
   })
 
   it('New York to London: ~56 ms of pure round trip', () => {
