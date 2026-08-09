@@ -127,6 +127,31 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
   gets an info icon (no middleware — the application works out the shard itself; Notion
   by workspace id, Figma via a proxy it spent nine months building), while PostgreSQL and
   Cassandra do not need one. Each store's scale claim links to the post it came from.
+- ✅ **The latency budget** (`/calculator/latency`) — a second calculator, deliberately not
+  merged with the first. Capacity is division: load over ceiling, monotone, safe to
+  extrapolate. Latency is a hockey stick that goes vertical well before that ceiling — at
+  43% of a capacity ceiling you are already waiting three-quarters of your service time in
+  a queue — so one panel implying they behave alike would hide the single most important
+  fact. Two routes under one nav item, because a tab held in component state cannot be
+  linked and a fifth nav item would worsen the ≤700px overflow.
+  You state a p99 target and the page **spends** it: **physics floors · hops add ·
+  utilization multiplies · fan-out amplifies the tail**. It names the largest term and
+  ranks the fixes in milliseconds. It refuses to predict a p99 — a queueing network with
+  assumed distributions is confidently wrong — so every term is closed form and the one
+  assumed distribution (the tail shape pricing fan-out in ms) is marked and shown.
+  **The useful half is "what will not help":** a cache does nothing for your p99 until the
+  hit rate passes 99%, because below that a p99 request is by definition a miss; no amount
+  of capacity touches the speed of light; a faster median is nearly invisible under fan-out,
+  where you need one server's p99.99. Anchors as tests: Dean & Barroso's 63% reproduces
+  exactly (1 − 0.99¹⁰⁰), a 100-way fan-out needs p99.99 (0.99^(1/100)), NY–London is
+  55.85 ms theoretical / 78 ms routed against a published 70–80 band, and the datacenter
+  floor is napkin-math's measured 500 µs rather than the wire.
+  Constants and controls are imported from the capacity page, never restated. Its ladder
+  invariant immediately found a **live bug there**: `fsync` defaults to its measured 300 µs
+  while `L.us` went …200, 500…, so that thumb had been rendering on 200 while the label read
+  300 µs — `inputs.test.ts` only ever walked the six sandboxes, never the calculator.
+  The cross-link is the point of keeping them adjacent: every component the capacity page
+  forces is also a hop, so those cards now link to what they cost in milliseconds.
 - ✅ **Component math reconciled with the calculator.** Two real inconsistencies.
   Redis assumed 5 µs per command (~194k ops/s at 512 B) — above the top of the
   published unpipelined range; it now uses the calculator's 10 µs, which
