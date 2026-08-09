@@ -1,9 +1,9 @@
 {
-  "name": "scale-lab",
+  "name": "ddia-live-comic",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Interactive systems-design lab: component scaling deep-dives + live application simulations",
+  "description": "DDIA, as a live comic \u2014 an unofficial illustrated companion to Designing Data-Intensive Applications",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

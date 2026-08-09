@@ -1,4 +1,4 @@
-# Scale Lab — Roadmap
+# DDIA, as a live comic — Roadmap
 
 A living list of where the project is headed. Ordered roughly by sequence, not priority.
 
