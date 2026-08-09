@@ -371,14 +371,27 @@ export default function Calculator() {
             ? `${fmt.bytes(storageTotal)} ÷ ${v.ram} GB = ${fmt.int(ramHosts)} nodes of pure RAM`
             : null,
   }
+  /** the log is engine-independent: if peaks force one, every engine consumes sustained */
+  const writeUtil = peakWrites / writeCeiling
+  const logNeed = writeUtil > 0.5 && v.peak >= 2
+  /** behind a log the database consumes at the daily average, not the worst minute */
+  const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
+  /** Each engine is judged on the load that would REACH it in the system built
+   *  around it: if its own read pressure forces a cache, its reads become the
+   *  misses; if the peak forces a log, its writes become the sustained rate.
+   *  Judging engines on unmitigated load would tax the LSM's read amplification
+   *  for reads the cache absorbs — the pre-cache bias this replaces. */
   const eCols = ENGINES.map((e) => {
-    const bw = peakWrites * bytesW * e.sets.writeAmp
+    const rawRU = e.sets.readAmp === 0 ? 0 : (readSide * e.sets.readAmp) / diskReadCeiling
+    const colCache = rawRU > 0.3
+    const colReads = colCache ? readSide * (1 - v.cacheHit / 100) : readSide
+    const rU = e.sets.readAmp === 0 ? 0 : (colReads * e.sets.readAmp) / diskReadCeiling
+    const bw = dbWrites * bytesW * e.sets.writeAmp
     const bwU = e.id === 'mem' ? 0 : bw / seqWriteBps
-    const rU = e.sets.readAmp === 0 ? 0 : (readSide * e.sets.readAmp) / diskReadCeiling
     /** in-memory pays CPU per op instead of disk: all ops against one core */
-    const worst = e.id === 'mem' ? (readSide + peakWrites) / cacheCeiling : Math.max(bwU, rU)
+    const worst = e.id === 'mem' ? (readSide + dbWrites) / cacheCeiling : Math.max(bwU, rU)
     const worstName = e.id === 'mem' ? 'ops on one core' : bwU >= rU ? 'the write stream' : 'read pressure'
-    return { id: e.id, label: e.label, short: e.short, bw, bwU, rU, worst, worstName, dq: engDq[e.id], e }
+    return { id: e.id, label: e.label, short: e.short, bw, bwU, rU, colCache, worst, worstName, dq: engDq[e.id], e }
   })
   const alive = eCols.filter((c) => !c.dq)
   const engineWin = alive.reduce((best, c) => (c.worst < best.worst ? c : best), alive[0]).id
@@ -390,19 +403,23 @@ export default function Calculator() {
     dq: c.dq,
     cells: [
       c.e.perWrite,
-      c.id === 'mem' ? '—' : `${fmt.bytes(c.bw)}/s · ${pc(c.bwU)} of ${v.seqWrite} GiB/s`,
-      c.id === 'mem' ? `${pc(c.worst)} of one core` : pc(c.rU),
+      c.id === 'mem' ? '—' : `${fmt.bytes(c.bw)}/s · ${pc(c.bwU)} of ${v.seqWrite} GiB/s${logNeed ? ' — sustained, behind the log' : ''}`,
+      c.id === 'mem' ? `${pc(c.worst)} of one core` : `${pc(c.rU)}${c.colCache ? ' — misses only, behind its cache' : ''}`,
       c.id === 'mem' ? `${fmt.int(ramHosts)} host${ramHosts === 1 ? '' : 's'} × ${v.ram} GB` : '—',
       c.e.giveUp,
     ] as ReactNode[],
   }))
   const outSentences = eCols.filter((c) => c.dq).map((c) => `${c.short} is out — ${c.dq}`)
+  const mitigations = [
+    eCols.some((c) => !c.dq && c.colCache) ? `the cache absorbs ${v.cacheHit}% of its reads` : '',
+    logNeed ? `the log absorbs the ×${fmt.n1(v.peak)} peak` : '',
+  ].filter(Boolean)
   let cmp: string
   if (alive.length === 1) {
     cmp = `Only ${alive[0].short} satisfies the requirements; the comparison is moot until a requirement changes.`
   } else {
     const list = alive.map((c) => `${c.short} ${pc(c.worst)} (${c.worstName})`).join(' · ')
-    cmp = `Worst ceiling per surviving column: ${list}. The lowest wins; ties go to the simpler machine.`
+    cmp = `Each engine is judged on what reaches it${mitigations.length ? ` — ${mitigations.join(', ')}` : ''}. Worst remaining ceiling: ${list}. The lowest wins; ties go to the simpler machine.`
     if (engineWin === 'lsm') cmp += ' Appending in sorted batches is what holds the LSM lower — it repays the difference later as background compaction, off the commit path.'
     if (!bt.dq && !ls.dq && bt.worst > 1 && ls.worst > 1) cmp += ' Both disk engines are over one node either way, so this data gets partitioned regardless — the lower worst just means fewer shards.'
   }
@@ -423,7 +440,6 @@ export default function Calculator() {
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
   const cacheNodes = Math.max(1, Math.ceil(readSide / cacheCeiling))
   const readUtil = v.readAmp === 0 ? 0 : (readSide * v.readAmp) / diskReadCeiling
-  const writeUtil = peakWrites / writeCeiling
   const scanSeconds = storageTotal / seqReadBps
 
   // ---------- the chain: each forced addition transforms the load downstream ----------
@@ -433,9 +449,6 @@ export default function Calculator() {
   const cacheNeed = readUtil > 0.3
   const missReads = cacheNeed ? readSide * (1 - v.cacheHit / 100) : readSide
   const readUtilAfter = v.readAmp === 0 ? 0 : (missReads * v.readAmp) / diskReadCeiling
-  const logNeed = writeUtil > 0.5 && v.peak >= 2
-  /** behind a log the database consumes at the daily average, not the worst minute */
-  const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
   const writeUtilAfter = dbWrites / writeCeiling
   const shardNeed = writeUtilAfter > 1
   const shards = Math.max(1, Math.ceil(writeUtilAfter))
@@ -782,8 +795,8 @@ export default function Calculator() {
             />
             <Decision
               title="Where writes land"
-              info="Requirements filter first: cross-key atomicity disqualifies engines that cannot span partitions, and must-survive data disqualifies optional durability — no throughput number overrules that. Among survivors, each engine's columns are computed from the workload, and the lowest worst-case utilization wins."
-              rowLabels={['Disk per logical write', 'Write stream at peak', 'Read pressure, one node', 'Whole dataset in RAM', 'You give up']}
+              info="Requirements filter first: cross-key atomicity disqualifies engines that cannot span partitions, and must-survive data disqualifies optional durability — no throughput number overrules that. Among survivors, each engine is judged on the load that would reach it in the system built around it: if its read pressure forces a cache, its reads become the misses; if the peak forces a log, its writes become the sustained rate. Lowest worst-case utilization wins."
+              rowLabels={['Disk per logical write', 'Write stream reaching disk', 'Read pressure, one node', 'Whole dataset in RAM', 'You give up']}
               cols={engCols}
               winner={engineWin}
               pinned={pinE}
