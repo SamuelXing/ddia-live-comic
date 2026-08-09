@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fmt } from '../format'
+import { LAD, LadderSlider } from '../ladder'
 
 /* ============================================================
    Hardware envelope widget: pick a primary's shape + workload,
@@ -36,13 +37,21 @@ const READ_MS = 0.12 // core-ms per cached indexed read
 const WRITE_MS = 0.4 // core-ms per write incl. index maintenance
 const WAL_KB = 6 // WAL bytes per write, FPW amortized
 const RAM_USABLE = 0.85 // shared_buffers + OS cache share of RAM
+/* Commit durability, the ceiling cores cannot buy past. A commit is not
+   committed until fsync returns (300 µs, napkin-math); group commit lets a
+   batch of concurrent transactions share one fsync. Same derivation as the
+   capacity calculator: 8 ÷ 300 µs ≈ 27k commits/s. Without this row the
+   envelope implied a 96-core box could sustain 80k TPS on CPU alone — it
+   cannot, and no amount of CPU changes that. */
+const FSYNC_US = 300
+const GROUP_COMMIT = 8
 
 export default function HardwareEnvelope() {
   const [shapeIdx, setShapeIdx] = useState(2)
-  const [reads, setReads] = useState(40000)
-  const [writes, setWrites] = useState(8000)
+  const [reads, setReads] = useState(50000)
+  const [writes, setWrites] = useState(10000)
   const [workset, setWorkset] = useState(200) // GB
-  const [dataGB, setDataGB] = useState(1200)
+  const [dataGB, setDataGB] = useState(1000)
   const [replicas, setReplicas] = useState(2)
 
   const sh = SHAPES[shapeIdx]
@@ -57,9 +66,11 @@ export default function HardwareEnvelope() {
   const netOut = walMBs * replicas + (reads * 2) / 1024
   const capTB = (dataGB * 1.3) / 1000
   const ckptGB = (walMBs * 300) / 1024 // WAL per 5-min checkpoint cycle
+  const commitCeiling = GROUP_COMMIT / (FSYNC_US / 1e6)
 
   const rows = [
     { label: 'CPU', used: cpuCores, cap: sh.cores, unit: 'cores', why: `R·${READ_MS} ms + W·${WRITE_MS} ms — parse, plan, execute, index maintenance` },
+    { label: 'Commit durability', used: writes, cap: commitCeiling, unit: '/s', why: `${GROUP_COMMIT} commits per fsync ÷ ${FSYNC_US} µs — the wall cores cannot buy past, because a commit waits on the disk, not the CPU` },
     { label: 'RAM vs working set', used: workset, cap: usableRAM, unit: 'GB', why: `working set vs ~${Math.round(RAM_USABLE * 100)}% of RAM (shared_buffers + OS cache). Past 100% every miss is a random disk read` },
     { label: 'Disk write', used: diskWrMBs, cap: sh.diskMBs, unit: 'MB/s', why: 'WAL now + checkpoint flush later ≈ 2.2× WAL bytes' },
     { label: 'Disk read (spill)', used: diskReadMBs, cap: sh.diskMBs, unit: 'MB/s', why: cached >= 1 ? 'zero — the working set fits in RAM' : `${fmt.compact(reads * (1 - cached))} misses/s × 8 KB random reads` },
@@ -112,18 +123,18 @@ export default function HardwareEnvelope() {
             </div>
           </div>
           {[
-            { label: 'Read QPS', val: reads, set: setReads, min: 1000, max: 300000, step: 1000, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Simple indexed OLTP reads hitting the primary.' },
-            { label: 'Write TPS', val: writes, set: setWrites, min: 100, max: 80000, step: 100, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'INSERT/UPDATE/DELETE — each is WAL + heap + index work.' },
-            { label: 'Working set', val: workset, set: setWorkset, min: 10, max: 4000, step: 10, fmtV: (v: number) => v + ' GB', hint: 'The hot data queries actually touch. THE number to know.' },
-            { label: 'Total data', val: dataGB, set: setDataGB, min: 50, max: 30000, step: 50, fmtV: (v: number) => (v >= 1000 ? fmt.n1(v / 1000) + ' TB' : v + ' GB'), hint: 'Everything on disk, hot or cold → capacity.' },
-            { label: 'Streaming replicas', val: replicas, set: setReplicas, min: 0, max: 8, step: 1, fmtV: (v: number) => String(v), hint: 'Each replica receives the full WAL stream.' },
+            { label: 'Read QPS', val: reads, set: setReads, steps: LAD.rate, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Simple indexed OLTP reads hitting the primary.' },
+            { label: 'Write TPS', val: writes, set: setWrites, steps: LAD.rate, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'INSERT/UPDATE/DELETE — each is WAL + heap + index work.' },
+            { label: 'Working set', val: workset, set: setWorkset, steps: LAD.gb, fmtV: (v: number) => v + ' GB', hint: 'The hot data queries actually touch. THE number to know.' },
+            { label: 'Total data', val: dataGB, set: setDataGB, steps: LAD.gb, fmtV: (v: number) => (v >= 1000 ? fmt.n1(v / 1000) + ' TB' : v + ' GB'), hint: 'Everything on disk, hot or cold → capacity.' },
+            { label: 'Streaming replicas', val: replicas, set: setReplicas, steps: LAD.few, fmtV: (v: number) => String(v), hint: 'Each replica receives the full WAL stream.' },
           ].map((c) => (
             <div className="ctl" key={c.label}>
               <div className="ctl-top">
                 <span className="ctl-label">{c.label}</span>
                 <span className="ctl-val">{c.fmtV(c.val)}</span>
               </div>
-              <input type="range" min={c.min} max={c.max} step={c.step} value={c.val} onChange={(e) => c.set(parseFloat(e.target.value))} />
+              <LadderSlider steps={c.steps} value={c.val} onChange={c.set} ariaLabel={c.label} />
               <div className="ctl-hint">{c.hint}</div>
             </div>
           ))}
@@ -133,7 +144,7 @@ export default function HardwareEnvelope() {
           {rows.map((r) => {
             const pct = (r.used / r.cap) * 100
             const st = pct >= 100 ? 'crit' : pct >= 75 ? 'warn' : 'good'
-            const f = (n: number) => (r.unit === 'TB' || r.unit === 'cores' ? fmt.n1(n) : fmt.int(n))
+            const f = (n: number) => (r.unit === 'TB' || r.unit === 'cores' ? fmt.n1(n) : fmt.sig(n))
             return (
               <div className="meter" key={r.label}>
                 <div className="meter-top">

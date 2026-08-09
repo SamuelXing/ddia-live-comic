@@ -1,5 +1,6 @@
 import type { ModuleDef, Values, ComputeResult } from '../types'
 import { fmt } from '../format'
+import { LAD } from '../ladder'
 
 function compute(v: Values): ComputeResult {
   const GET_CEIL = 5500
@@ -60,7 +61,7 @@ function compute(v: Values): ComputeResult {
 
   return {
     tiles: [
-      { k: 'Aggregate bandwidth', v: fmt.n1(bw), u: 'MB/s' },
+      { k: 'Aggregate bandwidth', v: bw >= 1000 ? fmt.sig(bw / 1000) : fmt.sig(bw), u: bw >= 1000 ? 'GB/s' : 'MB/s' },
       { k: 'Prefixes needed', v: fmt.int(prefixesNeeded), u: 'to avoid throttling' },
       { k: 'Est. monthly cost', v: fmt.usd(monthly), u: 'storage + requests*' },
       { k: 'Stored', v: v.store + ' TB', u: '(effectively unlimited)' },
@@ -82,11 +83,11 @@ export const s3Module: ModuleDef = {
   <p>The limit that surprises people is <b>request rate per prefix</b>. S3 scales throughput per <em>key prefix</em>: you get about <b>3,500 write (PUT/POST/DELETE) and 5,500 read (GET/HEAD) requests per second, per prefix</b>. One prefix under sustained higher load throttles with <code>503 SlowDown</code>. The fix is to <b>spread keys across many prefixes</b> (e.g. a hashed path component) so S3 partitions the load — each prefix independently gives you another 3,500/5,500.</p>
   <p>The other two boundaries: <b>latency</b> — first-byte is tens to ~100+ ms, so S3 is wrong as a low-latency key-value store; put a CDN (CloudFront) or cache in front for hot objects. And <b>large-object throughput</b> — use <b>multipart upload</b> to parallelize big objects across many connections and to make uploads resumable. Reads are now <b>strongly consistent</b> (read-after-write), removing an old footgun.</p>`,
     inputs: [
-      { id: 'req', label: 'Request rate', min: 100, max: 5000000, step: 100, val: 120000, hint: 'Total object operations per second.', fmt: (v) => fmt.compact(v) + '/s' },
-      { id: 'prefixes', label: 'Key prefixes', min: 1, max: 10000, step: 1, val: 16, hint: 'Distinct prefixes S3 can partition load across. More = more capacity.', fmt: (v) => fmt.int(v) },
-      { id: 'getPct', label: 'Read (GET) share', min: 0, max: 100, step: 1, val: 80, hint: 'Reads vs writes — different per-prefix ceilings (5,500 vs 3,500).', fmt: (v) => v + '% GET' },
-      { id: 'obj', label: 'Avg object size', min: 1, max: 1048576, step: 1, val: 256, hint: 'Drives bandwidth and whether you need multipart.', fmt: (v) => fmt.bytes(v * 1024) },
-      { id: 'store', label: 'Total stored', min: 1, max: 100000, step: 1, val: 400, hint: 'Storage is effectively unlimited — this just drives cost.', fmt: (v) => v + ' TB' },
+      { id: 'req', label: 'Request rate', steps: LAD.rate, val: 1e5, hint: 'Total object operations per second.', fmt: (v) => fmt.compact(v) + '/s' },
+      { id: 'prefixes', label: 'Key prefixes', steps: LAD.many, val: 20, hint: 'Distinct prefixes S3 can partition load across. More = more capacity.', fmt: (v) => fmt.int(v) },
+      { id: 'getPct', label: 'Read (GET) share', steps: LAD.pct, val: 80, hint: 'Reads vs writes — different per-prefix ceilings (5,500 vs 3,500).', fmt: (v) => v + '% GET' },
+      { id: 'obj', label: 'Avg object size', steps: [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000, 100000, 1000000], val: 200, hint: 'Drives bandwidth and whether you need multipart.', fmt: (v) => fmt.bytes(v * 1024) },
+      { id: 'store', label: 'Total stored', steps: LAD.gb, val: 500, hint: 'Storage is effectively unlimited — this just drives cost.', fmt: (v) => v + ' TB' },
     ],
     compute,
     limits: [

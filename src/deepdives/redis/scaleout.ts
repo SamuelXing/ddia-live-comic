@@ -1,5 +1,6 @@
 import type { ComputeResult, InputDef, Values } from '../types'
 import { fmt } from '../format'
+import { LAD } from '../ladder'
 
 /* The scale-out sandbox: shard math plus the catch sharding can't
    fix. CRC16 spreads KEYS evenly; it does nothing about POPULARITY.
@@ -8,12 +9,12 @@ import { fmt } from '../format'
 const KEY_OVERHEAD = 75 // bytes of metadata per key
 
 export const scaleOutInputs: InputDef[] = [
-  { id: 'ops', label: 'Operations / sec', min: 10000, max: 5000000, step: 10000, val: 600000, hint: 'Total command volume across the keyspace.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'ceil', label: 'Single-shard op ceiling', min: 20000, max: 500000, step: 10000, val: 120000, hint: "One instance's one-core throughput — command mix sets it.", fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'keys', label: 'Keys', min: 1000000, max: 2000000000, step: 1000000, val: 200000000, hint: 'Total keys. Each carries ~75 B of metadata on top of its value.', fmt: (v) => fmt.compact(v) },
-  { id: 'val', label: 'Avg value size', min: 16, max: 8192, step: 16, val: 512, hint: 'Value bytes → memory per shard.', fmt: (v) => fmt.bytes(v) },
-  { id: 'mem', label: 'maxmemory per shard', min: 1, max: 256, step: 1, val: 32, hint: 'RAM budget per primary before eviction or OOM errors.', fmt: (v) => v + ' GB' },
-  { id: 'hot', label: 'Hottest-key share', min: 0, max: 80, step: 1, val: 10, hint: 'Share of ALL ops hitting one viral key. The slider sharding can’t touch.', fmt: (v) => v + '%' },
+  { id: 'ops', label: 'Operations / sec', steps: LAD.rate, val: 5e5, hint: 'Total command volume across the keyspace.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'ceil', label: 'Single-shard op ceiling', steps: LAD.rateSm, val: 1e5, hint: 'One instance\u2019s one-core throughput. 100k/s is 1 \u00f7 10 \u00b5s per command \u2014 the same derivation the capacity calculator uses, and in range of redis-benchmark (72k\u2013180k unpipelined).', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'keys', label: 'Keys', steps: LAD.count, val: 2e8, hint: 'Total keys. Each carries ~75 B of metadata on top of its value.', fmt: (v) => fmt.compact(v) },
+  { id: 'val', label: 'Avg value size', steps: LAD.bytes, val: 512, hint: 'Value bytes → memory per shard.', fmt: (v) => fmt.bytes(v) },
+  { id: 'mem', label: 'maxmemory per shard', steps: LAD.ram, val: 32, hint: 'RAM budget per primary before eviction or OOM errors.', fmt: (v) => v + ' GB' },
+  { id: 'hot', label: 'Hottest-key share', steps: LAD.pct, val: 10, hint: 'Share of ALL ops hitting one viral key. The slider sharding can’t touch.', fmt: (v) => v + '%' },
 ]
 
 export function computeScaleOut(v: Values): ComputeResult {

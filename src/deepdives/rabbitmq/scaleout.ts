@@ -1,5 +1,6 @@
 import type { ComputeResult, InputDef, Values } from '../types'
 import { fmt } from '../format'
+import { LAD } from '../ladder'
 
 /* The scale-out sandbox: the two ceilings that matter — the queue's
    one-core limit (sharding fixes it) and the consumer fleet's
@@ -7,12 +8,12 @@ import { fmt } from '../format'
    that grows whenever either is exceeded. */
 
 export const scaleOutInputs: InputDef[] = [
-  { id: 'rate', label: 'Publish rate', min: 1000, max: 2000000, step: 1000, val: 120000, hint: 'Peak messages published per second across the workload.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'queues', label: 'Queues (sharded)', min: 1, max: 512, step: 1, val: 8, hint: 'The scaling unit. Each queue is one process on one core.', fmt: (v) => fmt.int(v) },
-  { id: 'ceil', label: 'Per-queue ceiling', min: 1000, max: 80000, step: 1000, val: 35000, hint: 'One queue’s throughput — high transient, much lower for quorum.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'cons', label: 'Consumers (total)', min: 1, max: 2000, step: 1, val: 48, hint: 'The processing fleet, spread across queues.', fmt: (v) => fmt.int(v) },
-  { id: 'proc', label: 'Handler time / msg', min: 1, max: 500, step: 1, val: 5, hint: 'What one consumer spends per message — usually the real limit.', fmt: (v) => v + ' ms' },
-  { id: 'backlog', label: 'Current backlog', min: 0, max: 20000000, step: 10000, val: 0, hint: 'Messages already sitting in queues, waiting.', fmt: (v) => fmt.compact(v) },
+  { id: 'rate', label: 'Publish rate', steps: LAD.rate, val: 1e5, hint: 'Peak messages published per second across the workload.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'queues', label: 'Queues (sharded)', steps: LAD.many, val: 10, hint: 'The scaling unit. Each queue is one process on one core.', fmt: (v) => fmt.int(v) },
+  { id: 'ceil', label: 'Per-queue ceiling', steps: LAD.rateSm, val: 5e4, hint: 'One queue’s throughput — high transient, much lower for quorum.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'cons', label: 'Consumers (total)', steps: LAD.many, val: 50, hint: 'The processing fleet, spread across queues.', fmt: (v) => fmt.int(v) },
+  { id: 'proc', label: 'Handler time / msg', steps: LAD.ms, val: 5, hint: 'What one consumer spends per message — usually the real limit.', fmt: (v) => v + ' ms' },
+  { id: 'backlog', label: 'Current backlog', steps: LAD.deep, val: 0, hint: 'Messages already sitting in queues, waiting.', fmt: (v) => fmt.compact(v) },
 ]
 
 const MEM_ALARM_MSGS = 8_000_000 // rough "watermark at typical sizes" line

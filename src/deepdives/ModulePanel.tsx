@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { InputDef, ModuleContent, ModuleDef, Values } from './types'
 import { clampPct, statusFromPct } from './format'
+import { LadderSlider } from './ladder'
 
 function SliderCtl({
   input,
@@ -17,14 +18,7 @@ function SliderCtl({
         <span className="ctl-label">{input.label}</span>
         <span className="ctl-val">{input.fmt(value)}</span>
       </div>
-      <input
-        type="range"
-        min={input.min}
-        max={input.max}
-        step={input.step}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-      />
+      <LadderSlider steps={input.steps} value={value} onChange={onChange} ariaLabel={input.label} />
       <div className="ctl-hint">{input.hint}</div>
     </div>
   )
