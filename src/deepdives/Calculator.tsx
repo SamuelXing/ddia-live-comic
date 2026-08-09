@@ -39,6 +39,9 @@ const L = {
   gbps: [1, 2, 5, 10, 25, 40, 100],
   slots: [4, 8, 16, 32, 64, 128, 256, 512, 1024],
   amp: [1, 2, 3, 5, 10, 20],
+  fan: [1, 2, 5, 10, 50, 100, 500, 1000],
+  onl: [1, 2, 5, 10, 20, 30, 50],
+  conns: [1e4, 2e4, 5e4, 1e5, 2e5, 5e5, 1e6],
 }
 
 const WORKLOAD: Inp[] = [
@@ -46,6 +49,8 @@ const WORKLOAD: Inp[] = [
   { id: 'actions', label: 'Actions / user / day', steps: L.small, val: 20, fmt: (v) => fmt.int(v) + '/day', hint: 'Requests one active user makes in a day.', info: 'How many requests one active user generates per day. A read-heavy feed might be 50; a banking app might be 3. This times users is your daily volume.' },
   { id: 'peak', label: 'Peak factor', steps: L.mult, val: 3, fmt: (v) => '×' + fmt.n1(v), hint: 'Busiest moment vs the daily average.', info: 'Traffic is never flat. The busiest minute usually runs a few times the daily average — more for consumer apps with an evening peak, less for global systems whose load spreads across time zones. You must size for the peak, not the average.' },
   { id: 'readPct', label: 'Read share', steps: L.pct, val: 85, fmt: (v) => v + '% reads', hint: 'Reads cache and replicate. Writes are the wall.', info: 'The split matters more than the total, because reads and writes scale differently: reads spread across caches and replicas, while writes all funnel to one place until you shard. A system that is 99% reads is a very different machine from one that is 50% writes.' },
+  { id: 'fanout', label: 'Deliveries per write', steps: L.fan, val: 1, fmt: (v) => '×' + fmt.int(v), hint: 'One message to a 50-person group is 50 deliveries.', info: "How many people a single write must reach. For 1:1 messaging it is 1; for a group chat it is the group size; for a social feed it is the follower count. This is the multiplier that decides whether you fan out on write or on read — and it is usually the number that breaks a design, because the write side is cheap while the delivery side is not." },
+  { id: 'online', label: 'Peak concurrently online', steps: L.onl, val: 10, fmt: (v) => v + '% of DAU', hint: 'Share of daily users connected at the same moment.', info: "Systems that hold a live connection per user — chat, presence, collaborative editing, anything over WebSocket — are sized by how many connections they hold, not by requests per second. A mostly idle connection still costs memory, a file descriptor and a heartbeat. Set this to 0 for a plain request/response service." },
   { id: 'payload', label: 'Avg object / response size', steps: L.kb, val: 50, fmt: (v) => fmt.bytes(v * 1024), hint: 'Drives bandwidth and storage.', info: 'The average size of one object or response. It multiplies into three different ceilings — storage, disk bandwidth and network egress — so it is often the number with the most leverage on cost.' },
   { id: 'lat', label: 'Avg request latency', steps: L.ms, val: 100, fmt: (v) => v + ' ms', hint: 'Service time per request, for Little’s Law.', info: "How long the server spends on one request. With Little's Law it decides how many instances you need: halve the latency and you halve the fleet, which is why profiling often beats autoscaling." },
   { id: 'retention', label: 'Data retention', steps: L.mo, val: 12, fmt: (v) => v + ' mo', hint: 'How long writes are kept.', info: 'How long you keep writes before deleting or archiving them. Storage is retention times daily volume, so a policy decision — not a technical one — usually sets your disk bill.' },
@@ -60,6 +65,7 @@ const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
   { id: 'ioDepth', label: 'Concurrent disk reads', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'NVMe serves many reads at once; this multiplies read throughput.', info: "A spinning disk served one read at a time; NVMe keeps many in flight, so throughput is queue depth divided by latency rather than one over latency. Real drives sustain far deeper queues — x8 is a deliberately conservative stand-in for one database's effective read parallelism." },
   { id: 'cacheOp', label: 'Cache op, CPU cost', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' µs', hint: 'Two syscalls cost ~0.6 µs; parsing and the network stack are the rest.', info: 'What one cache command costs the server end to end. The floor is two syscalls (~0.6 us) plus a hash and a memory lookup; parsing, the event loop and the network stack are what actually dominate. Because a cache shard executes commands one at a time on one core, this number IS its throughput.' },
   { id: 'nic', label: 'Origin NIC', steps: L.gbps, val: 10, src: 'assume', fmt: (v) => v + ' Gbps', hint: 'Per-host egress capacity before you need more hosts or a CDN.', info: 'How many bits one host can push. For media-heavy systems bandwidth is usually the first ceiling you hit — you run out of network long before CPU or disk. Once peak egress exceeds this you either add hosts purely for bandwidth, or move the bytes to a CDN.' },
+  { id: 'connsPerHost', label: 'Connections per host', steps: L.conns, val: 1e5, src: 'assume', fmt: (v) => fmt.compact(v), hint: 'Live connections one server can hold.', info: "Bounded by memory per connection, file descriptors, and the CPU spent on heartbeats — not by request rate. Tuned servers hold hundreds of thousands; a default-configured one manages far fewer. This is the ceiling that sizes the edge tier of any chat or presence system." },
   { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => fmt.int(v) + ' slots', hint: 'In-flight requests one app instance handles.', info: "How many requests one instance can have in flight at once — threads, workers, or async tasks. Little's Law turns it into a machine count. Raising it does not create capacity when the work is CPU-bound; it just lets more requests queue." },
   { id: 'writeAmp', label: 'Write amplification', steps: L.amp, val: 3, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Bytes actually written per logical write: WAL + page + indexes.', info: 'One logical row write touches the disk more than once: the write-ahead log, the page itself, and every index that must be updated. x3 is modest — a table with several indexes is worse. This sets how much disk bandwidth you burn, not how many commits per second you can do.' },
 ]
@@ -104,10 +110,16 @@ export default function Calculator() {
   const peakReads = (peakQps * v.readPct) / 100
   const peakWrites = peakQps - peakReads
   const writesPerDay = actionsPerDay * (1 - v.readPct / 100)
+  /** a write must reach fanout recipients — the delivery side, not the write side */
+  const deliveries = peakWrites * v.fanout
+  /** everything the read path serves: direct reads plus fan-out deliveries */
+  const readSide = peakReads + deliveries
+  const connections = (v.dau * v.online) / 100
+  const connHosts = Math.ceil(connections / v.connsPerHost)
   const bytesPerObj = v.payload * 1024
   const storagePerDay = writesPerDay * bytesPerObj
   const storageTotal = storagePerDay * 30 * v.retention
-  const egressGbps = (peakReads * bytesPerObj * 8) / 1e9
+  const egressGbps = (readSide * bytesPerObj * 8) / 1e9
 
   // ---------- ceilings, derived from the constants ----------
   /** one fsync makes a group of commits durable */
@@ -119,18 +131,20 @@ export default function Calculator() {
   const diskWriteBytes = peakWrites * bytesPerObj * v.writeAmp
   const webInstances = Math.max(1, Math.ceil((peakQps * (v.lat / 1000)) / v.slots))
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
-  const cacheNodes = Math.max(1, Math.ceil(peakReads / cacheCeiling))
-  const readUtil = peakReads / diskReadCeiling
+  const cacheNodes = Math.max(1, Math.ceil(readSide / cacheCeiling))
+  const readUtil = readSide / diskReadCeiling
   const writeUtil = peakWrites / writeCeiling
 
   const derived: { k: string; v: string; how: string }[] = [
     { k: 'Requests', v: `${fmt.compact(avgQps)}/s avg · ${fmt.compact(peakQps)}/s peak`, how: `${fmt.compact(v.dau)} × ${v.actions} ÷ 86,400 × ${fmt.n1(v.peak)}` },
     { k: 'Split at peak', v: `${fmt.compact(peakReads)}/s reads · ${fmt.compact(peakWrites)}/s writes`, how: `peak × ${v.readPct}% / ${100 - v.readPct}%` },
+    { k: 'Delivery side', v: `${fmt.compact(readSide)}/s`, how: `${fmt.compact(peakReads)} reads + ${fmt.compact(peakWrites)} writes × ${v.fanout} fan-out` },
+    { k: 'Live connections', v: v.online > 0 ? `${fmt.compact(connections)} · ~${fmt.int(connHosts)} host${connHosts === 1 ? '' : 's'}` : 'none', how: v.online > 0 ? `${fmt.compact(v.dau)} × ${v.online}% ÷ ${fmt.compact(v.connsPerHost)} per host` : 'request/response only' },
     { k: 'New data', v: `${fmt.bytes(storagePerDay)}/day`, how: `${fmt.compact(writesPerDay)} writes/day × ${fmt.bytes(bytesPerObj)}` },
     { k: 'Stored at retention', v: fmt.bytes(storageTotal), how: `${fmt.bytes(storagePerDay)}/day × 30 × ${v.retention} mo, before replication` },
     { k: 'Disk write rate', v: `${fmt.bytes(diskWriteBytes)}/s`, how: `${fmt.compact(peakWrites)} writes/s × ${fmt.bytes(bytesPerObj)} × ${v.writeAmp} amplification` },
-    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(peakReads)} reads/s × ${fmt.bytes(bytesPerObj)} × 8 bits` },
-    { k: 'App instances', v: `~${fmt.int(webInstances)}`, how: `Little’s Law: ${fmt.compact(peakQps)}/s × ${v.lat} ms ÷ ${v.slots} slots` },
+    { k: 'Peak egress', v: `${fmt.n1(egressGbps)} Gbps`, how: `${fmt.compact(readSide)}/s delivery side × ${fmt.bytes(bytesPerObj)} × 8 bits` },
+    { k: 'Request workers', v: `~${fmt.int(webInstances)}`, how: `Little’s Law: ${fmt.compact(peakQps)}/s × ${v.lat} ms ÷ ${v.slots} slots${v.online > 0 ? ' — separate from the connection tier above' : ''}` },
   ]
 
   const ceilings: { k: string; v: string; how: string }[] = [
@@ -138,10 +152,33 @@ export default function Calculator() {
     { k: 'Random reads, one node', v: `${fmt.compact(diskReadCeiling)}/s`, how: `${v.ioDepth} concurrent ÷ ${v.randRead} µs` },
     { k: 'Cache ops, one core', v: `${fmt.compact(cacheCeiling)}/s`, how: `1 ÷ ${v.cacheOp} µs per op` },
     { k: 'Egress, one host', v: `${v.nic} Gbps`, how: 'NIC capacity' },
+    { k: 'Connections, one host', v: fmt.compact(v.connsPerHost), how: 'memory + file descriptors + heartbeat CPU' },
   ]
 
   interface Rec { need: boolean; what: string; number: string; because: string; to: { label: string; href: string }[] }
   const recs: Rec[] = [
+    {
+      need: connHosts > 1,
+      what: 'A separate connection tier',
+      number: `${fmt.compact(connections)} live connections ÷ ${fmt.compact(v.connsPerHost)} per host = ${connHosts} hosts, before any request work`,
+      because:
+        'connections are held, not served — a mostly idle socket still costs memory, a file descriptor and a heartbeat. This tier is sized by concurrency, not by request rate, so it scales separately from everything else and is usually stateless in front of a message bus',
+      to: [
+        { label: 'Web / app tier', href: '/components/web' },
+        { label: 'Idea: the trouble with distributed systems', href: '/read/distributed-troubles' },
+      ],
+    },
+    {
+      need: v.fanout > 1 && deliveries > writeCeiling,
+      what: 'Fan-out on read, or a fan-out worker pool',
+      number: `${fmt.compact(peakWrites)} writes/s × ${v.fanout} = ${fmt.compact(deliveries)} deliveries/s`,
+      because:
+        'writing once is cheap; delivering it to every recipient is what costs. Past a certain fan-out you stop pushing copies at write time and let readers pull instead — or you accept the write amplification and do it asynchronously in workers',
+      to: [
+        { label: 'Idea: leader & followers', href: '/read/replication-leader' },
+        { label: 'Kafka deep-dive', href: '/components/kafka' },
+      ],
+    },
     {
       need: originHosts > 1,
       what: 'A CDN, or more origin hosts',
@@ -152,7 +189,7 @@ export default function Calculator() {
     {
       need: readUtil > 0.3,
       what: 'A cache in front of the database',
-      number: `${fmt.compact(peakReads)} reads/s is ${fmt.n1(readUtil * 100)}% of one node’s ${fmt.compact(diskReadCeiling)}/s random-read ceiling`,
+      number: `${fmt.compact(readSide)}/s of read+delivery work is ${fmt.n1(readUtil * 100)}% of one node’s ${fmt.compact(diskReadCeiling)}/s random-read ceiling`,
       because: `a disk read costs ${v.randRead} µs; the same read from memory costs ~20 ns. Caching is not only about throughput — it is a 1000× latency difference`,
       to: [
         { label: 'Redis deep-dive', href: '/components/redis' },
@@ -162,7 +199,7 @@ export default function Calculator() {
     {
       need: cacheNodes > 1,
       what: 'More than one cache node',
-      number: `${fmt.compact(peakReads)} reads/s ÷ ${fmt.compact(cacheCeiling)}/s per core = ${cacheNodes} nodes`,
+      number: `${fmt.compact(readSide)}/s delivery side ÷ ${fmt.compact(cacheCeiling)}/s per core = ${cacheNodes} node${cacheNodes === 1 ? '' : 's'}`,
       because: 'a cache server is effectively single-threaded per shard, so past one core’s worth of operations you are partitioning, not scaling up',
       to: [
         { label: 'Redis deep-dive', href: '/components/redis' },
