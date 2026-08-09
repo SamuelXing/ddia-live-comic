@@ -21,6 +21,8 @@ interface Inp {
   val: number
   fmt: (v: number) => string
   hint: string
+  /** the longer "what does this limit actually mean" note, shown on hover/focus */
+  info?: string
 }
 
 const L = {
@@ -40,27 +42,36 @@ const L = {
 }
 
 const WORKLOAD: Inp[] = [
-  { id: 'dau', label: 'Daily active users', steps: L.count, val: 5e7, fmt: (v) => fmt.compact(v), hint: 'Or any daily population driving the system.' },
-  { id: 'actions', label: 'Actions / user / day', steps: L.small, val: 20, fmt: (v) => fmt.int(v) + '/day', hint: 'Requests one active user makes in a day.' },
-  { id: 'peak', label: 'Peak factor', steps: L.mult, val: 3, fmt: (v) => '×' + fmt.n1(v), hint: 'Busiest moment vs the daily average.' },
-  { id: 'readPct', label: 'Read share', steps: L.pct, val: 85, fmt: (v) => v + '% reads', hint: 'Reads cache and replicate. Writes are the wall.' },
-  { id: 'payload', label: 'Avg object / response size', steps: L.kb, val: 50, fmt: (v) => fmt.bytes(v * 1024), hint: 'Drives bandwidth and storage.' },
-  { id: 'lat', label: 'Avg request latency', steps: L.ms, val: 100, fmt: (v) => v + ' ms', hint: 'Service time per request, for Little’s Law.' },
-  { id: 'retention', label: 'Data retention', steps: L.mo, val: 12, fmt: (v) => v + ' mo', hint: 'How long writes are kept.' },
-  { id: 'growth', label: 'Monthly growth', steps: L.growth, val: 10, fmt: (v) => v + '%/mo', hint: 'Compounded, for the runway estimate.' },
+  { id: 'dau', label: 'Daily active users', steps: L.count, val: 5e7, fmt: (v) => fmt.compact(v), hint: 'Or any daily population driving the system.', info: 'The population driving the system on a normal day. Everything downstream scales from it, so it is worth stating the assumption out loud rather than reaching for a request rate directly.' },
+  { id: 'actions', label: 'Actions / user / day', steps: L.small, val: 20, fmt: (v) => fmt.int(v) + '/day', hint: 'Requests one active user makes in a day.', info: 'How many requests one active user generates per day. A read-heavy feed might be 50; a banking app might be 3. This times users is your daily volume.' },
+  { id: 'peak', label: 'Peak factor', steps: L.mult, val: 3, fmt: (v) => '×' + fmt.n1(v), hint: 'Busiest moment vs the daily average.', info: 'Traffic is never flat. The busiest minute usually runs a few times the daily average — more for consumer apps with an evening peak, less for global systems whose load spreads across time zones. You must size for the peak, not the average.' },
+  { id: 'readPct', label: 'Read share', steps: L.pct, val: 85, fmt: (v) => v + '% reads', hint: 'Reads cache and replicate. Writes are the wall.', info: 'The split matters more than the total, because reads and writes scale differently: reads spread across caches and replicas, while writes all funnel to one place until you shard. A system that is 99% reads is a very different machine from one that is 50% writes.' },
+  { id: 'payload', label: 'Avg object / response size', steps: L.kb, val: 50, fmt: (v) => fmt.bytes(v * 1024), hint: 'Drives bandwidth and storage.', info: 'The average size of one object or response. It multiplies into three different ceilings — storage, disk bandwidth and network egress — so it is often the number with the most leverage on cost.' },
+  { id: 'lat', label: 'Avg request latency', steps: L.ms, val: 100, fmt: (v) => v + ' ms', hint: 'Service time per request, for Little’s Law.', info: "How long the server spends on one request. With Little's Law it decides how many instances you need: halve the latency and you halve the fleet, which is why profiling often beats autoscaling." },
+  { id: 'retention', label: 'Data retention', steps: L.mo, val: 12, fmt: (v) => v + ' mo', hint: 'How long writes are kept.', info: 'How long you keep writes before deleting or archiving them. Storage is retention times daily volume, so a policy decision — not a technical one — usually sets your disk bill.' },
+  { id: 'growth', label: 'Monthly growth', steps: L.growth, val: 10, fmt: (v) => v + '%/mo', hint: 'Compounded, for the runway estimate.', info: "Compounded month over month. Its real use is not the 12-month number but the runway: how long before today's comfortable headroom becomes next quarter's incident." },
 ]
 
 /** src: 'napkin' = measured constant; 'assume' = a modelling choice you should challenge */
 const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
-  { id: 'fsync', label: 'SSD write + fsync', steps: L.us, val: 300, src: 'napkin', fmt: (v) => v + ' µs', hint: 'The cost of making one write durable. Sets the write ceiling.' },
-  { id: 'group', label: 'Transactions per fsync', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Group commit: how many commits share one fsync.' },
-  { id: 'randRead', label: 'Random SSD read (8 KiB)', steps: L.us, val: 100, src: 'napkin', fmt: (v) => v + ' µs', hint: 'What a cache miss costs when it reaches disk.' },
-  { id: 'ioDepth', label: 'Concurrent disk reads', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'NVMe serves many reads at once; this multiplies read throughput.' },
-  { id: 'cacheOp', label: 'Cache op, CPU cost', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' µs', hint: 'Two syscalls cost ~0.6 µs; parsing and the network stack are the rest.' },
-  { id: 'nic', label: 'Origin NIC', steps: L.gbps, val: 10, src: 'assume', fmt: (v) => v + ' Gbps', hint: 'Per-host egress capacity before you need more hosts or a CDN.' },
-  { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => fmt.int(v) + ' slots', hint: 'In-flight requests one app instance handles.' },
-  { id: 'writeAmp', label: 'Write amplification', steps: L.amp, val: 3, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Bytes actually written per logical write: WAL + page + indexes.' },
+  { id: 'fsync', label: 'SSD write + fsync', steps: L.us, val: 300, src: 'napkin', fmt: (v) => v + ' µs', hint: 'The cost of making one write durable. Sets the write ceiling.', info: 'A write is not durable until the drive confirms it is on stable media — that confirmation is fsync, and it costs roughly 1000x more than writing to memory. Every committed transaction pays it. That is why this one number sets the ceiling for any database that promises not to lose your data.' },
+  { id: 'group', label: 'Transactions per fsync', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Group commit: how many commits share one fsync.', info: 'Databases batch concurrent commits so a single fsync makes several transactions durable at once. Under load the batch fills and throughput multiplies; with one lonely transaction at a time you get no batching at all. This is the biggest assumption on the page: at x1 the ceiling is ~3.3k writes/s, at x8 it is ~27k.' },
+  { id: 'randRead', label: 'Random SSD read (8 KiB)', steps: L.us, val: 100, src: 'napkin', fmt: (v) => v + ' µs', hint: 'What a cache miss costs when it reaches disk.', info: 'What a cache miss costs once it reaches disk. Sequential reads stream at gigabytes per second, but a random 8 KiB read costs ~100 us — thousands of times slower than the same bytes in RAM. This gap is the entire reason caches exist.' },
+  { id: 'ioDepth', label: 'Concurrent disk reads', steps: L.pow2, val: 8, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'NVMe serves many reads at once; this multiplies read throughput.', info: "A spinning disk served one read at a time; NVMe keeps many in flight, so throughput is queue depth divided by latency rather than one over latency. Real drives sustain far deeper queues — x8 is a deliberately conservative stand-in for one database's effective read parallelism." },
+  { id: 'cacheOp', label: 'Cache op, CPU cost', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' µs', hint: 'Two syscalls cost ~0.6 µs; parsing and the network stack are the rest.', info: 'What one cache command costs the server end to end. The floor is two syscalls (~0.6 us) plus a hash and a memory lookup; parsing, the event loop and the network stack are what actually dominate. Because a cache shard executes commands one at a time on one core, this number IS its throughput.' },
+  { id: 'nic', label: 'Origin NIC', steps: L.gbps, val: 10, src: 'assume', fmt: (v) => v + ' Gbps', hint: 'Per-host egress capacity before you need more hosts or a CDN.', info: 'How many bits one host can push. For media-heavy systems bandwidth is usually the first ceiling you hit — you run out of network long before CPU or disk. Once peak egress exceeds this you either add hosts purely for bandwidth, or move the bytes to a CDN.' },
+  { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => fmt.int(v) + ' slots', hint: 'In-flight requests one app instance handles.', info: "How many requests one instance can have in flight at once — threads, workers, or async tasks. Little's Law turns it into a machine count. Raising it does not create capacity when the work is CPU-bound; it just lets more requests queue." },
+  { id: 'writeAmp', label: 'Write amplification', steps: L.amp, val: 3, src: 'assume', fmt: (v) => '×' + fmt.int(v), hint: 'Bytes actually written per logical write: WAL + page + indexes.', info: 'One logical row write touches the disk more than once: the write-ahead log, the page itself, and every index that must be updated. x3 is modest — a table with several indexes is worse. This sets how much disk bandwidth you burn, not how many commits per second you can do.' },
 ]
+
+function Info({ text }: { text?: string }) {
+  if (!text) return null
+  return (
+    <span className="info" tabIndex={0} role="note" aria-label={text}>
+      i<span className="info-tip">{text}</span>
+    </span>
+  )
+}
 
 function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: number) => void }) {
   let i = inp.steps.indexOf(value)
@@ -261,7 +272,10 @@ export default function Calculator() {
             {WORKLOAD.map((inp) => (
               <div className="ctl" key={inp.id}>
                 <div className="ctl-top">
-                  <span className="ctl-label">{inp.label}</span>
+                  <span className="ctl-label">
+                    {inp.label}
+                    <Info text={inp.info} />
+                  </span>
                   <span className="ctl-val">{inp.fmt(v[inp.id])}</span>
                 </div>
                 <Slider inp={inp} value={v[inp.id]} set={set(inp.id)} />
@@ -291,6 +305,7 @@ export default function Calculator() {
                         <span className={inp.src === 'napkin' ? 'src-n' : 'src-a'}>
                           {inp.src === 'napkin' ? 'measured' : 'assumed'}
                         </span>
+                        <Info text={inp.info} />
                       </span>
                       <span className="ctl-val">{inp.fmt(v[inp.id])}</span>
                     </div>

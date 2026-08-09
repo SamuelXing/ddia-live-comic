@@ -237,6 +237,27 @@
 .dd-page[class] .reset-btn:hover:not(:disabled) { background: rgba(189, 95, 61, 0.14); color: #16130f; }
 .dd-page[class] .reset-btn:disabled { opacity: .35; cursor: default; border-color: var(--line); }
 
+/* info affordance: what the limit actually means, on hover or keyboard focus */
+.dd-page[class] .info {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  width: 14px; height: 14px; margin-left: 6px; vertical-align: middle; cursor: help;
+  font-family: var(--gnf-mono); font-size: 9.5px; font-style: italic; font-weight: 700;
+  color: #29456c; border: 1.5px solid #3f6191; border-radius: 50%; user-select: none;
+}
+.dd-page[class] .info:hover, .dd-page[class] .info:focus-visible { background: #3f6191; color: #fffdf8; outline: none; }
+.dd-page[class] .info-tip {
+  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 300px; z-index: 30;
+  background: #16130f; color: #f3efe6; border: 2px solid #1a1a1a; box-shadow: 3px 3px 0 #3f6191;
+  padding: 9px 11px; font-family: var(--gnf-body); font-style: normal; font-weight: 400;
+  font-size: 12.5px; line-height: 1.5; letter-spacing: 0; text-align: left;
+  opacity: 0; visibility: hidden; transition: opacity .12s;
+}
+.dd-page[class] .info:hover .info-tip, .dd-page[class] .info:focus-visible .info-tip { opacity: 1; visibility: visible; }
+/* keep the tooltip on screen at the panel edges */
+.dd-page[class] .ctl:first-of-type .info-tip { bottom: auto; top: calc(100% + 8px); }
+@media (max-width: 760px) { .dd-page[class] .info-tip { max-width: 220px; } }
+
 /* ---- chapter number badge → ink block ---- */
 .dd-page[class] .ch-num {
   background: #16130f;
