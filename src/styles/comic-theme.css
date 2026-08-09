@@ -178,6 +178,9 @@
 }
 .dd-page[class] .rec-tag.off { color: var(--muted); border-color: var(--line); }
 .dd-page[class] .rec-n { font-family: var(--gnf-mono); font-size: 12px; color: var(--ink-2); margin-top: 7px; }
+/* what would make a not-yet component fire — the lever, not just the number */
+.dd-page[class] .rec-trig { font-size: 12.5px; color: var(--muted); line-height: 1.5; margin-top: 6px;
+  padding-left: 9px; border-left: 2px solid var(--line); }
 .dd-page[class] .rec-b { font-size: 13.5px; color: var(--ink-2); margin: 8px 0 0; line-height: 1.5; }
 .dd-page[class] .rec-l { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .dd-page[class] .rec-l a {
@@ -186,6 +189,28 @@
 }
 .dd-page[class] .rec-l a:hover { background: rgba(63, 97, 145, 0.12); color: #16130f; }
 
+/* table headers: mono + uppercase, so they read as labels rather than data */
+.dd-page[class] .tbl th {
+  font-family: var(--gnf-mono); font-size: 10px; font-weight: 500; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); border-bottom: 2px solid var(--line);
+}
+/* the "use" column: what THIS workload draws against a fixed ceiling — the
+   part of the ceilings table that actually moves when you change the load */
+.dd-page[class] .tbl td.use { font-family: var(--gnf-mono); font-size: 11.5px; color: var(--ink-2); line-height: 1.45; }
+.dd-page[class] .tbl-note { font-size: 12px; color: var(--muted); line-height: 1.5; margin: -4px 0 16px; }
+/* four columns need explicit widths, or the arithmetic column gets crushed to
+   one word per line while the draw column hogs the row */
+.dd-page[class] .tbl-ceil { table-layout: fixed; }
+.dd-page[class] .tbl-ceil td:nth-child(1),
+.dd-page[class] .tbl-ceil th:nth-child(1) { width: 26%; }
+.dd-page[class] .tbl-ceil td:nth-child(2),
+.dd-page[class] .tbl-ceil th:nth-child(2) { width: 15%; }
+.dd-page[class] .tbl-ceil td.use, .dd-page[class] .tbl-ceil th:nth-child(3) { width: 32%; }
+.dd-page[class] .tbl-ceil td.how, .dd-page[class] .tbl-ceil th:nth-child(4) { width: 27%; }
+/* long labels wrap rather than running under the next column. The base .tbl
+   sets white-space: nowrap on the label column, which overflow-wrap cannot
+   override on its own — the label ran straight under its own value. */
+.dd-page[class] .tbl-ceil td, .dd-page[class] .tbl-ceil th { overflow-wrap: anywhere; white-space: normal; }
 /* the "how" column: the arithmetic, shown next to every number */
 .dd-page[class] .tbl td.how { font-family: var(--gnf-mono); font-size: 11px; color: var(--muted); line-height: 1.45; }
 /* the hardware constants panel */
@@ -227,12 +252,17 @@
 }
 .dd-page[class] .calc-help-b .tbl td.ok { color: #2f6b46; font-family: var(--gnf-mono); font-size: 11.5px; }
 .dd-page[class] .calc-help-b .tbl td.warn { color: #97462a; font-family: var(--gnf-mono); font-size: 11.5px; }
-.dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
+/* small print closing a full-width table: two columns so it fills the panel
+   instead of stopping halfway across */
+.dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px;
+  max-width: none; columns: 2; column-gap: 44px; }
+@media (max-width: 900px) { .dd-page[class] .calc-src { columns: 1; } }
 /* reset */
 .dd-page[class] .sb-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+/* a button label that wraps reads as broken; the heading may wrap instead */
 .dd-page[class] .reset-btn {
   font-family: var(--gnf-mono); font-size: 11px; color: var(--ink-2); background: transparent;
-  border: 2px solid #1a1a1a; padding: 4px 10px; cursor: pointer;
+  border: 2px solid #1a1a1a; padding: 4px 10px; cursor: pointer; white-space: nowrap; flex: none;
 }
 .dd-page[class] .reset-btn:hover:not(:disabled) { background: rgba(189, 95, 61, 0.14); color: #16130f; }
 .dd-page[class] .reset-btn:disabled { opacity: .35; cursor: default; border-color: var(--line); }
@@ -285,9 +315,20 @@
 .dd-page[class] .dc-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
 .dd-page[class] .dc-tbl th,
 .dd-page[class] .dc-tbl td { border: 1px solid var(--line); padding: 6px 9px; text-align: left; vertical-align: top; line-height: 1.4; }
+/* The label column had been sized by its longest label with `nowrap`, taking
+   183px of a 647px table — a quarter of the comparison spent on captions.
+   It wraps now and is capped, and the six columns share what that returns. */
 .dd-page[class] .dc-tbl td.rl {
-  font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted); white-space: nowrap;
+  font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted);
+  width: 118px; white-space: normal;
 }
+/* a caption true of the whole row, stated once instead of six times */
+.dd-page[class] .rl-note {
+  display: block; margin-top: 2px; font-size: 9.5px; line-height: 1.35;
+  color: var(--line-strong, #a89e8c); text-transform: none; letter-spacing: 0;
+}
+/* below this the columns stop being legible, so scroll rather than crush */
+.dd-page[class] .dc-tbl { min-width: 520px; }
 .dd-page[class] .dc-tbl th { padding: 0; border-bottom-width: 2px; }
 .dd-page[class] .dc-tbl th button {
   display: block; width: 100%; text-align: left; padding: 7px 9px; cursor: pointer;
@@ -315,10 +356,121 @@
   margin-top: 10px; padding-left: 10px; border-left: 3px solid #3f6191;
   font-size: 13px; line-height: 1.5; color: var(--ink-2);
 }
+/* the set of stores a design ends up with — the polyglot answer, stated */
+.dd-page[class] .stores-out { border: 2px solid #1a1a1a; background: var(--card); margin: 0 0 10px; }
+.dd-page[class] .store-row { display: flex; gap: 12px; align-items: baseline; padding: 9px 13px; border-bottom: 1px solid var(--line); }
+.dd-page[class] .store-row:last-child { border-bottom: 0; }
+.dd-page[class] .store-row b { font-family: var(--gnf-display); font-size: 14px; color: var(--ink); min-width: 33%; }
+.dd-page[class] .store-row span { font-size: 12.5px; color: var(--ink-2); line-height: 1.5; }
+@media (max-width: 760px) { .dd-page[class] .store-row { display: block; } }
+/* a decision the requirements made trivial — stated, not tabulated */
+.dd-page[class] .dc-quiet {
+  border: 2px dashed var(--line); background: transparent; padding: 11px 13px; margin: 0 0 14px;
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+}
+.dd-page[class] .dc-quiet b { color: var(--ink); }
+.dd-page[class] .dc-pick { margin-top: 8px; padding-left: 10px; border-left: 3px solid var(--line);
+  font-size: 12.5px; line-height: 1.5; color: var(--muted); }
 .dd-page[class] .dc-pinnote {
   margin-top: 7px; padding-left: 10px; border-left: 3px solid #bd5f3d;
   font-family: var(--gnf-mono); font-size: 11px; color: #97462a;
 }
+/* the products a column actually IS — an abstraction you can install */
+.dd-page[class] .dc-ex { font-family: var(--gnf-mono); font-size: 10.5px; color: var(--ink-2); }
+
+/* ---- a computed number, and where it came from ----
+   Denim: this page built it. `num-ref` additionally jumps to the ceiling the
+   number was divided by, which is the whole answer to "percent of what?". */
+.dd-page[class] .num {
+  font-family: var(--gnf-mono); font-size: .95em; font-weight: 700; color: #29456c;
+  border-bottom: 1px dotted #3f6191; cursor: help;
+}
+.dd-page[class] button.num-ref {
+  background: transparent; border: 0; border-bottom: 1px dashed #3f6191;
+  padding: 0; cursor: pointer; letter-spacing: 0;
+}
+.dd-page[class] button.num-ref:hover,
+.dd-page[class] button.num-ref:focus-visible { background: rgba(63, 97, 145, 0.16); outline: none; }
+/* where you land, marked long enough to find it */
+.dd-page[class] .tbl tr.flash td { background: rgba(63, 97, 145, 0.16); }
+@media (prefers-reduced-motion: no-preference) {
+  .dd-page[class] .tbl tr.flash td { transition: background .25s; }
+}
+
+/* ---- the verdict, as sections instead of one paragraph ---- */
+.dd-page[class] .vd-sec { margin: 0 0 11px; }
+.dd-page[class] .vd-sec:last-child { margin-bottom: 0; }
+.dd-page[class] .vd-h {
+  display: block; font-family: var(--gnf-mono); font-size: 9.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+.dd-page[class] .vd-h.out { color: #97462a; }
+.dd-page[class] .vd-sec p { margin: 0; font-size: 13px; line-height: 1.55; }
+.dd-page[class] .vd-list { margin: 0; padding-left: 17px; font-size: 13px; line-height: 1.55; }
+.dd-page[class] .vd-list li { margin: 3px 0; }
+/* the division behind a disqualification, on its own line so the sentence
+   above it stays a sentence */
+.dd-page[class] .vd-how { font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.dd-page[class] .vd-tbl { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 2px; }
+.dd-page[class] .vd-tbl th {
+  font-family: var(--gnf-mono); font-size: 9.5px; font-weight: 500; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--muted); text-align: left;
+  border-bottom: 1px solid var(--line); padding: 3px 8px 3px 0;
+}
+.dd-page[class] .vd-tbl td { padding: 4px 8px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.dd-page[class] .vd-tbl tr.w td { background: rgba(63, 97, 145, 0.07); }
+.dd-page[class] .vd-tbl td.how { font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted); }
+.dd-page[class] .vd-out-tag {
+  font-family: var(--gnf-mono); font-size: 9px; letter-spacing: .06em; text-transform: uppercase;
+  color: #97462a; border: 1.5px solid #bd5f3d; padding: 0 4px;
+}
+/* stated outright: surviving a filter means you could run it */
+.dd-page[class] .dc-survivors {
+  margin-top: 10px; padding: 8px 11px; border: 2px dashed var(--line);
+  font-size: 12.5px; line-height: 1.55; color: var(--ink-2);
+}
+
+/* ---- what a pinned alternative actually costs ---- */
+.dd-page[class] .pindiff {
+  border: 2px solid #bd5f3d; background: rgba(189, 95, 61, 0.05); padding: 11px 13px; margin: 0 0 14px;
+}
+.dd-page[class] .pd-h { font-size: 13px; line-height: 1.55; color: var(--ink-2); margin-bottom: 9px; }
+.dd-page[class] .pd-h b { color: var(--ink); }
+.dd-page[class] .pindiff .tbl { margin-bottom: 0; }
+.dd-page[class] .rec-tag.pinned { color: #97462a; border-color: #bd5f3d; margin-left: auto; }
+
+/* ---- what this calculator is, and is not ---- */
+.dd-page[class] .calc-scope { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin: 0 0 16px; border: 2px solid #1a1a1a; }
+.dd-page[class] .scope-col { padding: 12px 15px; background: var(--card); }
+.dd-page[class] .scope-col.in { border-right: 2px solid #1a1a1a; box-shadow: inset 4px 0 0 #3f6191; }
+.dd-page[class] .scope-col.out { box-shadow: inset 4px 0 0 #bd5f3d; }
+.dd-page[class] .scope-h {
+  display: block; font-family: var(--gnf-mono); font-size: 10px; letter-spacing: .09em;
+  text-transform: uppercase; margin-bottom: 6px;
+}
+.dd-page[class] .scope-col.in .scope-h { color: #29456c; }
+.dd-page[class] .scope-col.out .scope-h { color: #97462a; }
+.dd-page[class] .scope-col p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-2); }
+@media (max-width: 760px) {
+  .dd-page[class] .calc-scope { grid-template-columns: 1fr; }
+  .dd-page[class] .scope-col.in { border-right: 0; border-bottom: 2px solid #1a1a1a; }
+}
+
+/* the one property a reader can check for themselves: it is arithmetic.
+   Shares the scope card's two-up grid, so it carries no box of its own —
+   .calc-scope already draws the border, and the columns draw the rails. */
+
+/* ---- the sensitivity sweep ---- */
+.dd-page[class] .sens { border: 2px solid #1a1a1a; background: var(--card); margin: 0 0 10px; }
+.dd-page[class] .sens-row {
+  display: grid; grid-template-columns: 1.1fr 0.8fr 1.4fr; gap: 10px; align-items: baseline;
+  padding: 8px 12px; border-bottom: 1px solid var(--line);
+}
+.dd-page[class] .sens-row:last-child { border-bottom: 0; }
+.dd-page[class] .sens-k { font-size: 12.5px; color: var(--ink); }
+.dd-page[class] .sens-m { font-family: var(--gnf-mono); font-size: 11px; color: var(--muted); }
+.dd-page[class] .sens-v { font-size: 12.5px; color: #97462a; line-height: 1.45; }
+@media (max-width: 760px) { .dd-page[class] .sens-row { grid-template-columns: 1fr; gap: 3px; } }
 
 /* ---- chapter number badge → ink block ---- */
 .dd-page[class] .ch-num {
@@ -414,3 +566,58 @@
 
 /* ---- dd-tabs (component sub-nav) → paper ---- */
 .dd-page[class] .dd-tabs { background: var(--bg); border-bottom: 2px solid #1a1a1a; }
+
+/* ---- the calculator page ----
+   Back at the sheet's own width. Widening it was tried and reverted: the
+   comparison did get roomier columns, but the page then carried two measures
+   and every panel had to be re-balanced around the wider one, which cost more
+   in consistency than the columns were worth. What made the table readable was
+   never the width — it was moving captions out of six repeated cells and into
+   the row they describe. */
+
+/* `1fr 1fr` splits the sandbox evenly, but sliders do not benefit past ~340px
+   while the six-column comparison does. Cap the controls; the rest is the
+   table's. This is the split the page had by accident before, made explicit. */
+.dd-page[class] .calc-page .sandbox { grid-template-columns: minmax(280px, 344px) 1fr; }
+@media (max-width: 760px) {
+  .dd-page[class] .calc-page .sandbox { grid-template-columns: 1fr; }
+}
+/* source links under the verdict — checkable, not decorative */
+.dd-page[class] .dc-src { display: inline-flex; flex-wrap: wrap; gap: 7px; margin-left: 8px; }
+.dd-page[class] .dc-src a {
+  font-family: var(--gnf-mono); font-size: 10.5px; color: var(--ink-2);
+  border: 1.5px solid var(--line); padding: 0 6px; text-decoration: none; white-space: nowrap;
+}
+.dd-page[class] .dc-src a:hover { background: rgba(63, 97, 145, 0.14); color: #16130f; border-color: #1a1a1a; }
+/* the info affordance sits inline with the product names */
+.dd-page[class] .dc-ex .info { margin-left: 4px; }
+/* the first table row has no room above it, so its tooltip opens downward
+   instead of running off the top of the card */
+.dd-page[class] .dc-tbl tbody tr:first-child .info-tip { bottom: auto; top: calc(100% + 8px); }
+/* three columns of prose cannot shrink to a phone: scroll the table inside its
+   own box rather than pushing the whole page sideways */
+.dd-page[class] .tbl-anchor { min-width: 660px; table-layout: fixed; }
+/* Base .tbl sets `nowrap` on the label column, which sizes it to its longest
+   unbroken line. Here that column is a sentence, so it claimed 72% of the
+   table and squeezed the published evidence — the column that carries the
+   most text — into 17%. Fixed layout, and the widths say what they are. */
+.dd-page[class] .tbl-anchor td,
+.dd-page[class] .tbl-anchor th { white-space: normal; }
+.dd-page[class] .tbl-anchor td:nth-child(1),
+.dd-page[class] .tbl-anchor th:nth-child(1) { width: 34%; }
+.dd-page[class] .tbl-anchor td:nth-child(2),
+.dd-page[class] .tbl-anchor th:nth-child(2) { width: 51%; }
+/* a one-word verdict must never break mid-word */
+.dd-page[class] .tbl-anchor td:nth-child(3),
+.dd-page[class] .tbl-anchor th:nth-child(3) { width: 15%; white-space: nowrap; }
+/* The output tables set their own min-content floor — `nowrap` labels plus long
+   mono arithmetic — which pushed the whole grid wider than the page below
+   ~1000px. Same fix .tbl-ceil already carries: let them wrap. */
+.dd-page[class] .sb-out .tbl td,
+.dd-page[class] .sb-out .tbl th { white-space: normal; overflow-wrap: anywhere; }
+/* grid items refuse to shrink below min-content unless told to; without this
+   the output column dragged the whole page wider than the viewport */
+.dd-page[class] .calc-page .sb-out,
+.dd-page[class] .calc-page .sb-controls { min-width: 0; }
+.dd-page[class] .vd-tbl td,
+.dd-page[class] .vd-tbl th { overflow-wrap: anywhere; }
