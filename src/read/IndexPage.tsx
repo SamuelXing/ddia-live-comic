@@ -89,7 +89,6 @@ const PARTS: Part[] = [
 
 export default function IndexPage() {
   useEffect(() => {
-    window.scrollTo(0, 0)
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
     const nodes = Array.from(document.querySelectorAll('.gn [data-obs]'))
     if (reduce || !('IntersectionObserver' in window)) {

@@ -12,25 +12,29 @@ import ObservabilityPage from './sims/observability/ObservabilityPage'
 import ReadIndexPage from './read/IndexPage'
 import ReadPage from './read/ReadPage'
 import NotFound from './pages/NotFound'
+import ScrollToTop from './components/ScrollToTop'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/components" element={<ComponentsCatalog />} />
-      <Route path="/components/kafka" element={<KafkaPage />} />
-      <Route path="/components/postgres" element={<PostgresPage />} />
-      <Route path="/components/redis" element={<RedisPage />} />
-      <Route path="/components/rabbitmq" element={<RabbitMQPage />} />
-      <Route path="/calculator" element={<CalculatorPage />} />
-      {/* the calculator used to live under /components */}
-      <Route path="/components/calculator" element={<Navigate to="/calculator" replace />} />
-      <Route path="/components/:key" element={<ClassicModulePage />} />
-      <Route path="/sims/feed" element={<FeedSimPage />} />
-      <Route path="/sims/observability" element={<ObservabilityPage />} />
-      <Route path="/read" element={<ReadIndexPage />} />
-      <Route path="/read/:slug" element={<ReadPage />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/components" element={<ComponentsCatalog />} />
+        <Route path="/components/kafka" element={<KafkaPage />} />
+        <Route path="/components/postgres" element={<PostgresPage />} />
+        <Route path="/components/redis" element={<RedisPage />} />
+        <Route path="/components/rabbitmq" element={<RabbitMQPage />} />
+        <Route path="/calculator" element={<CalculatorPage />} />
+        {/* the calculator used to live under /components */}
+        <Route path="/components/calculator" element={<Navigate to="/calculator" replace />} />
+        <Route path="/components/:key" element={<ClassicModulePage />} />
+        <Route path="/sims/feed" element={<FeedSimPage />} />
+        <Route path="/sims/observability" element={<ObservabilityPage />} />
+        <Route path="/read" element={<ReadIndexPage />} />
+        <Route path="/read/:slug" element={<ReadPage />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   )
 }
