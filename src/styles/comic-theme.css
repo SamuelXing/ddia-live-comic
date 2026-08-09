@@ -457,8 +457,14 @@
 }
 
 /* the one property a reader can check for themselves: it is arithmetic.
-   Shares the scope card's two-up grid, so it carries no box of its own —
-   .calc-scope already draws the border, and the columns draw the rails. */
+   One paragraph, not a two-up — the split only existed to fill a wider
+   measure, and that measure is gone. */
+.dd-page[class] .calc-pure {
+  border: 2px solid #1a1a1a; background: var(--card); box-shadow: inset 4px 0 0 #3f6191;
+  padding: 12px 15px; margin: 0 0 16px;
+}
+.dd-page[class] .calc-pure .scope-h { color: #29456c; }
+.dd-page[class] .calc-pure p { margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--ink-2); }
 
 /* ---- the sensitivity sweep ---- */
 .dd-page[class] .sens { border: 2px solid #1a1a1a; background: var(--card); margin: 0 0 10px; }
