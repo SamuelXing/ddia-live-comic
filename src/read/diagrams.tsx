@@ -70,7 +70,8 @@ export function LagDiagram() {
       <rect x="96" y="16" width="70" height="30" rx="4" fill="#fff" stroke={INK} strokeWidth="2" />
       <text x="131" y="30" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>follower</text>
       <text x="131" y="41" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>x = 1</text>
-      <path d="M80 31 L96 31" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" />
+      {/* the gap never closes: writes keep crossing, the follower keeps trailing */}
+      <path className="gn-an-flow" d="M80 31 L96 31" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" />
       <text x="88" y="26" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>lag</text>
       {/* stale read */}
       <path d="M131 46 L131 92" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a3)" />
@@ -79,8 +80,10 @@ export function LagDiagram() {
           <path d="M0 0 L7 3.5 L0 7 z" fill={INK} />
         </marker>
       </defs>
-      <rect x="86" y="96" width="90" height="30" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
-      <text x="131" y="115" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>reads stale 1</text>
+      <g className="gn-an-breathe">
+        <rect x="86" y="96" width="90" height="30" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
+        <text x="131" y="115" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>reads stale 1</text>
+      </g>
     </svg>
   )
 }
@@ -163,18 +166,23 @@ export function TimeoutDiagram() {
       <rect x="112" y="16" width="52" height="34" rx="4" fill="#fff" stroke={INK} strokeWidth="2" />
       <text x="138" y="30" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>monitor</text>
       <text x="138" y="42" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>waits 5s</text>
-      {/* missed heartbeats */}
-      <path d="M84 28 L112 28" stroke={MUTED} strokeWidth="2" strokeDasharray="2 4" />
+      {/* the whole panel is one clock: beats stop, the timeout fires, A wakes.
+          The heartbeat line fades because the beat is what went missing. */}
+      <path className="gn-an-breathe" d="M84 28 L112 28" stroke={MUTED} strokeWidth="2" strokeDasharray="2 4" />
       <text x="98" y="11" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={TERRA}>no heartbeat</text>
-      {/* declared dead */}
-      <rect x="98" y="64" width="66" height="26" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
-      <text x="131" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>“A is dead”</text>
-      <path d="M138 50 L131 62" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
-      {/* zombie wakes */}
-      <rect x="12" y="104" width="80" height="34" rx="4" fill="#fff" stroke={INK} strokeWidth="2" strokeDasharray="4 3" />
-      <text x="52" y="118" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>A wakes up</text>
-      <text x="52" y="130" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>“still leader!”</text>
-      <path d="M52 50 L52 104" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      {/* declared dead — the monitor's 5s runs out */}
+      <g className="gn-an-cue">
+        <rect x="98" y="64" width="66" height="26" rx="4" fill="#fbeee8" stroke={INK} strokeWidth="2" />
+        <text x="131" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={TERRA}>“A is dead”</text>
+        <path d="M138 50 L131 62" stroke={INK} strokeWidth="2" markerEnd="url(#gn-a2)" />
+      </g>
+      {/* zombie wakes — three seconds after the verdict, on the same clock */}
+      <g className="gn-an-cue" style={{ animationDelay: '1.6s' }}>
+        <rect x="12" y="104" width="80" height="34" rx="4" fill="#fff" stroke={INK} strokeWidth="2" strokeDasharray="4 3" />
+        <text x="52" y="118" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill={INK}>A wakes up</text>
+        <text x="52" y="130" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>“still leader!”</text>
+        <path d="M52 50 L52 104" stroke={MUTED} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-a2)" />
+      </g>
     </svg>
   )
 }
@@ -192,14 +200,16 @@ export function RaftDiagram() {
       <defs>
         <marker id="gn-av" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} /></marker>
       </defs>
+      {/* votes arrive one after another — an election is a sequence, not a state */}
       {followers.map((f, i) => (
         <g key={i}>
-          <path d={`M${f.x} ${f.y} L88 78`} stroke={DENIM} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-av)" />
+          <path className="gn-an-flow" style={{ animationDelay: `${i * 0.18}s` }} d={`M${f.x} ${f.y} L88 78`} stroke={DENIM} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-av)" />
           <circle cx={f.x} cy={f.y} r="14" fill="#fff" stroke={INK} strokeWidth="2" />
           <text x={f.x} y={f.y + 3} textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>vote</text>
         </g>
       ))}
-      <circle cx="88" cy="78" r="20" fill={DENIM} stroke={INK} strokeWidth="2" />
+      {/* the majority lands: the candidate becomes leader */}
+      <circle className="gn-an-beat" cx="88" cy="78" r="20" fill={DENIM} stroke={INK} strokeWidth="2" />
       <text x="88" y="76" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8" fill="#fff">leader</text>
       <text x="88" y="87" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#dfe7f0">term 4</text>
       <text x="88" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="8.5" fill={INK}>4 of 5 → majority ✓</text>
@@ -306,8 +316,11 @@ export function LsmFlowDiagram() {
         <marker id="gn-lsm-i" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto"><path d="M0 0 L7 3.5 L0 7 z" fill={INK} /></marker>
       </defs>
       <rect x="46" y="10" width="84" height="18" rx="2" fill={TERRA} stroke={INK} strokeWidth="1.5" />
+      {/* the buffer filling, then emptying on flush — opacity 0 at rest, so a
+          still frame is the original drawing exactly */}
+      <rect className="gn-an-fill" x="48" y="12" width="80" height="14" rx="1" fill={INK} opacity="0" />
       <text x="88" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill="#fff">memtable (RAM)</text>
-      <path d="M88 28 L88 42" stroke={INK} strokeWidth="2" markerEnd="url(#gn-lsm-i)" />
+      <path className="gn-an-flow" d="M88 28 L88 42" stroke={INK} strokeWidth="2" markerEnd="url(#gn-lsm-i)" />
       <text x="96" y="39" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>flush</text>
       <line x1="6" y1="46" x2="170" y2="46" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" />
       <text x="8" y="56" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>disk</text>
@@ -317,9 +330,12 @@ export function LsmFlowDiagram() {
       <text x="88" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable (sorted)</text>
       <text x="88" y="88" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
       <text x="88" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>SSTable</text>
-      <path d="M134 67 C154 67 154 118 110 118" fill="none" stroke={TERRA} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-lsm-i)" />
-      <rect x="46" y="122" width="60" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
-      <text x="76" y="133" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>merged file</text>
+      {/* compaction runs on its own clock, later in the same 6s cycle */}
+      <path className="gn-an-flow" style={{ animationDelay: '.7s' }} d="M134 67 C154 67 154 118 110 118" fill="none" stroke={TERRA} strokeWidth="2" strokeDasharray="3 3" markerEnd="url(#gn-lsm-i)" />
+      <g className="gn-an-cue" style={{ animationDelay: '1.4s' }}>
+        <rect x="46" y="122" width="60" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+        <text x="76" y="133" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>merged file</text>
+      </g>
       <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>compaction, in the background</text>
     </svg>
   )
@@ -616,10 +632,11 @@ export function StampedeDiagram() {
       {[6, 40, 74, 108, 142].map((x) => (
         <rect key={x} x={x} y="108" width="28" height="20" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
       ))}
-      <path d="M26 42 L100 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
-      <path d="M68 42 L20 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
-      <path d="M110 42 L54 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
-      <path d="M152 42 L122 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      {/* the stampede: every arrow is keys in flight, all at once */}
+      <path className="gn-an-flow" d="M26 42 L100 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path className="gn-an-flow" style={{ animationDelay: '.1s' }} d="M68 42 L20 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path className="gn-an-flow" style={{ animationDelay: '.2s' }} d="M110 42 L54 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
+      <path className="gn-an-flow" style={{ animationDelay: '.3s' }} d="M152 42 L122 104" stroke={TERRA} strokeWidth="1.5" markerEnd="url(#gn-st)" />
       <rect x="46" y="62" width="84" height="22" fill="#fffdf8" stroke={TERRA} strokeWidth="1.5" />
       <text x="88" y="77" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="10" fill={TERRA}>~80% move</text>
       <text x="88" y="148" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>a cluster-wide stampede</text>

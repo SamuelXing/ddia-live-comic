@@ -132,6 +132,48 @@
 .gn-diagram svg { width: 100%; height: auto; display: block; border: 2px solid var(--ink-line);
   background: var(--paper-2); padding: 10px; }
 
+/* ---- live panels ---------------------------------------------------------
+   Five diagrams move, because the thing they explain IS a process: replication
+   lag, the LSM write path, a Raft election, a timeout, and a partition
+   stampede. The other twenty-eight stay still. Motion on a structural drawing
+   — quorum overlap, a B-tree, the amplification triangle — explains nothing
+   the still frame didn't; it just makes the page restless.
+
+   Only three properties are animated: transform, opacity, stroke-dashoffset.
+   None of them change what getBBox(), getPointAtLength() or an SVG attribute
+   reports, so the geometry `npm run check:diagrams` measures is exactly the
+   geometry that ships — a moving panel can't hide a text-overflow bug.
+
+   Every declaration below sits inside prefers-reduced-motion: no-preference,
+   including the ones that only change appearance (dash patterns, start
+   opacities). With reduced motion the panels render identically to their
+   pre-animation selves — the still frame is the default, not a degraded
+   fallback. Reserved class prefix: gn-an-*. */
+@keyframes gn-an-march { to { stroke-dashoffset: -8; } }
+@keyframes gn-an-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .28; } }
+@keyframes gn-an-beat { 0%, 62%, 100% { transform: scale(1); } 76% { transform: scale(1.08); } }
+/* the wash darkens the buffer rather than bleaching it — the label on top is
+   white, and a white fill made it disappear while the memtable filled */
+@keyframes gn-an-fill { 0% { opacity: .3; transform: scaleX(.04); } 34%, 56% { opacity: .3; transform: scaleX(1); }
+  68%, 100% { opacity: 0; transform: scaleX(1); } }
+@keyframes gn-an-cue { 0%, 38% { opacity: .16; } 56%, 90% { opacity: 1; } 100% { opacity: .16; } }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* `backwards` matters wherever a delay stages a later beat: during the delay
+     an element otherwise renders at its normal opacity, so the zombie node
+     appeared BEFORE the monitor declared it dead — the story ran backwards. */
+  /* something is travelling this line */
+  .gn-diagram .gn-an-flow { stroke-dasharray: 4 4; animation: gn-an-march 1.4s linear infinite backwards; }
+  /* waiting, stale, or missing — the beat that never arrives */
+  .gn-diagram .gn-an-breathe { animation: gn-an-breathe 2.6s ease-in-out infinite; }
+  /* the moment it resolves */
+  .gn-diagram .gn-an-beat { transform-box: fill-box; transform-origin: center; animation: gn-an-beat 6s ease-in-out infinite; }
+  /* a buffer filling up, then flushing empty */
+  .gn-diagram .gn-an-fill { transform-box: fill-box; transform-origin: left center; animation: gn-an-fill 6s ease-in-out infinite; }
+  /* then this happened — a later beat on the same 6s clock */
+  .gn-diagram .gn-an-cue { animation: gn-an-cue 6s ease-in-out infinite backwards; }
+}
+
 /* seen-in / finale */
 .gn-finale { grid-column: 1 / -1; border: 2px solid var(--ink-line); background: var(--paper-2);
   box-shadow: 3px 3px 0 var(--denim); padding: 22px 24px; }
@@ -391,6 +433,11 @@
 .gn-continue .rungs span { color: #9a978d; border-color: #55524b; }
 
 @media (prefers-reduced-motion: reduce) {
-  .gn *, .gn *::before, .gn *::after { transition: none !important; }
+  .gn *, .gn *::before, .gn *::after { transition: none !important; animation: none !important; }
   .gn [data-obs] { opacity: 1 !important; translate: none !important; }
+  /* Deliberately NOT forcing opacity on the live-panel classes: killing the
+     animation is enough, and an element whose still state is meant to be
+     invisible (the memtable fill bar, opacity="0") must stay that way.
+     Forcing opacity:1 here painted a white slab over the memtable. */
+  .gn-diagram [class*='gn-an-'] { transform: none !important; }
 }
