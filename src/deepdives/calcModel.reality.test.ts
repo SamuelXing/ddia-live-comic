@@ -53,6 +53,62 @@ describe('Twitter fan-out — the DDIA Chapter 1 numbers (Nov 2012, via Kleppman
   })
 })
 
+describe('Twitter end-to-end — the full 2012 architecture from one workload description', () => {
+  /* The strongest check we can run: describe Twitter's published workload on
+     the calculator's own ladders and compare EVERY output against the system
+     they actually operated (Krikorian, “Timelines at Scale”; DDIA Ch 1).
+     Ladder config ≈ 200M users × 100 actions/day, 99% reads, ×3 peak,
+     fan-out ×100, 1 KB tweets, 50 KB timeline pages, kept 60 months,
+     3 derived systems (timeline cache, search, push), analytics yes. */
+  const v = vals({
+    dau: 2e8, actions: 100, peak: 3, readPct: 99, fanout: 100,
+    writeSize: 1, readSize: 50, retention: 60, derived: 3,
+  })
+  const r: Req = { ...REQ, analytics: 'yes' }
+  const m = model(v, r)
+  const c = consequences(v, r, m, false)
+
+  it('reproduces the published order of magnitude', () => {
+    // 2e10 actions/day ÷ 86,400 = 231.5k/s avg; ×3 = 694.4k/s peak;
+    // 99% reads → 687.5k reads/s, 6.94k writes/s (published: 300k avg reads,
+    // 4.6k avg / 12k peak tweets — same orders)
+    close(m.peakReads, 687500)
+    close(m.peakWrites, 6944.4)
+    // 6.94k × 100 = 694k deliveries/s (published avg: 345k/s)
+    close(m.deliveries, 694444.4)
+  })
+  it('picks what Twitter ran: pull transport, single-primary SQL underneath', () => {
+    // home timelines are fetched, not pushed; the tweet store was MySQL
+    expect(m.transportWin).toBe('req')
+    expect(m.engineWin).toBe('btree')
+  })
+  it('forces the five components Twitter actually built', () => {
+    // async fan-out workers + fan-out-on-read for celebrities
+    expect(c.needs.fanout).toBe(true)
+    // the Redis home-timeline cache tier: 1.38M ops/s ÷ 100k/core = 14 nodes
+    expect(c.needs.cache).toBe(true)
+    expect(c.cacheNodes).toBe(14)
+    // one ingestion pipeline feeding timelines, search (Earlybird) and push
+    expect(c.needs.logConsumers).toBe(true)
+    // the Hadoop/analytics side
+    expect(c.needs.analytical).toBe(true)
+    // and the edge: ~296 Gbps of timeline pages → CDN
+    expect(c.needs.cdn).toBe(true)
+  })
+  it('REGRESSION (found by this very test): the tweet store shards for DATA SIZE, not write rate', () => {
+    // 2e8 tweets/day × 1,024 B × 30 × 60 = 3.6864e14 B = ~335 TiB of rows.
+    // The write rate is a quiet 26% of one primary — rate-based sharding
+    // alone said “no shard”, which contradicted T-bird/Gizzard (sharded
+    // MySQL). Data size is its own reason to split:
+    close(m.dbStorage, 3.6864e14)
+    close(c.writeUtilAfter, 0.26042)
+    // 3.6864e14 ÷ 1e13 (10 TB/node) = 36.9 → 37 shards, storage-bound
+    expect(m.storageShards).toBe(37)
+    expect(c.shardBy).toBe('storage')
+    expect(c.needs.shard).toBe(true)
+  })
+})
+
 describe('WhatsApp — 2M+ connections on one server (Rick Reed, Erlang Factory 2012; blog: “1 million is so 2011”)', () => {
   it('the published record sits on the ladder; our default stays 20× conservative', () => {
     // WhatsApp held >2M live TCP connections on a single tuned FreeBSD box.

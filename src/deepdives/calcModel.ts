@@ -115,6 +115,7 @@ export const HW: (Inp & { src: 'napkin' | 'assume' })[] = [
   { id: 'connsPerHost', label: 'Connections per host', steps: L.conns, val: 1e5, src: 'assume', fmt: (v) => compact(v), hint: 'Live connections one server can hold.', info: 'Bounded by memory per connection, file descriptors, and the CPU spent on heartbeats — not by request rate. The published record is ~2M on one heroically tuned FreeBSD box (WhatsApp, 2012); a default-configured server manages far fewer. 100k is a deliberately conservative default — 20× under the record.' },
   { id: 'slots', label: 'Concurrency per instance', steps: L.slots, val: 64, src: 'assume', fmt: (v) => int(v) + ' slots', hint: 'In-flight requests one app instance handles.', info: "How many requests one instance can have in flight at once — threads, workers, or async tasks. Little's Law turns it into a machine count. Raising it does not create capacity when the work is CPU-bound; it just lets more requests queue." },
   { id: 'ram', label: 'RAM per node', steps: [16, 32, 64, 128, 256, 512, 1024], val: 128, src: 'assume', fmt: (v) => v + ' GB', hint: 'For the “does it fit in memory” check.', info: 'The feasibility check for an in-memory store is not throughput — it is whether the dataset fits. Stored bytes divided by this number is how many machines of pure RAM you would be buying.' },
+  { id: 'diskPerNode', label: 'Data per database node', steps: [1, 2, 5, 10, 20, 50, 100], val: 10, src: 'assume', fmt: (v) => v + ' TB', hint: 'Past this, the dataset itself forces sharding — rate or no rate.', info: 'Most ceilings are rates, but sheer data size forces a split on its own: past some tens of TB per node, backups, replica rebuilds and crash recovery take longer than anyone can tolerate — long before IOPS run out. This is why Twitter sharded the tweet store and Discord sharded messages at modest write rates: hundreds of TB of rows, not hundreds of thousands of writes.' },
 ]
 
 /** requirement questions — facts about the promises the system makes.
@@ -267,8 +268,16 @@ export function model(v: Vals, req: Req) {
   const seqWriteBps = v.seqWrite * 2 ** 30
   const seqReadBps = v.seqRead * 2 ** 30
   const ramBytes = v.ram * 2 ** 30
-  const ramHosts = Math.ceil(storageTotal / ramBytes)
-  const scanSeconds = storageTotal / seqReadBps
+
+  /** blobs leave the database: what the engine stores and scans is a pointer row */
+  const blobNeed = v.writeSize >= 500
+  const dbBytesW = blobNeed ? POINTER_BYTES : bytesW
+  /** the bytes that actually live in the database — rows, not blobs */
+  const dbStorage = blobNeed ? writesPerDay * dbBytesW * 30 * v.retention : storageTotal
+  const ramHosts = Math.ceil(dbStorage / ramBytes)
+  const scanSeconds = dbStorage / seqReadBps
+  /** data size alone can force a split: backups and recovery, not IOPS */
+  const storageShards = Math.max(1, Math.ceil(dbStorage / (v.diskPerNode * 1e12)))
 
   // ---------- decision 1: transport, filtered by the freshness requirement ----------
   const heldConns = (v.dau * v.online) / 100
@@ -301,9 +310,6 @@ export function model(v: Vals, req: Req) {
   const logNeed = writeUtil > 0.5 && v.peak >= 2
   /** behind a log the database consumes at the daily average, not the worst minute */
   const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
-  /** blobs leave the database: what the engine persists is a pointer row */
-  const blobNeed = v.writeSize >= 500
-  const dbBytesW = blobNeed ? POINTER_BYTES : bytesW
   /** Each engine is judged on the load that would REACH it in the system built
    *  around it: if its own read pressure forces a cache, its reads become the
    *  misses; if the peak forces a log, its writes become the sustained rate;
@@ -328,7 +334,7 @@ export function model(v: Vals, req: Req) {
 
   return {
     actionsPerDay, avgQps, peakQps, peakReads, peakWrites, writesPerDay, deliveries, readSide,
-    bytesW, bytesR, storagePerDay, storageTotal,
+    bytesW, bytesR, storagePerDay, storageTotal, dbStorage, storageShards,
     writeCeiling, diskReadCeiling, cacheCeiling, seqWriteBps, seqReadBps, ramBytes, ramHosts, scanSeconds,
     heldConns, egressFor, tCols, transportWin,
     writeUtil, logNeed, dbWrites, blobNeed, dbBytesW, eCols, engineWin,
@@ -357,8 +363,12 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   const missReads = cacheNeed ? m.readSide * (1 - v.cacheHit / 100) : m.readSide
   const readUtilAfter = v.readAmp === 0 ? 0 : (missReads * v.readAmp) / m.diskReadCeiling
   const writeUtilAfter = m.dbWrites / m.writeCeiling
-  const shardNeed = writeUtilAfter > 1
-  const shards = Math.max(1, Math.ceil(writeUtilAfter))
+  /** two independent reasons to split: the write rate, or the sheer data size */
+  const writeShards = Math.max(1, Math.ceil(writeUtilAfter))
+  const shardNeed = writeUtilAfter > 1 || m.storageShards > 1
+  const shards = Math.max(writeShards, m.storageShards)
+  const shardBy: 'writes' | 'storage' | 'both' =
+    writeUtilAfter > 1 && m.storageShards > 1 ? 'both' : writeUtilAfter > 1 ? 'writes' : 'storage'
 
   const g = v.growth / 100
   const monthsToWall =
@@ -380,7 +390,8 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
 
   return {
     connections, connHosts, egressGbps, diskWriteBytes, webInstances, originHosts, cacheNodes, readUtil,
-    cdnNeed, originAfter, originHostsAfter, cacheNeed, missReads, readUtilAfter, writeUtilAfter, shardNeed, shards,
+    cdnNeed, originAfter, originHostsAfter, cacheNeed, missReads, readUtilAfter,
+    writeUtilAfter, writeShards, shardNeed, shards, shardBy,
     monthsToWall, needs,
   }
 }

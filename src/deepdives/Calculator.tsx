@@ -272,7 +272,7 @@ export default function Calculator() {
     { k: 'Delivery side', v: `${fmt.compact(m.readSide)}/s`, how: v.fanout === 0 ? `${fmt.compact(m.peakReads)} reads — ingest, nothing is delivered` : `${fmt.compact(m.peakReads)} reads + ${fmt.compact(m.peakWrites)} writes × ${v.fanout} fan-out` },
     { k: 'Live connections', v: effT.holds ? `${fmt.compact(c.connections)} · ~${fmt.int(c.connHosts)} host${c.connHosts === 1 ? '' : 's'}` : 'none', how: effT.holds ? `${fmt.compact(v.dau)} × ${v.online}% ÷ ${fmt.compact(v.connsPerHost)} per host` : `${effT.label.toLowerCase()} holds nothing open` },
     { k: 'New data', v: `${fmt.bytes(m.storagePerDay)}/day`, how: `${fmt.compact(m.writesPerDay)} writes/day × ${fmt.bytes(m.bytesW)} written` },
-    { k: 'Stored at retention', v: fmt.bytes(m.storageTotal), how: `${fmt.bytes(m.storagePerDay)}/day × 30 × ${v.retention} mo, before replication` },
+    { k: 'Stored at retention', v: fmt.bytes(m.storageTotal), how: `${fmt.bytes(m.storagePerDay)}/day × 30 × ${v.retention} mo, before replication${m.blobNeed ? ` — ${fmt.bytes(m.dbStorage)} of it as rows, the rest in object storage` : ''}` },
     { k: 'Disk write rate', v: `${fmt.bytes(c.diskWriteBytes)}/s`, how: `${fmt.compact(m.peakWrites)} writes/s × ${fmt.bytes(m.bytesW)} × ${v.writeAmp} amplification` },
     { k: 'Peak egress', v: `${fmt.n1(c.egressGbps)} Gbps`, how: `${fmt.compact(m.peakReads)} reads × ${fmt.bytes(m.bytesR)} + ${fmt.compact(m.deliveries)} deliveries × ${fmt.bytes(m.bytesW)}, +${v.overhead} B protocol each` },
     { k: 'Request workers', v: `~${fmt.int(c.webInstances)}`, how: `Little’s Law: ${fmt.compact(m.peakQps)}/s × ${v.lat} ms ÷ ${v.slots} slots${effT.holds ? ' — separate from the connection tier' : ''}` },
@@ -282,7 +282,8 @@ export default function Calculator() {
     { k: 'Durable writes, one primary', v: `${fmt.compact(m.writeCeiling)}/s`, how: `${v.group} commits per fsync ÷ ${v.fsync} µs` },
     { k: 'Random reads, one node', v: `${fmt.compact(m.diskReadCeiling)}/s`, how: `${v.ioDepth} concurrent ÷ ${v.randRead} µs` },
     { k: 'Cache ops, one core', v: `${fmt.compact(m.cacheCeiling)}/s`, how: `1 ÷ ${v.cacheOp} µs per op` },
-    { k: 'Full scan of the dataset', v: dur(m.scanSeconds), how: `${fmt.bytes(m.storageTotal)} ÷ ${v.seqRead} GiB/s sequential` },
+    { k: 'Full scan of the dataset', v: dur(m.scanSeconds), how: `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.seqRead} GiB/s sequential` },
+    { k: 'Data one node should hold', v: `${v.diskPerNode} TB`, how: 'backup + replica-rebuild time, not IOPS' },
     { k: 'Egress, one host', v: `${v.nic} Gbps`, how: 'NIC capacity' },
     { k: 'Connections, one host', v: fmt.compact(v.connsPerHost), how: 'memory + file descriptors + heartbeat CPU' },
   ]
@@ -355,9 +356,14 @@ export default function Calculator() {
     },
     {
       need: c.needs.shard,
-      what: 'Shard the write path',
-      number: `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`,
-      because: `replicas do not help: every replica replays every write. Past one primary the only move left is to split the data. ${effE.scale}`,
+      what: 'Shard the database',
+      number:
+        c.shardBy === 'storage'
+          ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
+          : c.shardBy === 'writes'
+            ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
+            : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
+      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/components/postgres' },
@@ -377,7 +383,7 @@ export default function Calculator() {
     {
       need: c.needs.analytical,
       what: 'A separate analytical store',
-      number: `a full scan of ${fmt.bytes(m.storageTotal)} at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — on the same disk your 5 ms lookups live on`,
+      number: `a full scan of ${fmt.bytes(m.dbStorage)} of rows at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — on the same disk your 5 ms lookups live on`,
       because:
         'a row store reads every column of every row to answer an aggregate. A columnar store reads only the columns the query touches and compresses them severalfold (structured data compresses 5–10×, per napkin-math) — fed from the same log by change-data-capture, so the primary never feels the scan',
       to: [
@@ -398,7 +404,11 @@ export default function Calculator() {
   if (m.logNeed)
     after.push({ k: 'Writes reaching the primary', v: `${fmt.compact(m.peakWrites)} → ${fmt.compact(m.dbWrites)}/s`, how: `the log absorbs the ×${fmt.n1(v.peak)} peak; the primary consumes at the daily average` })
   if (c.shardNeed)
-    after.push({ k: 'Writes per shard', v: `${fmt.compact(m.dbWrites / c.shards)}/s × ${c.shards} shards`, how: `${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each` })
+    after.push(
+      c.shardBy === 'storage'
+        ? { k: 'Data per shard', v: `${fmt.bytes(m.dbStorage / c.shards)} × ${c.shards} shards`, how: `writes per shard: ${fmt.compact(m.dbWrites / c.shards)}/s — ${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each` }
+        : { k: 'Writes per shard', v: `${fmt.compact(m.dbWrites / c.shards)}/s × ${c.shards} shards`, how: `${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each · ${fmt.bytes(m.dbStorage / c.shards)} of rows each` },
+    )
   else if (c.cacheNeed || m.logNeed)
     after.push({ k: 'Primary write headroom', v: pc(c.writeUtilAfter), how: `${fmt.compact(m.dbWrites)}/s ÷ ${fmt.compact(m.writeCeiling)}/s ceiling — no sharding yet` })
 

@@ -179,6 +179,12 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     expect(m.blobNeed).toBe(true)
     expect(m.dbBytesW).toBe(POINTER_BYTES)
     close(m.eCols.find((c) => c.id === 'btree')!.bwU, 0.0049671)
+    // and so are RAM, scan and storage-shard checks: 1.5e8 pointers/day × 1,024 B
+    // × 360 = 5.5296e13 B of rows (not the 270 PB of blobs)
+    close(m.dbStorage, 5.5296e13)
+    // 5.5296e13 ÷ 1.37439e11 = 402.3 → 403 RAM hosts; ÷ 1e13 = 5.53 → 6 shards
+    expect(m.ramHosts).toBe(403)
+    expect(m.storageShards).toBe(6)
   })
 })
 
@@ -194,21 +200,29 @@ describe('the chain: forced additions transform downstream load', () => {
     expect(c.needs.cdn).toBe(true)
     close(c.originAfter, 2.4793)
     expect(c.originHostsAfter).toBe(1)
-    // writes 19.5% of ceiling → no log, no shard
+    // writes 19.5% of ceiling → no log, and the write RATE never forces a shard —
+    // but 1.10592e14 B of rows ÷ 10 TB per node = 11.06 → 12 shards on data size
     expect(c.needs.log).toBe(false)
-    expect(c.needs.shard).toBe(false)
+    close(c.writeUtilAfter, 0.19531)
+    expect(c.shardBy).toBe('storage')
+    expect(m.storageShards).toBe(12)
+    expect(c.needs.shard).toBe(true)
   })
 
-  it('REGRESSION: the log absorbs the peak, and sharding becomes unnecessary', () => {
+  it('REGRESSION: the log absorbs the peak — the write RATE stops forcing shards', () => {
     // 500M DAU, defaults otherwise: writes 52,083.3/s peak = 195% of ceiling
     const v = vals({ dau: 5e8 })
     const m = model(v, req())
     const c = consequences(v, req(), m, false)
     close(m.writeUtil, 1.9531)
     expect(m.logNeed).toBe(true)
-    // sustained: 52,083.3 ÷ 3 = 17,361.1/s → 65.1% of one primary → no sharding
+    // sustained: 52,083.3 ÷ 3 = 17,361.1/s → 65.1% of one primary — the write
+    // bound needs exactly 1 shard behind the log (it needed 2 without it)
     close(c.writeUtilAfter, 0.65104)
-    expect(c.needs.shard).toBe(false)
+    expect(c.writeShards).toBe(1)
+    // what still splits the store is data size: 1.10592e15 B ÷ 1e13 = 111 shards
+    expect(c.shardBy).toBe('storage')
+    expect(c.shards).toBe(111)
   })
 
   it('Little’s Law sizes the app tier', () => {
