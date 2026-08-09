@@ -18,6 +18,23 @@ A living list of where the project is headed. Ordered roughly by sequence, not p
     slow-consumer-freeze cascade + runbook, production-estate trace with the
     Kafka handoff)
   - Next: Web-tier / S3 upgraded to the flagship template.
+- **Make the comic diagrams live — where the idea is about time.** We say "live comic",
+  but the 33 step diagrams in `src/read/diagrams.tsx` are all static. Animate only
+  where motion *is* the idea, not decoration: replication lag (a follower visibly
+  drifting behind), LSM flow (memtable fills → flush → compact), Raft election
+  (timeout fires → votes → leader), the timeout/dead-server panel (elapsing time is
+  the whole point), and the hash ring (a node joins, ~1/N keys walk over). Leave the
+  structural diagrams still — quorum overlap, B-tree shape, amplification triangle —
+  animating those is over-engineering. Constraints: CSS keyframes on transform/opacity
+  only (geometry at rest must stay identical so `npm run check:diagrams` still
+  measures the truth), honor `prefers-reduced-motion` with the static frame, and keep
+  it panel-quiet — a comic panel breathes, it doesn't play a video. The capacity calculator
+  snaps every input to a 1-2-5 ladder (10k, 20k, 50k…) because at this level of
+  modelling the *scale* is the answer — but every flagship hardware envelope
+  (`kafka/redis/postgres/rabbitmq HardwareEnvelope.tsx`, plus `ModulePanel.tsx`)
+  still uses continuous sliders, so Kafka happily reports "557k/s → 2,175.8 MB/s",
+  a precision nobody has. Port the calculator's ladder-`Slider` pattern into the
+  envelopes and round the derived readouts to match.
 - ✅ **`scalelab-design` skill** (`.claude/skills/scalelab-design/`) — codifies the
   hard-won UI/animation patterns (validated palette, label shrink-to-fit, edge-port +
   waypoint routing, runbook/tile/meter/trace styles, nine-chapter template + wiring

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import Home from './pages/Home'
 import ComponentsCatalog from './pages/ComponentsCatalog'
 import ClassicModulePage from './pages/ClassicModulePage'
@@ -22,7 +22,9 @@ export default function App() {
       <Route path="/components/postgres" element={<PostgresPage />} />
       <Route path="/components/redis" element={<RedisPage />} />
       <Route path="/components/rabbitmq" element={<RabbitMQPage />} />
-      <Route path="/components/calculator" element={<CalculatorPage />} />
+      <Route path="/calculator" element={<CalculatorPage />} />
+      {/* the calculator used to live under /components */}
+      <Route path="/components/calculator" element={<Navigate to="/calculator" replace />} />
       <Route path="/components/:key" element={<ClassicModulePage />} />
       <Route path="/sims/feed" element={<FeedSimPage />} />
       <Route path="/sims/observability" element={<ObservabilityPage />} />

@@ -1,0 +1,301 @@
+import { describe, it, expect } from 'vitest'
+import { model, consequences, INIT, PRESETS, WORKLOAD, DERIVED_INP, POINTER_BYTES, type Req, type Vals } from './calcModel'
+
+/* Every expected value in this file is computed BY HAND in the comment above
+   it, from the stated formula — never copied from the implementation's output.
+   If a test fails, first re-do the hand arithmetic; if the hand arithmetic is
+   right, the model is wrong. This tool recommends real infrastructure — a
+   silently wrong number here is the most expensive kind of bug we can ship. */
+
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no' }
+const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
+const req = (over: Partial<Req> = {}): Req => ({ ...REQ, ...over })
+
+/** relative-tolerance assertion for hand-computed values */
+const close = (actual: number, expected: number, tol = 1e-3) => {
+  expect(Math.abs(actual - expected)).toBeLessThanOrEqual(Math.abs(expected) * tol + 1e-9)
+}
+
+describe('workload derivations (defaults: 50M DAU, 20/day, ×3 peak, 85% reads, fanout 1, 2 KB written, 50 KB read)', () => {
+  const m = model(vals(), req())
+
+  it('request rates', () => {
+    // 5e7 × 20 = 1e9 actions/day; ÷ 86,400 = 11,574.074/s avg; ×3 = 34,722.22 peak
+    close(m.actionsPerDay, 1e9)
+    close(m.avgQps, 11574.074)
+    close(m.peakQps, 34722.222)
+  })
+  it('read/write split and delivery side', () => {
+    // 34,722.22 × 85% = 29,513.89 reads; remainder 5,208.33 writes
+    close(m.peakReads, 29513.889)
+    close(m.peakWrites, 5208.333)
+    // fanout 1: deliveries = writes; readSide = 29,513.89 + 5,208.33 = 34,722.22
+    close(m.deliveries, 5208.333)
+    close(m.readSide, 34722.222)
+  })
+  it('storage from the WRITTEN object, not the read response', () => {
+    // 1e9 × 15% = 1.5e8 writes/day × 2,048 B = 3.072e11 B/day; ×30×12 = 1.10592e14 B
+    close(m.writesPerDay, 1.5e8)
+    close(m.storagePerDay, 3.072e11)
+    close(m.storageTotal, 1.10592e14)
+  })
+  it('egress = reads × response + deliveries × object, + protocol bytes, ×8', () => {
+    // at 800 B overhead: 29,513.89 × 52,000 + 5,208.33 × 2,848
+    //                  = 1.534722e9 + 1.483333e7 = 1.549556e9 B/s ×8 = 12.396 Gbps
+    close(m.egressFor(800), 12.3964)
+    // at 10 B overhead: 29,513.89 × 51,210 + 5,208.33 × 2,058
+    //                 = 1.511406e9 + 1.071875e7 = 1.522125e9 B/s ×8 = 12.177 Gbps
+    close(m.egressFor(10), 12.177)
+  })
+})
+
+describe('ceilings are one division each', () => {
+  const m = model(vals(), req())
+
+  it('durable writes = commits per fsync ÷ fsync latency', () => {
+    // 8 ÷ 300e-6 s = 26,666.67/s
+    close(m.writeCeiling, 26666.667)
+  })
+  it('random reads = queue depth ÷ read latency', () => {
+    // 8 ÷ 100e-6 s = 80,000/s
+    close(m.diskReadCeiling, 80000)
+  })
+  it('cache ops = 1 ÷ per-op cost', () => {
+    // 1 ÷ 10e-6 s = 100,000/s
+    close(m.cacheCeiling, 100000)
+  })
+  it('full scan = stored bytes ÷ sequential read rate', () => {
+    // 1.10592e14 B ÷ (8 × 2^30 = 8.58993e9 B/s) = 12,874.6 s (~3.6 h)
+    close(m.scanSeconds, 12874.6)
+  })
+  it('RAM feasibility = stored bytes ÷ RAM per node', () => {
+    // 1.10592e14 ÷ (128 × 2^30 = 1.37439e11) = 804.66 → ceil 805 hosts
+    expect(m.ramHosts).toBe(805)
+  })
+})
+
+describe('transport: the freshness requirement filters, arithmetic ranks survivors', () => {
+  it('pull → request/response wins, nothing disqualified', () => {
+    const m = model(vals(), req({ fresh: 'pull' }))
+    expect(m.transportWin).toBe('req')
+    expect(m.tCols.every((c) => c.dq === null)).toBe(true)
+  })
+  it('push → request/response is OUT; WebSocket beats polling on overhead', () => {
+    const m = model(vals(), req({ fresh: 'push' }))
+    expect(m.transportWin).toBe('ws')
+    expect(m.tCols.find((c) => c.id === 'req')!.dq).toBeTruthy()
+    // both hold 5e7 × 10% = 5e6 connections → ceil(5e6 / 1e5) = 50 hosts each
+    expect(m.tCols.find((c) => c.id === 'poll')!.hosts).toBe(50)
+    expect(m.tCols.find((c) => c.id === 'ws')!.hosts).toBe(50)
+    // polling repays 800 B vs 10 B per message → strictly more egress
+    const [, poll, ws] = m.tCols
+    expect(poll.eg).toBeGreaterThan(ws.eg)
+  })
+})
+
+describe('engine: requirements filter before any arithmetic', () => {
+  it('cross-key atomicity disqualifies LSM and in-memory; only B-tree survives', () => {
+    const m = model(vals(), req({ txn: 'multi' }))
+    expect(m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
+    expect(m.eCols.find((c) => c.id === 'mem')!.dq).toBeTruthy()
+    expect(m.engineWin).toBe('btree')
+  })
+  it('a write-heavy ledger still refuses LSM — arithmetic never overrules the filter', () => {
+    // write-dominant load that would rank LSM first if only utilization counted
+    const m = model(vals({ readPct: 10, fanout: 0, dau: 5e8, actions: 50 }), req({ txn: 'multi' }))
+    expect(m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
+    expect(m.engineWin).toBe('btree')
+  })
+  it('must-survive data disqualifies in-memory; rebuildable data readmits it', () => {
+    expect(model(vals(), req({ loss: 'keep' })).eCols.find((c) => c.id === 'mem')!.dq).toBeTruthy()
+    // rebuildable but too big: default dataset needs 805 RAM nodes → still out
+    expect(model(vals(), req({ loss: 'rebuild' })).eCols.find((c) => c.id === 'mem')!.dq).toContain('RAM')
+  })
+})
+
+describe('engine: each column is judged on the load that REACHES it', () => {
+  it('defaults: both disk engines sit behind their own cache; B-tree wins on read pressure', () => {
+    const m = model(vals(), req())
+    const bt = m.eCols.find((c) => c.id === 'btree')!
+    const ls = m.eCols.find((c) => c.id === 'lsm')!
+    // B-tree raw read pressure: 34,722.22 × 1 ÷ 80,000 = 43.4% → forces a cache
+    close(bt.rawRU, 0.43403)
+    expect(bt.colCache).toBe(true)
+    // misses only: 34,722.22 × 10% = 3,472.22 → 3,472.22 ÷ 80,000 = 4.34%
+    close(bt.rU, 0.043403)
+    // write stream: 5,208.33 × 2,048 × 3 = 32.0e6 B/s ÷ 3×2^30 = 0.993%
+    close(bt.bwU, 0.0099341)
+    close(bt.worst, 0.043403)
+    // LSM: ×2 amp → misses 3,472.22 × 2 ÷ 80,000 = 8.68%; worst 8.68% → B-tree wins
+    close(ls.rU, 0.086806)
+    expect(m.engineWin).toBe('btree')
+  })
+
+  it("REGRESSION (user-reported): 781k writes/s of ingest picks LSM once the chain applies", () => {
+    // 500M × 50/day = 2.5e10; peak ×3 = 868,055.6/s; 10% reads → 781,250 writes/s
+    const m = model(vals({ dau: 5e8, actions: 50, readPct: 10, fanout: 0 }), req())
+    close(m.peakWrites, 781250)
+    // writeUtil = 781,250 ÷ 26,666.67 = 29.3 → the log is forced (peak ×3 ≥ 2)
+    expect(m.logNeed).toBe(true)
+    // behind the log: 781,250 ÷ 3 = 260,416.7/s sustained
+    close(m.dbWrites, 260416.67)
+    const bt = m.eCols.find((c) => c.id === 'btree')!
+    const ls = m.eCols.find((c) => c.id === 'lsm')!
+    // B-tree write stream: 260,416.7 × 2,048 × 3 = 1.6e9 B/s ÷ 3.2212e9 = 49.7%
+    close(bt.bwU, 0.49671)
+    expect(bt.worstName).toBe('the write stream')
+    // LSM: bw 16.6%; reads 86,805.6 → raw 217% → cache → 8,680.6 × 2 ÷ 80,000 = 21.7%
+    close(ls.rU, 0.21701)
+    close(ls.worst, 0.21701)
+    // 21.7% < 49.7% → LSM wins, for the right reason
+    expect(m.engineWin).toBe('lsm')
+  })
+
+  it('moderate ingest honestly stays on the B-tree — one primary behind a log handles it', () => {
+    // 50M × 20/day, 10% reads, 5 KB writes: writes 31,250/s peak → 10,416.7 sustained
+    const m = model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req())
+    // B-tree bw: 10,416.7 × 5,120 × 3 = 1.6e8 ÷ 3.2212e9 = 4.97%; reads 3,472.2 ÷ 80k = 4.34%
+    // worst 4.97% vs LSM worst = reads ×2 = 8.68% → B-tree
+    expect(m.engineWin).toBe('btree')
+  })
+
+  it('small rebuildable dataset: in-memory competes and wins on ops-per-core', () => {
+    // 1M × 20/day ×3 = 694.4/s peak; 85/15 split; fanout 1 → readSide 694.4
+    const m = model(vals({ dau: 1e6, retention: 1, writeSize: 1 }), req({ loss: 'rebuild' }))
+    // storage: 3e6 writes/day × 1,024 B × 30 × 1 = 9.216e10 B → 1 RAM host → eligible
+    expect(m.ramHosts).toBe(1)
+    const mem = m.eCols.find((c) => c.id === 'mem')!
+    expect(mem.dq).toBeNull()
+    // mem worst: (694.44 + 104.17) ÷ 100,000 = 0.799%
+    close(mem.worst, 0.0079861)
+    // btree worst: reads 694.44 ÷ 80,000 = 0.868% → mem is lower → mem wins
+    expect(m.engineWin).toBe('mem')
+  })
+
+  it('blobs leave the database: the engine is judged on pointer rows', () => {
+    // 5 MB written objects → blobNeed; engine bw uses 1,024 B pointers:
+    // 5,208.33 × 1,024 × 3 = 1.6e7 B/s ÷ 3.2212e9 = 0.497%
+    const m = model(vals({ writeSize: 5000 }), req())
+    expect(m.blobNeed).toBe(true)
+    expect(m.dbBytesW).toBe(POINTER_BYTES)
+    close(m.eCols.find((c) => c.id === 'btree')!.bwU, 0.0049671)
+    // and so are RAM, scan and storage-shard checks: 1.5e8 pointers/day × 1,024 B
+    // × 360 = 5.5296e13 B of rows (not the 270 PB of blobs)
+    close(m.dbStorage, 5.5296e13)
+    // 5.5296e13 ÷ 1.37439e11 = 402.3 → 403 RAM hosts; ÷ 1e13 = 5.53 → 6 shards
+    expect(m.ramHosts).toBe(403)
+    expect(m.storageShards).toBe(6)
+  })
+})
+
+describe('the chain: forced additions transform downstream load', () => {
+  it('defaults: cache and CDN fire; misses and origin egress are the residuals', () => {
+    const m = model(vals(), req())
+    const c = consequences(vals(), req(), m, false)
+    // readUtil 43.4% > 30% → cache; misses = 34,722.22 × 10% = 3,472.22/s → 4.34%
+    expect(c.needs.cache).toBe(true)
+    close(c.missReads, 3472.22)
+    close(c.readUtilAfter, 0.043403)
+    // egress 12.396 Gbps > 10 → CDN; after 80% offload: 2.479 Gbps → 1 host
+    expect(c.needs.cdn).toBe(true)
+    close(c.originAfter, 2.4793)
+    expect(c.originHostsAfter).toBe(1)
+    // writes 19.5% of ceiling → no log, and the write RATE never forces a shard —
+    // but 1.10592e14 B of rows ÷ 10 TB per node = 11.06 → 12 shards on data size
+    expect(c.needs.log).toBe(false)
+    close(c.writeUtilAfter, 0.19531)
+    expect(c.shardBy).toBe('storage')
+    expect(m.storageShards).toBe(12)
+    expect(c.needs.shard).toBe(true)
+  })
+
+  it('REGRESSION: the log absorbs the peak — the write RATE stops forcing shards', () => {
+    // 500M DAU, defaults otherwise: writes 52,083.3/s peak = 195% of ceiling
+    const v = vals({ dau: 5e8 })
+    const m = model(v, req())
+    const c = consequences(v, req(), m, false)
+    close(m.writeUtil, 1.9531)
+    expect(m.logNeed).toBe(true)
+    // sustained: 52,083.3 ÷ 3 = 17,361.1/s → 65.1% of one primary — the write
+    // bound needs exactly 1 shard behind the log (it needed 2 without it)
+    close(c.writeUtilAfter, 0.65104)
+    expect(c.writeShards).toBe(1)
+    // what still splits the store is data size: 1.10592e15 B ÷ 1e13 = 111 shards
+    expect(c.shardBy).toBe('storage')
+    expect(c.shards).toBe(111)
+  })
+
+  it('Little’s Law sizes the app tier', () => {
+    // 34,722.22/s × 0.1 s ÷ 64 slots = 54.25 → 55 instances
+    const c = consequences(vals(), req(), model(vals(), req()), false)
+    expect(c.webInstances).toBe(55)
+  })
+
+  it('runway: months to the write wall at compounded growth', () => {
+    // ln(26,666.67 ÷ 5,208.33) ÷ ln(1.10) = ln(5.12) ÷ 0.09531 = 17.1 months
+    const c = consequences(vals(), req(), model(vals(), req()), false)
+    close(c.monthsToWall, 17.135, 1e-2)
+  })
+
+  it('held connections exist only when the transport holds them', () => {
+    const m = model(vals(), req())
+    // holds: 5e6 conns → 50 hosts; not holding: zero
+    expect(consequences(vals(), req(), m, true).connHosts).toBe(50)
+    expect(consequences(vals(), req(), m, false).connHosts).toBe(0)
+  })
+})
+
+describe('sanity properties', () => {
+  it('fanout 0 means the read side is exactly the reads', () => {
+    const m = model(vals({ fanout: 0 }), req())
+    close(m.readSide, m.peakReads)
+  })
+  it('doubling users doubles every rate', () => {
+    const a = model(vals(), req())
+    const b = model(vals({ dau: 1e8 }), req())
+    close(b.peakQps / a.peakQps, 2)
+    close(b.storageTotal / a.storageTotal, 2)
+  })
+  it('a disqualified column never wins', () => {
+    for (const r of [req({ txn: 'multi' }), req({ loss: 'keep' }), req({ txn: 'multi', loss: 'rebuild' })]) {
+      const m = model(vals({ readPct: 10, fanout: 0, dau: 5e8 }), r)
+      const win = m.eCols.find((c) => c.id === m.engineWin)!
+      expect(win.dq).toBeNull()
+    }
+  })
+})
+
+describe('presets', () => {
+  it('every preset value sits on its slider’s ladder — presets move visible knobs, nothing hidden', () => {
+    const inputs = [...WORKLOAD, DERIVED_INP]
+    for (const p of PRESETS) {
+      for (const [id, val] of Object.entries(p.sets)) {
+        const inp = inputs.find((i) => i.id === id)
+        expect(inp, `${p.id}: unknown input ${id}`).toBeDefined()
+        expect(inp!.steps, `${p.id}.${id} = ${val} is not on the ladder`).toContain(val)
+      }
+    }
+  })
+  it('each preset produces the outcome it exists to teach', () => {
+    const run = (id: string) => {
+      const p = PRESETS.find((x) => x.id === id)!
+      const v = vals(p.sets)
+      const m = model(v, p.req)
+      return { m, c: consequences(v, p.req, m, m.tCols.find((t) => t.id === m.transportWin)!.holds) }
+    }
+    // feed: 8,680.6 writes/s × 100 followers = 868k deliveries > 26.7k ceiling → fan-out
+    expect(run('feed').c.needs.fanout).toBe(true)
+    // chat: push → WebSocket; 2e7 × 20% = 4e6 connections → connection tier
+    expect(run('chat').m.transportWin).toBe('ws')
+    expect(run('chat').c.needs.connTier).toBe(true)
+    // ingest: 104k sustained writes/s of 2 KB — the LSM workload, plus the analytical store
+    expect(run('ingest').m.engineWin).toBe('lsm')
+    expect(run('ingest').c.needs.analytical).toBe(true)
+    // ledger: the transaction filter, not arithmetic, decides
+    expect(run('ledger').m.eCols.find((c) => c.id === 'lsm')!.dq).toBeTruthy()
+    // media: blobs out of the database, CDN forced, metadata stays on the B-tree
+    expect(run('media').m.blobNeed).toBe(true)
+    expect(run('media').c.needs.cdn).toBe(true)
+    expect(run('media').m.engineWin).toBe('btree')
+  })
+})

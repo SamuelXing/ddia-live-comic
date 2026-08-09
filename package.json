@@ -9,7 +9,8 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
-    "check:diagrams": "node scripts/check-diagrams.mjs"
+    "check:diagrams": "node scripts/check-diagrams.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@fontsource/comic-neue": "^5.3.0",
@@ -26,6 +27,7 @@
     "@vitejs/plugin-react": "^4.3.1",
     "playwright-core": "^1.62.1",
     "typescript": "^5.5.4",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "vitest": "^4.1.10"
   }
 }

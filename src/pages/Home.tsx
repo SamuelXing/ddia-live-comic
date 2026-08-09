@@ -118,11 +118,13 @@ export default function Home() {
 
         {/* ---- app simulations ---- */}
         <div className="gn-sechead" id="apps" data-obs>
-          <div className="eb">Application simulations · Scale Lab</div>
+          <div className="eb">Application simulations · experimental</div>
           <h2>Pick an app and push it until it breaks</h2>
           <p>
-            Each simulation uses the same honest engine — a different topology, a different workload, a
-            different set of walls. New apps land here as we build them.
+            Each simulation uses the same queueing engine — a different topology, a different workload, a
+            different set of walls. These are <em>sketches, not reference architectures</em>: one plausible
+            design per app, and a different team with different constraints would draw it differently. Use
+            them to build intuition about where things break, not to size anything real.
           </p>
         </div>
         <div className="gn-gallery">
