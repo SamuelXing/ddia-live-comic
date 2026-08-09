@@ -29,7 +29,13 @@
    ============================================================ */
 .gn-nav { position: sticky; top: 0; z-index: 40; background: #f7f4ef;
   border-bottom: 2px solid #1a1a1a; }
-.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center; gap: 8px; }
+/* flex-wrap, because the nav is wider than a phone. Five links plus the
+   wordmark overflow below ~700px on every route — the links ran off the right
+   edge and were simply unreachable. Wrapping is the whole fix: the spacer
+   below still pushes the links right on desktop, and once they wrap it
+   collapses to zero so they sit under the wordmark instead of beside it. */
+.gn-nav-in { max-width: 1060px; margin: 0 auto; padding: 11px 22px; display: flex; align-items: center;
+  gap: 8px; flex-wrap: wrap; row-gap: 4px; }
 .gn-brand { font-family: "Playfair Display", Georgia, serif; font-weight: 800; font-size: 17px; letter-spacing: -.01em;
   color: #16130f; text-decoration: none; white-space: nowrap; }
 .gn-brand b { color: #97462a; }
@@ -43,6 +49,12 @@
 .gn-nav a.gn-link.active { color: #16130f; border-color: #1a1a1a; background: rgba(63, 97, 145, .12); }
 .gn-nav a.gn-link .exp { color: #97462a; font-size: .85em; }
 @media (max-width: 460px) { .gn-nav a.gn-link { padding: 6px 7px; font-size: 11px; } }
+/* Source link. The mark is inline SVG so it inherits the link's ink colour and
+   its hover; the word drops away first when space runs short, because the
+   octocat is recognised without it. */
+.gn-nav a.gn-gh { display: inline-flex; align-items: center; gap: 6px; }
+.gn-nav a.gn-gh svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+@media (max-width: 620px) { .gn-nav a.gn-gh .lbl { display: none; } }
 
 /* ---- token flip (specificity of .dd-page/.sim-page beats :root) ---- */
 .dd-page,
@@ -605,13 +617,26 @@
    most text — into 17%. Fixed layout, and the widths say what they are. */
 .dd-page[class] .tbl-anchor td,
 .dd-page[class] .tbl-anchor th { white-space: normal; }
+/* `.dd-page .tbl td:first-child {white-space: nowrap}` in deepdives.css ties
+   this rule exactly on specificity — both (0,3,1) — so which one wins is pure
+   source order. That is far too fragile to leave: when routes became lazy the
+   order flipped, the label column stopped wrapping, and it overflowed its
+   fixed 34% cell straight across the column beside it. Naming :first-child
+   here makes these (0,4,1) and settles it by specificity instead. */
+.dd-page[class] .tbl-anchor td:first-child,
+.dd-page[class] .tbl-anchor th:first-child,
+.dd-page[class] .tbl-ceil td:first-child,
+.dd-page[class] .tbl-ceil th:first-child { white-space: normal; }
 .dd-page[class] .tbl-anchor td:nth-child(1),
 .dd-page[class] .tbl-anchor th:nth-child(1) { width: 34%; }
 .dd-page[class] .tbl-anchor td:nth-child(2),
-.dd-page[class] .tbl-anchor th:nth-child(2) { width: 51%; }
-/* a one-word verdict must never break mid-word */
+.dd-page[class] .tbl-anchor th:nth-child(2) { width: 49%; }
+/* A verdict must never break mid-word — but `nowrap` was the wrong tool for
+   that and it showed the moment a verdict grew past one word: "shape, not a
+   prediction" simply ran out of the column. `normal` wraps at spaces and
+   still never breaks inside a word, since overflow-wrap defaults to normal. */
 .dd-page[class] .tbl-anchor td:nth-child(3),
-.dd-page[class] .tbl-anchor th:nth-child(3) { width: 15%; white-space: nowrap; }
+.dd-page[class] .tbl-anchor th:nth-child(3) { width: 17%; white-space: normal; }
 /* The output tables set their own min-content floor — `nowrap` labels plus long
    mono arithmetic — which pushed the whole grid wider than the page below
    ~1000px. Same fix .tbl-ceil already carries: let them wrap. */
@@ -663,7 +688,11 @@
 }
 /* the terms table: a narrow cost column broke "57.8 ms" across two lines and
    the header "SHARE" into "SHAR/E". Fixed layout, and a number never wraps. */
-.dd-page[class] .tbl-terms { table-layout: fixed; }
+/* A floor, because the two nowrap columns cannot shrink: below ~900px, 14%
+   and 10% stop fitting "57.8 ms" and the header "Share", and a fixed-layout
+   cell that cannot fit its contents spills over the column beside it rather
+   than clipping. Past the floor the table scrolls in its own box instead. */
+.dd-page[class] .tbl-terms { table-layout: fixed; min-width: 560px; }
 .dd-page[class] .tbl-terms td:nth-child(1), .dd-page[class] .tbl-terms th:nth-child(1) { width: 27%; }
 .dd-page[class] .tbl-terms td:nth-child(2), .dd-page[class] .tbl-terms th:nth-child(2) { width: 14%; white-space: nowrap; }
 .dd-page[class] .tbl-terms td:nth-child(3), .dd-page[class] .tbl-terms th:nth-child(3) { width: 10%; white-space: nowrap; }

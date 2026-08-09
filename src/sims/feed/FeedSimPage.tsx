@@ -4,7 +4,6 @@ import { FeedEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
 import { REQ, STAGES } from './model'
 import type { GoalCtx } from './model'
-import '../../styles/sim.css'
 
 interface Controls {
   traffic: number

@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
 import { CATALOG } from '../deepdives/catalog'
 import type { CatalogEntry } from '../deepdives/catalog'
-import '../styles/comic.css'
 
 const live = CATALOG.filter((c) => c.status !== 'planned')
 const planned = CATALOG.filter((c) => c.status === 'planned')

@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { REPO_URL } from '../site'
 
 export default function SiteFooter() {
   return (
@@ -15,6 +16,9 @@ export default function SiteFooter() {
           <Link to="/read">Read the Ideas</Link>
           <Link to="/components">Deep-Dives</Link>
           <Link to="/sims/feed">Simulations</Link>
+          <a href={REPO_URL} target="_blank" rel="noreferrer">
+            Source on GitHub ★
+          </a>
         </div>
       </div>
     </footer>

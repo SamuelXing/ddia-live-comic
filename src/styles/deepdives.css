@@ -115,6 +115,13 @@
 .dd-page .tbl td:first-child { font-weight: 600; color: var(--ink); white-space: nowrap; }
 .dd-page .tbl code { white-space: nowrap; }
 .dd-page .tbl tr:last-child td { border-bottom: 0; }
+/* On a phone these tables cannot shrink — the first column and every <code>
+   are nowrap on purpose, because a limit like `~3,500 write / 5,500 read per s`
+   is unreadable broken across lines. So let the table scroll inside its own
+   box rather than making the whole page scroll sideways. */
+@media (max-width: 720px) {
+  .dd-page .tbl { display: block; overflow-x: auto; min-width: 100%; }
+}
 
 /* fail list */
 .dd-page .fails { display: grid; gap: 11px; margin: 14px 0; }

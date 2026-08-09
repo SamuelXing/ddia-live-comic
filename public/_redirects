@@ -1,0 +1,10 @@
+# Cloudflare Pages SPA fallback.
+#
+# Every route on this site is client-side: /components/s3 is a React Router
+# match, not a file on disk. Without this line a hard refresh or an inbound
+# link to anything other than / returns Pages' own 404, which is the single
+# most common way a working SPA looks broken the moment it is deployed.
+#
+# 200 (not 301) matters: the URL stays as the reader typed it and the router
+# reads it, rather than the browser being sent home.
+/*    /index.html   200

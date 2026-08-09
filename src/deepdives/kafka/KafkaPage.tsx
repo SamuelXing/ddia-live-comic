@@ -10,8 +10,6 @@ import HardwareEnvelope from './HardwareEnvelope'
 import { produceTrace, consumeTrace } from './traces'
 import { computeScaleOut, scaleOutInputs } from './scaleout'
 import { METRICS, cascadeTrace } from './ops'
-import '../../styles/deepdives.css'
-import '../../styles/flagship.css'
 
 const CHAPTERS = [
   { id: 'abstraction', n: 1, title: 'The core abstraction' },

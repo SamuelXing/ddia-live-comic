@@ -4,17 +4,6 @@ import SiteNav from '../components/SiteNav'
 import ThumbCanvas from '../components/ThumbCanvas'
 import { SIMS, STATUS_META } from '../sims/registry'
 
-import '@fontsource/playfair-display/700.css'
-import '@fontsource/playfair-display/800.css'
-import '@fontsource/playfair-display/900.css'
-import '@fontsource/comic-neue/400.css'
-import '@fontsource/comic-neue/700.css'
-import '@fontsource/newsreader/400.css'
-import '@fontsource/newsreader/500.css'
-import '@fontsource/newsreader/600.css'
-import '@fontsource/jetbrains-mono/400.css'
-import '@fontsource/jetbrains-mono/500.css'
-import '../styles/comic.css'
 
 /** Wordmark lives in one place so a rename is a one-line change. */
 const BRAND = 'DDIA, as a live comic'
