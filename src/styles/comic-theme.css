@@ -623,3 +623,49 @@
 .dd-page[class] .calc-page .sb-controls { min-width: 0; }
 .dd-page[class] .vd-tbl td,
 .dd-page[class] .vd-tbl th { overflow-wrap: anywhere; }
+
+/* ---- the two calculators, as tabs ----
+   One nav item, two routes. The nav already overflows at <=700px on every
+   page; a fifth top-level item would make a live problem worse. */
+.dd-page[class] .calc-tabs { display: flex; gap: 0; margin: 0 0 20px; border: 2px solid #1a1a1a; background: var(--card); }
+.dd-page[class] .calc-tab {
+  flex: 1; padding: 10px 14px; text-decoration: none; color: var(--ink-2);
+  font-family: var(--gnf-mono); font-size: 13px; border-right: 2px solid #1a1a1a;
+}
+.dd-page[class] .calc-tab:last-child { border-right: 0; }
+.dd-page[class] .calc-tab span { display: block; margin-top: 2px; font-size: 10.5px; color: var(--muted); letter-spacing: .04em; }
+.dd-page[class] .calc-tab:hover { background: rgba(63, 97, 145, 0.09); color: #16130f; }
+.dd-page[class] .calc-tab.on { background: #16130f; color: #f7f4ef; box-shadow: inset 0 -3px 0 #3f6191; }
+.dd-page[class] .calc-tab.on span { color: #cfc7b8; }
+
+/* ---- the latency budget bar ----
+   The whole page in one line: what each term costs against the promise, with
+   a marker where the promise sits. Terra is the part no engineering moves. */
+.dd-page[class] .budget { margin: 0 0 14px; }
+.dd-page[class] .bud-bar {
+  position: relative; display: flex; height: 26px; border: 2px solid #1a1a1a;
+  background: var(--panel-2); overflow: hidden;
+}
+.dd-page[class] .bud-seg { display: block; height: 100%; border-right: 1px solid rgba(255,253,248,.5); }
+.dd-page[class] .bud-seg.k-physics { background: #bd5f3d; }
+.dd-page[class] .bud-seg.k-work { background: #3f6191; }
+.dd-page[class] .bud-seg.k-queue { background: #29456c; }
+.dd-page[class] .bud-seg.k-tail { background: #6d8bb5; }
+/* where the promise sits — everything past it is over budget */
+.dd-page[class] .bud-target { position: absolute; top: -2px; bottom: -2px; width: 0; border-left: 2px dashed #16130f; }
+.dd-page[class] .bud-read { margin-top: 7px; font-family: var(--gnf-mono); font-size: 12px; color: var(--ink-2); }
+.dd-page[class] .bud-read b { font-size: 14px; color: var(--ink); }
+.dd-page[class] .bud-over { color: #97462a; }
+.dd-page[class] .bud-left { color: #2f6b46; }
+.dd-page[class] .bud-worst { display: block; margin-top: 3px; font-size: 11px; color: var(--muted); }
+.dd-page[class] .calc-pure code {
+  font-family: var(--gnf-mono); font-size: 11px; background: var(--panel-2); padding: 1px 5px;
+}
+/* the terms table: a narrow cost column broke "57.8 ms" across two lines and
+   the header "SHARE" into "SHAR/E". Fixed layout, and a number never wraps. */
+.dd-page[class] .tbl-terms { table-layout: fixed; }
+.dd-page[class] .tbl-terms td:nth-child(1), .dd-page[class] .tbl-terms th:nth-child(1) { width: 27%; }
+.dd-page[class] .tbl-terms td:nth-child(2), .dd-page[class] .tbl-terms th:nth-child(2) { width: 14%; white-space: nowrap; }
+.dd-page[class] .tbl-terms td:nth-child(3), .dd-page[class] .tbl-terms th:nth-child(3) { width: 10%; white-space: nowrap; }
+.dd-page[class] .tbl-terms td:nth-child(4), .dd-page[class] .tbl-terms th:nth-child(4) { width: 49%; }
+.dd-page[class] .tbl-terms .num { white-space: nowrap; }

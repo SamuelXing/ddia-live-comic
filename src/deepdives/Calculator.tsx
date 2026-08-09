@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from './format'
+import { Picker, Info, Num, Slider, Ctl } from './calcUI'
 import {
   WORKLOAD, DERIVED_INP, HW, FRESH, TXN, LOSS, ANALYTICS, ACCESS, RECENCY, PROTOCOLS, STORES, PRESETS, INIT, storeConstants,
   model, consequences, sensitivity, NEED_LABEL,
-  type Ceil, type EngineCol, type Inp, type Opt, type Req, type Vals,
+  type Ceil, type EngineCol, type Req, type Vals,
 } from './calcModel'
 
 /* ============================================================
@@ -17,82 +18,6 @@ import {
    REQUIREMENTS FILTER, LOAD RANKS, CEILINGS FORCE — and every
    forced addition transforms the load each later tier sees.
    ============================================================ */
-
-function Picker({ options, value, onPick }: { options: Opt[]; value: string; onPick: (id: string) => void }) {
-  return (
-    <div className="picker">
-      {options.map((o) => (
-        <button key={o.id} className={'pick' + (o.id === value ? ' on' : '')} onClick={() => onPick(o.id)} title={o.info}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function Info({ text }: { text?: string }) {
-  if (!text) return null
-  return (
-    <span className="info" tabIndex={0} role="note" aria-label={text}>
-      i<span className="info-tip">{text}</span>
-    </span>
-  )
-}
-
-/** A number this page computed, carrying the arithmetic that produced it.
- *  Given `ceil`, it also becomes a jump to the row of "what one machine can do"
- *  it was measured against — so "8.7%" answers "8.7% of what?" with a click
- *  instead of a paragraph. Denim, because a computed number is something the
- *  page built. */
-function Num({ children, how, ceil, jump }: { children: ReactNode; how?: string; ceil?: Ceil; jump?: (c: Ceil) => void }) {
-  if (ceil && jump)
-    return (
-      <button
-        type="button"
-        className="num num-ref"
-        onClick={() => jump(ceil)}
-        title={(how ? how + ' — ' : '') + 'jump to the ceiling this is measured against'}
-      >
-        {children}
-      </button>
-    )
-  return (
-    <b className="num" title={how}>
-      {children}
-    </b>
-  )
-}
-
-function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: number) => void }) {
-  let i = inp.steps.indexOf(value)
-  if (i < 0) i = inp.steps.reduce((best, s, k) => (Math.abs(s - value) < Math.abs(inp.steps[best] - value) ? k : best), 0)
-  return (
-    <input
-      type="range"
-      min={0}
-      max={inp.steps.length - 1}
-      step={1}
-      value={i}
-      onChange={(e) => set(inp.steps[parseInt(e.target.value)])}
-    />
-  )
-}
-
-function Ctl({ label, info, hint, children, val }: { label: string; info?: string; hint: string; children: ReactNode; val?: string }) {
-  return (
-    <div className="ctl">
-      <div className="ctl-top">
-        <span className="ctl-label">
-          {label}
-          <Info text={info} />
-        </span>
-        {val && <span className="ctl-val">{val}</span>}
-      </div>
-      {children}
-      <div className="ctl-hint">{hint}</div>
-    </div>
-  )
-}
 
 /** one decision, laid out as a computed comparison — losing columns stay
  *  visible, disqualified columns say which requirement removed them */
@@ -655,6 +580,7 @@ export default function Calculator() {
       to: [
         { label: 'Redis deep-dive', href: '/components/redis' },
         { label: 'Idea: replication lag', href: '/read/replication-lag' },
+        { label: 'What a cache does NOT do for your p99', href: '/calculator/latency' },
       ],
     },
     {
@@ -676,7 +602,10 @@ export default function Calculator() {
       number: `peaks reach ${fmt.n1(m.writeUtil * 100)}% of the write ceiling, ×${fmt.n1(v.peak)} above average — behind the log the primary consumes ${fmt.compact(m.dbWrites)}/s sustained`,
       trigger: `fires when peaks pass half the write ceiling with a peak factor of 2 or more — you are at ${pc(m.writeUtil)} of ${fmt.compact(m.writeCeiling)}/s, ×${fmt.n1(v.peak)}`,
       because: 'a durable log absorbs the spike at sequential-write speed and lets the database consume at its own pace, instead of sizing the database for the worst minute of the day',
-      to: [{ label: 'Kafka deep-dive', href: '/components/kafka' }],
+      to: [
+        { label: 'Kafka deep-dive', href: '/components/kafka' },
+        { label: 'What the extra hop costs in ms', href: '/calculator/latency' },
+      ],
     },
     {
       key: 'shard',
@@ -693,6 +622,7 @@ export default function Calculator() {
       to: [
         { label: 'Idea: consistent hashing', href: '/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/components/postgres' },
+        { label: 'What scatter-gather does to your p99', href: '/calculator/latency' },
       ],
     },
     /* The one recommendation that depends on WHICH store you ended up with.
@@ -1307,6 +1237,15 @@ export default function Calculator() {
               pattern, and the honest question is how many you are willing to operate. Every one of
               these is a thing to run, monitor, back up and page someone about.
             </p>
+
+            <div className="dc-quiet">
+              <b>Every component above is also a hop.</b> A log absorbs the write peak <em>and</em> adds
+              latency to every write. A cache cuts database load <em>and</em> leaves your p99 exactly
+              where it was until the hit rate passes 99%. Sharding cuts per-node load <em>and</em> turns
+              one lookup into a scatter-gather whose p99 is the slowest shard. This page sizes the load;
+              the other one prices the time, and they disagree on purpose.{' '}
+              <Link to="/calculator/latency">Latency budget →</Link>
+            </div>
 
             {/* The sensitivity sweep. A point estimate built on fifteen constants
                 says nothing about which of the fifteen you have to get right. */}
