@@ -90,10 +90,10 @@ export const WORKLOAD: Inp[] = [
 
 /** the derived-views requirement is a count, so it renders as a slider */
 export const DERIVED_INP: Inp = {
-  id: 'derived', label: 'Systems fed by every change', steps: L.views, val: 1,
+  id: 'derived', label: 'Who else must see each write', steps: L.views, val: 1,
   fmt: (v) => (v === 0 ? 'none' : int(v)),
-  hint: 'Search index, analytics table, cache invalidation…',
-  info: 'Count the other systems that must see every write: the search index, the analytics store, the cache that must be invalidated, the feature store. Each one is a copy that must not drift — and past one of them, how they hear about changes becomes its own design problem.',
+  hint: 'The search index, the analytics table, the cache — count the copies.',
+  info: 'When a user posts a message, the primary database stores it — but the search index must also index it, the cache must drop the stale page, the analytics table must count it. Count those OTHER systems. Each one holds a copy of the same fact, and copies drift: write to each directly and a crash between writes, or two updates racing in different orders, makes them disagree — quietly, forever. One copy is easy to wire by hand. At two or more, this page recommends writing once to a log and letting every copy replay the same order.',
 }
 
 /** src: 'napkin' = measured constant; 'assume' = a modelling choice you should challenge */
