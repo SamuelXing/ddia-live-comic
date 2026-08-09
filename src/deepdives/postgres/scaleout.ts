@@ -1,5 +1,6 @@
 import type { ComputeResult, InputDef, Values } from '../types'
 import { fmt } from '../format'
+import { LAD } from '../ladder'
 
 /* The scale-out sandbox: the read/write asymmetry, made tactile.
    Reads spread across replicas near-linearly; every write still
@@ -9,12 +10,12 @@ const POOL_BACKENDS = 64 // what a PgBouncer tier funnels down to
 const DIRECT_CEIL = 500 // direct backends before the primary drowns
 
 export const scaleOutInputs: InputDef[] = [
-  { id: 'reads', label: 'Read QPS', min: 1000, max: 500000, step: 1000, val: 60000, hint: 'Read traffic — the direction that scales out.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'writes', label: 'Write TPS', min: 100, max: 150000, step: 100, val: 9000, hint: 'Write traffic — the direction that does not.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'wceil', label: 'Primary write ceiling', min: 5000, max: 100000, step: 1000, val: 30000, hint: 'What one tuned primary sustains — hardware, schema, and index count set this.', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'replicas', label: 'Read replicas', min: 0, max: 16, step: 1, val: 2, hint: 'Each replays the full WAL and serves reads ms behind.', fmt: (v) => fmt.int(v) },
-  { id: 'rcap', label: 'Read QPS per replica', min: 5000, max: 100000, step: 1000, val: 25000, hint: 'One replica’s read capacity (its own RAM/CPU envelope).', fmt: (v) => fmt.compact(v) + '/s' },
-  { id: 'conns', label: 'App connections', min: 100, max: 20000, step: 100, val: 2400, hint: 'App instances × per-pod pool size — the web tier’s fan-out.', fmt: (v) => fmt.int(v) },
+  { id: 'reads', label: 'Read QPS', steps: LAD.rate, val: 5e4, hint: 'Read traffic — the direction that scales out.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'writes', label: 'Write TPS', steps: LAD.rate, val: 1e4, hint: 'Write traffic — the direction that does not.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'wceil', label: 'Primary write ceiling', steps: LAD.rate, val: 2e4, hint: 'What one tuned primary sustains. The calculator derives ~27k/s from 8 commits per fsync \u00f7 300 \u00b5s; group-commit batching is the assumption that moves it most.', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'replicas', label: 'Read replicas', steps: LAD.few, val: 2, hint: 'Each replays the full WAL and serves reads ms behind.', fmt: (v) => fmt.int(v) },
+  { id: 'rcap', label: 'Read QPS per replica', steps: LAD.rate, val: 2e4, hint: 'One replica’s read capacity (its own RAM/CPU envelope).', fmt: (v) => fmt.compact(v) + '/s' },
+  { id: 'conns', label: 'App connections', steps: LAD.conns, val: 2e3, hint: 'App instances × per-pod pool size — the web tier’s fan-out.', fmt: (v) => fmt.int(v) },
 ]
 
 export function computeScaleOut(v: Values): ComputeResult {

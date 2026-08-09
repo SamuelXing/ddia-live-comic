@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fmt } from '../format'
+import { LAD, LadderSlider } from '../ladder'
 
 /* ============================================================
    Hardware envelope widget: pick an instance shape + workload,
@@ -34,7 +35,7 @@ const HEAP_GB = 6 // Kafka heap stays small; the rest of RAM is page cache
 
 export default function HardwareEnvelope() {
   const [shapeIdx, setShapeIdx] = useState(2)
-  const [ingress, setIngress] = useState(300) // MB/s cluster-wide
+  const [ingress, setIngress] = useState(500) // MB/s cluster-wide — on the ladder; retention x RF binds disk here
   const [brokers, setBrokers] = useState(6)
   const [rf, setRf] = useState(3)
   const [fanout, setFanout] = useState(2)
@@ -83,18 +84,18 @@ export default function HardwareEnvelope() {
             </div>
           </div>
           {[
-            { label: 'Cluster ingress', val: ingress, set: setIngress, min: 10, max: 3000, step: 10, fmtV: (v: number) => v + ' MB/s', hint: 'Total producer traffic entering the cluster.' },
-            { label: 'Brokers', val: brokers, set: setBrokers, min: 3, max: 30, step: 1, fmtV: (v: number) => String(v), hint: 'Load spreads across brokers (leadership balanced).' },
-            { label: 'Replication factor', val: rf, set: setRf, min: 1, max: 5, step: 1, fmtV: (v: number) => '×' + v, hint: 'Every MB/s in becomes RF MB/s of cluster disk + network.' },
-            { label: 'Consumer fan-out', val: fanout, set: setFanout, min: 0, max: 8, step: 1, fmtV: (v: number) => v + ' groups', hint: 'Independent consumer groups reading everything.' },
-            { label: 'Retention', val: retention, set: setRetention, min: 1, max: 336, step: 1, fmtV: (v: number) => v + ' h', hint: 'How long the log keeps data → disk capacity.' },
+            { label: 'Cluster ingress', val: ingress, set: setIngress, steps: LAD.mbs, fmtV: (v: number) => fmt.mbs(v), hint: 'Total producer traffic entering the cluster.' },
+            { label: 'Brokers', val: brokers, set: setBrokers, steps: LAD.nodes, fmtV: (v: number) => String(v), hint: 'Load spreads across brokers (leadership balanced).' },
+            { label: 'Replication factor', val: rf, set: setRf, steps: [1, 2, 3, 4, 5], fmtV: (v: number) => '×' + v, hint: 'Every MB/s in becomes RF MB/s of cluster disk + network.' },
+            { label: 'Consumer fan-out', val: fanout, set: setFanout, steps: LAD.few, fmtV: (v: number) => v + ' groups', hint: 'Independent consumer groups reading everything.' },
+            { label: 'Retention', val: retention, set: setRetention, steps: LAD.hours, fmtV: (v: number) => v + ' h', hint: 'How long the log keeps data → disk capacity.' },
           ].map((c) => (
             <div className="ctl" key={c.label}>
               <div className="ctl-top">
                 <span className="ctl-label">{c.label}</span>
                 <span className="ctl-val">{c.fmtV(c.val)}</span>
               </div>
-              <input type="range" min={c.min} max={c.max} step={c.step} value={c.val} onChange={(e) => c.set(parseFloat(e.target.value))} />
+              <LadderSlider steps={c.steps} value={c.val} onChange={c.set} ariaLabel={c.label} />
               <div className="ctl-hint">{c.hint}</div>
             </div>
           ))}
@@ -109,7 +110,7 @@ export default function HardwareEnvelope() {
                 <div className="meter-top">
                   <span className="meter-label">{r.label}</span>
                   <span className={`meter-num st-${st}`}>
-                    {r.unit === 'TB' ? fmt.n1(r.used) : fmt.int(r.used)} / {r.unit === 'TB' ? fmt.n1(r.cap) : fmt.int(r.cap)} {r.unit}
+                    {r.unit === 'TB' ? fmt.n1(r.used) : fmt.sig(r.used)} / {r.unit === 'TB' ? fmt.n1(r.cap) : fmt.sig(r.cap)} {r.unit}
                   </span>
                 </div>
                 <div className="meter-bar">

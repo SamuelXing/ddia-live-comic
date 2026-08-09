@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { fmt } from '../format'
+import { LAD, LadderSlider } from '../ladder'
 
 /* ============================================================
    Hardware envelope widget: pick an instance shape + workload,
    see which resource binds first on a single Redis instance.
    Model (O ops/s, V value bytes, D dataset GB, w write fraction,
    N replicas):
-     one core   = O · (5 µs + V·0.3 µs/KB)     — commands never
+     one core   = O · (10 µs + V·0.3 µs/KB)    — commands never
                   leave the main thread, whatever the box has
      RAM        = D·1.35 (overhead+frag) + D·w  (COW headroom)
      NIC egress = reads·V + writes·V·N          (replies + repl)
@@ -30,16 +31,20 @@ const SHAPES: Shape[] = [
   { name: 'RAM monster', cores: 16, ramGB: 256, nicGbps: 25, diskMBs: 3000, note: '16 vCPU · 256 GB · 25 GbE · NVMe' },
 ]
 
-const BASE_US = 5 // µs of main-thread time per simple command
+const BASE_US = 10 // µs of main-thread CPU per simple command.
+// 10 µs is the capacity calculator's cache-op constant, and it is what the
+// published numbers support: redis-benchmark reports 72k/s on random keys and
+// 180k/s on a single key, unpipelined. The 5 µs this used to assume implied
+// ~194k/s for a 512 B value — above the top of that measured range.
 const US_PER_KB = 0.3 // extra µs per KB of value moved
 const OVERHEAD = 1.35 // per-key metadata + fragmentation
 const FORK_MS_PER_GB = 15 // rough, virtualized hosts
 
 export default function HardwareEnvelope() {
   const [shapeIdx, setShapeIdx] = useState(1)
-  const [ops, setOps] = useState(150000)
+  const [ops, setOps] = useState(200000)
   const [valB, setValB] = useState(1024)
-  const [dataGB, setDataGB] = useState(6)
+  const [dataGB, setDataGB] = useState(5)
   const [writePct, setWritePct] = useState(20)
   const [replicas, setReplicas] = useState(1)
 
@@ -106,18 +111,18 @@ export default function HardwareEnvelope() {
             </div>
           </div>
           {[
-            { label: 'Operations / sec', val: ops, set: setOps, min: 10000, max: 1500000, step: 10000, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Commands hitting this one instance.' },
-            { label: 'Avg value size', val: valB, set: setValB, min: 32, max: 65536, step: 32, fmtV: (v: number) => fmt.bytes(v), hint: 'Bytes per value — the NIC and per-op CPU both scale with it.' },
-            { label: 'Dataset', val: dataGB, set: setDataGB, min: 1, max: 200, step: 1, fmtV: (v: number) => v + ' GB', hint: 'Logical data size. Overhead and fork headroom stack on top.' },
-            { label: 'Write ratio', val: writePct, set: setWritePct, min: 0, max: 100, step: 5, fmtV: (v: number) => v + '%', hint: 'Writes drive replication, AOF, and copy-on-write headroom.' },
-            { label: 'Replicas', val: replicas, set: setReplicas, min: 0, max: 5, step: 1, fmtV: (v: number) => String(v), hint: 'Each replica receives the full write stream.' },
+            { label: 'Operations / sec', val: ops, set: setOps, steps: LAD.rate, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Commands hitting this one instance.' },
+            { label: 'Avg value size', val: valB, set: setValB, steps: LAD.bytes, fmtV: (v: number) => fmt.bytes(v), hint: 'Bytes per value — the NIC and per-op CPU both scale with it.' },
+            { label: 'Dataset', val: dataGB, set: setDataGB, steps: LAD.gb, fmtV: (v: number) => v + ' GB', hint: 'Logical data size. Overhead and fork headroom stack on top.' },
+            { label: 'Write ratio', val: writePct, set: setWritePct, steps: LAD.pct, fmtV: (v: number) => v + '%', hint: 'Writes drive replication, AOF, and copy-on-write headroom.' },
+            { label: 'Replicas', val: replicas, set: setReplicas, steps: [0, 1, 2, 3, 4, 5], fmtV: (v: number) => String(v), hint: 'Each replica receives the full write stream.' },
           ].map((c) => (
             <div className="ctl" key={c.label}>
               <div className="ctl-top">
                 <span className="ctl-label">{c.label}</span>
                 <span className="ctl-val">{c.fmtV(c.val)}</span>
               </div>
-              <input type="range" min={c.min} max={c.max} step={c.step} value={c.val} onChange={(e) => c.set(parseFloat(e.target.value))} />
+              <LadderSlider steps={c.steps} value={c.val} onChange={c.set} ariaLabel={c.label} />
               <div className="ctl-hint">{c.hint}</div>
             </div>
           ))}
@@ -127,7 +132,7 @@ export default function HardwareEnvelope() {
           {rows.map((r) => {
             const pct = (r.used / r.cap) * 100
             const st = pct >= 100 ? 'crit' : pct >= 75 ? 'warn' : 'good'
-            const f = (n: number) => (r.unit === 'cores' || r.unit === 'GB' ? fmt.n1(n) : fmt.int(n))
+            const f = (n: number) => (r.unit === 'cores' || r.unit === 'GB' ? fmt.n1(n) : fmt.sig(n))
             return (
               <div className="meter" key={r.label}>
                 <div className="meter-top">

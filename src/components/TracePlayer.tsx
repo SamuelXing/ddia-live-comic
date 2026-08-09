@@ -62,6 +62,9 @@ const STEP_MS = 2400
 export default function TracePlayer({ spec }: { spec: TraceSpec }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const activeStepRef = useRef<HTMLLIElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+  /** did this step change because the reader asked, or because we mounted? */
+  const stepDrivenRef = useRef(false)
   const [stepIdx, setStepIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
   const progRef = useRef(0) // 0..1 within current step
@@ -72,6 +75,7 @@ export default function TracePlayer({ spec }: { spec: TraceSpec }) {
   playRef.current = playing
 
   const jump = useCallback((i: number, autoplay?: boolean) => {
+    stepDrivenRef.current = true
     setStepIdx(Math.max(0, Math.min(i, Infinity)))
     progRef.current = 0
     if (autoplay !== undefined) setPlaying(autoplay)
@@ -139,6 +143,7 @@ export default function TracePlayer({ spec }: { spec: TraceSpec }) {
         progRef.current += dt / STEP_MS
         if (progRef.current >= 1) {
           if (stepRef.current < spec.steps.length - 1) {
+            stepDrivenRef.current = true
             setStepIdx(stepRef.current + 1)
             progRef.current = 0
           } else {
@@ -324,13 +329,28 @@ export default function TracePlayer({ spec }: { spec: TraceSpec }) {
     }
   }, [spec])
 
-  // keep the active step (and its prose) in view as the trace advances
+  // Keep the active step in view as the trace advances — but only when the
+  // reader is actually looking at this player. Traces autoplay on mount, so
+  // without the visibility gate every player on a deep-dive scrolled itself
+  // into view as its step advanced, and the last one won: opening Postgres
+  // dumped you at chapter 7's fleet trace instead of the top of the page.
   useEffect(() => {
+    // Only follow a step the reader actually asked for — a click, or playback
+    // they started. Mounting is not a reason to move the page, and "skip the
+    // first run" does not work here: StrictMode invokes mount effects twice,
+    // so the second pass would scroll. Without this, every trace player on a
+    // deep-dive scrolled itself into view as the page loaded and the last one
+    // won, dropping you at chapter 7's fleet trace instead of the top.
+    if (!stepDrivenRef.current) return
+    stepDrivenRef.current = false
+    // and if they have since scrolled away, don't drag them back
+    const r = rootRef.current?.getBoundingClientRect()
+    if (!r || r.top >= window.innerHeight || r.bottom <= 0) return
     activeStepRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [stepIdx])
 
   return (
-    <div className="trace">
+    <div className="trace" ref={rootRef}>
       <div className="trace-head">
         <span className="trace-title">{spec.title}</span>
         <div className="trace-ctrl">

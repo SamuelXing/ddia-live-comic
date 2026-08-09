@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fmt } from '../format'
+import { LAD, LadderSlider } from '../ladder'
 
 /* ============================================================
    Hardware envelope widget: pick a broker-node shape + workload,
@@ -38,9 +39,9 @@ const WATERMARK = 0.4 // vm_memory_high_watermark default
 
 export default function HardwareEnvelope() {
   const [shapeIdx, setShapeIdx] = useState(1)
-  const [rate, setRate] = useState(60000)
+  const [rate, setRate] = useState(1e4)
   const [msgB, setMsgB] = useState(2048)
-  const [queues, setQueues] = useState(12)
+  const [queues, setQueues] = useState(10)
   const [durablePct, setDurablePct] = useState(50)
   const [backlog, setBacklog] = useState(50000)
 
@@ -109,18 +110,18 @@ export default function HardwareEnvelope() {
             </div>
           </div>
           {[
-            { label: 'Publish rate', val: rate, set: setRate, min: 1000, max: 500000, step: 1000, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Messages entering this node per second.' },
-            { label: 'Avg message size', val: msgB, set: setMsgB, min: 128, max: 65536, step: 128, fmtV: (v: number) => fmt.bytes(v), hint: 'Payload bytes — NIC, disk, and backlog RAM all scale with it.' },
-            { label: 'Queues (sharded)', val: queues, set: setQueues, min: 1, max: 256, step: 1, fmtV: (v: number) => fmt.int(v), hint: 'Load spreads across queues; each is one process on one core.' },
-            { label: 'Durable share', val: durablePct, set: setDurablePct, min: 0, max: 100, step: 5, fmtV: (v: number) => v + '%', hint: 'Persistent / quorum messages: fsync + replication per message.' },
-            { label: 'Standing backlog', val: backlog, set: setBacklog, min: 0, max: 10000000, step: 10000, fmtV: (v: number) => fmt.compact(v) + ' msgs', hint: 'Messages sitting unconsumed — the distance to the watermark.' },
+            { label: 'Publish rate', val: rate, set: setRate, steps: LAD.rate, fmtV: (v: number) => fmt.compact(v) + '/s', hint: 'Messages entering this node per second.' },
+            { label: 'Avg message size', val: msgB, set: setMsgB, steps: LAD.bytes, fmtV: (v: number) => fmt.bytes(v), hint: 'Payload bytes — NIC, disk, and backlog RAM all scale with it.' },
+            { label: 'Queues (sharded)', val: queues, set: setQueues, steps: LAD.many, fmtV: (v: number) => fmt.int(v), hint: 'Load spreads across queues; each is one process on one core.' },
+            { label: 'Durable share', val: durablePct, set: setDurablePct, steps: LAD.pct, fmtV: (v: number) => v + '%', hint: 'Persistent / quorum messages: fsync + replication per message.' },
+            { label: 'Standing backlog', val: backlog, set: setBacklog, steps: LAD.deep, fmtV: (v: number) => fmt.compact(v) + ' msgs', hint: 'Messages sitting unconsumed — the distance to the watermark.' },
           ].map((c) => (
             <div className="ctl" key={c.label}>
               <div className="ctl-top">
                 <span className="ctl-label">{c.label}</span>
                 <span className="ctl-val">{c.fmtV(c.val)}</span>
               </div>
-              <input type="range" min={c.min} max={c.max} step={c.step} value={c.val} onChange={(e) => c.set(parseFloat(e.target.value))} />
+              <LadderSlider steps={c.steps} value={c.val} onChange={c.set} ariaLabel={c.label} />
               <div className="ctl-hint">{c.hint}</div>
             </div>
           ))}
@@ -130,7 +131,7 @@ export default function HardwareEnvelope() {
           {rows.map((r) => {
             const pct = (r.used / r.cap) * 100
             const st = pct >= 100 ? 'crit' : pct >= 75 ? 'warn' : 'good'
-            const f = (n: number) => (r.unit === 'cores' || r.unit === 'GB' ? fmt.n1(n) : fmt.int(n))
+            const f = (n: number) => (r.unit === 'cores' || r.unit === 'GB' ? fmt.n1(n) : fmt.sig(n))
             return (
               <div className="meter" key={r.label}>
                 <div className="meter-top">

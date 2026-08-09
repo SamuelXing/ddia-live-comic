@@ -1,5 +1,6 @@
 import type { ModuleDef, Values, ComputeResult } from '../types'
 import { fmt } from '../format'
+import { LAD } from '../ladder'
 
 function compute(v: Values): ComputeResult {
   const latS = v.lat / 1000
@@ -74,10 +75,10 @@ export const webModule: ModuleDef = {
   <p>That gives the two ways to grow. <b>Scale up</b>: a bigger box runs more workers and more CPU, so one instance absorbs more concurrency. <b>Scale out</b>: add identical instances behind the load balancer. Because the work is stateless, scale-out is near-linear — double the instances, double the capacity — which is why the web tier is the textbook case for horizontal scaling.</p>
   <p>The <b>statelessness rule</b> is what makes it work: no request may depend on which instance served the last one. That means <em>no</em> in-memory sessions (push them to Redis/JWT), no local file uploads (push to S3), no sticky in-process caches you can't tolerate being cold. Break this rule and you need sticky sessions, which pins users to instances and destroys even load-balancing and clean autoscaling.</p>`,
     inputs: [
-      { id: 'rps', label: 'Peak requests / sec', min: 100, max: 200000, step: 100, val: 12000, hint: 'Traffic at your busiest moment — always size for peak, not average.', fmt: (v) => fmt.compact(v) + ' req/s' },
-      { id: 'lat', label: 'Avg time per request', min: 5, max: 2000, step: 5, val: 180, hint: 'Wall-clock per request, including waiting on the DB/downstream calls.', fmt: (v) => v + ' ms' },
-      { id: 'workers', label: 'Workers per instance', min: 1, max: 1024, step: 1, val: 64, hint: 'Concurrent requests one instance handles (threads / async slots).', fmt: (v) => fmt.int(v) },
-      { id: 'pool', label: 'DB connections / instance', min: 1, max: 100, step: 1, val: 20, hint: "Size of each instance's DB connection pool — this is the sneaky one.", fmt: (v) => fmt.int(v) },
+      { id: 'rps', label: 'Peak requests / sec', steps: LAD.rate, val: 1e4, hint: 'Traffic at your busiest moment — always size for peak, not average.', fmt: (v) => fmt.compact(v) + ' req/s' },
+      { id: 'lat', label: 'Avg time per request', steps: LAD.ms, val: 200, hint: 'Wall-clock per request, including waiting on the DB/downstream calls.', fmt: (v) => v + ' ms' },
+      { id: 'workers', label: 'Workers per instance', steps: [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024], val: 64, hint: 'Concurrent requests one instance handles (threads / async slots).', fmt: (v) => fmt.int(v) },
+      { id: 'pool', label: 'DB connections / instance', steps: [1, 2, 5, 10, 20, 50, 100], val: 20, hint: "Size of each instance's DB connection pool — this is the sneaky one.", fmt: (v) => fmt.int(v) },
     ],
     compute,
     limits: [

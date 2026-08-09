@@ -1,10 +1,10 @@
-/** A slider input for a deep-dive sandbox. */
+/** A slider input for a deep-dive sandbox. `steps` is a ladder (see ladder.tsx):
+ *  the input can only stop on a rung, because these are estimates and a
+ *  continuous slider invites precision nobody has. */
 export interface InputDef {
   id: string
   label: string
-  min: number
-  max: number
-  step: number
+  steps: number[]
   val: number
   hint: string
   fmt: (v: number) => string
