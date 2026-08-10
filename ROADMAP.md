@@ -1,8 +1,173 @@
 # DDIA, as a live comic — Roadmap
 
-A living list of where the project is headed. Ordered roughly by sequence, not priority.
+Where the project is headed. **The plan is this first section**; everything from
+`Shipped` down is the record of what is already built, kept because the reasoning
+behind each decision is worth more than the summary of it.
 
-## Now / in progress
+## Next up
+
+Roughly the order I would do them in. The three long menus further down — app sims,
+paper-driven components, the composer — are the longer game, and the sequencing note
+at the end of this section says why they are not first.
+
+### Comprehension polish
+
+The 11-comic audit found **one outlier comic and two problems that are structural
+rather than local**. The outlier is fixed (#30): leaderless writes are not sequenced
+by anything, and `W + R > N` guarantees a read *sees* every candidate value while
+saying nothing about which one is right — freshness and resolution are different
+problems. The last two items below surfaced *after* the audit, from reading the comics
+against the surfaces that depend on them — which is the check the audit itself did not
+run, and the one that found the most.
+
+- **`InTheWild.points` is typed `string[]`**, so not one of the **49** in-the-wild
+  bullets across 11 comics can carry a figure *by construction*. It reads as a wall
+  of text because the format forbids anything else. Change the type, update the
+  renderer, then draw the bullets that earn a drawing — not all 49.
+- **Terms used before they are defined.** Five comics use the inline
+  `[[term|definition]]` glossary exactly zero times: replication-lag,
+  replication-leader, stream-table, tail-latency (replication-quorum is now fixed).
+  Sweep for forward references and gloss them in place.
+- **`concurrent(v1, v2)` is a magic function.** The quorum comic's Step 04 puts that
+  call on screen and never says what is inside it; *version vectors* are named three
+  times in that comic and defined none. The fix is not "teach vector clocks" — it is
+  to define the function the page already promised, in the existing `deeper` fold-out
+  where the mechanism belongs: each replica keeps a counter, a write carries the
+  counters it saw, and if every counter in A is ≥ B's then A saw B, while if each
+  holds one the other lacks they are concurrent. That comparison is two counter maps
+  and an arrow, so it lands as a figure. Deliberately staying out of the Rung 1 body:
+  Cassandra is last-write-wins and DynamoDB dropped vector clocks, so most readers
+  will never operate one.
+- **Hash vs range partitioning is a hole under a page we already ship.** DDIA opens
+  Ch 6 with it, *before* consistent hashing; this site gives it **two rows of a
+  tradeoffs table** and one clause for range. The Ch 6 comic is titled *Consistent
+  Hashing* and every step of it is about rebalancing cost, so the six-panel
+  one-misconception format pushed the choice itself into the table — working as
+  designed, but the gap is real, because **three other surfaces depend on the
+  distinction and none of them teaches it**:
+  - The capacity calculator's *first* requirement row is `Fetch one thing / Scan a
+    range`, and its own info text calls the sort key "the most consequential schema
+    decision you will make". That axis changes read amplification and disqualifies the
+    column store outright — a question asked in row one that no comic answers.
+  - The **hot range** failure is already a full cascade trace on the S3 deep-dive (the
+    date-prefix disaster *is* a timestamp partition key). The concept behind it gets
+    four words in the comic.
+  - **Compound keys** — partition key plus clustering column, the compromise that lets
+    you hash *and* scan — appear exactly once sitewide, as a fix in a Kafka runbook
+    row. Never taught.
+
+  **Do not bolt this onto the consistent-hashing comic**; its single misconception is
+  clean and a fifth step about a different decision would blunt it. Give it a Ch 6
+  companion built on a misconception with teeth: *"the partition key is a performance
+  detail."* It is not — it decides **which questions are possible at all**, and it is
+  close to unchangeable afterwards. The comic already says so in an in-the-wild bullet
+  and `calcModel.ts` says it about three different stores, but nowhere is it the
+  lesson. That companion is also the natural home for hot ranges, compound keys, and
+  the local-vs-global secondary-index split now compressed into one bullet.
+
+  The honest counter-argument, recorded so nobody has to rediscover it: this makes a
+  twelfth comic in a set described below as complete at "11 of 11", and it cuts
+  against the sequencing rule of sharpening before building. It earns the exception
+  only because it is not new surface — it is a hole under existing pages.
+
+### The calculator's own correctness
+
+Two findings from tracing the requirement filters in `calcModel.ts`. Neither is a
+CAP problem — **CAP cannot bind on that panel at all, because none of the seven
+requirements asks about availability.** You cannot violate a theorem whose third
+term you never requested, and "must be current" is read-your-writes on the primary
+path, not linearizability. Worth saying out loud in "what it will not tell you",
+which is already the right home for where the model is structurally blind.
+
+- **Nothing enforces that a survivor exists.** No requirement combination empties the
+  candidate list today, but only because sharded SQL passes every filter
+  *structurally*: `multiKey: 'shard'` survives cross-key atomicity, `durable` survives
+  the loss filter, `pointFast` survives point lookups, it is not the in-memory store
+  so the RAM check skips it, and its `dist` is not `one primary + replicas` so the
+  shard check skips it too. That makes it an accidental universal survivor. If `alive`
+  ever did empty, `alive.reduce(…, alive[0])` seeds with `undefined` and the `!` on
+  the next line asserts it away — a crash or silent garbage, not a graceful "nothing
+  fits". There are only 64 requirement combinations; sweep them and assert
+  `alive.length > 0`, in the shape of `sandboxes.test.ts`.
+- **"Must be current" and "who else must see each write" quietly contradict.** Derived
+  systems — the search index, the analytics table, the cache — are fed
+  asynchronously; that is the entire reason the page starts recommending a log at two
+  of them. So *must be current* is true of the primary and **cannot** be true of the
+  copies, at any budget. Someone who picks it and slides derived to 3 will reasonably
+  read that as "all four are current". Surface the tension where the two rows meet.
+  Same failure mode as the quorum comic: the page lets you believe something it never
+  promised.
+
+### A third calculator: cost
+
+The case for it being its own page rather than a column is the same one that kept
+capacity and latency apart — **it is a different shape.** Capacity is division,
+monotone and safe to extrapolate. Latency is a hockey stick that goes vertical well
+before the ceiling. Cost is **linear when you rent and a staircase when you buy**: you
+never pay for 1.3 machines, and that discontinuity is the lesson. It is also the only
+one of the three whose answer can invert an architecture — capacity says "you need a
+cache", cost says the cache outprices the database it protects, or that **egress
+dominates the bill and appears in no capacity model anywhere.** Against the
+`$0.023/GB-month` already in the S3 envelope, reading a GB out once costs roughly 4×
+storing it for a month.
+
+**The risk, which is unlike anything else on this site: prices expire.** Every other
+constant here is physics or a published measurement — the speed of light is not
+repriced, and Netflix's 1.1M writes/s stays true as a historical fact forever. A price
+list is true until a vendor changes it, and then the page is silently wrong with no
+error anywhere. That is a different maintenance class from the rest of the project.
+
+**So build ratios, not prices.** Egress ÷ storage. Per-request price ÷ object size —
+the small-object tax the S3 page already computes, where a 1 KB object costs ~18× its
+monthly storage on *every* read. Managed ÷ self-run. Cloud-year ÷ purchase price, and
+where the crossover lands. Ratios move far more slowly than absolute prices, and the
+architectural decision lives in the ratio anyway. Absolute dollars go behind one dated
+constants table carrying the same `MEASURED` / `ASSUMED` treatment as everything else.
+
+Anchors for the reality tests, in the established style: Dropbox's S-1 (~$75M saved
+over two years moving off S3), 37signals' published repatriation numbers, and the COST
+paper already cited on the web deep-dive. A second win: `estCostUSD` in the
+observability sim is currently `~$0.10/GB` with no source — the weakest number on the
+site — and would import from a real model the way the latency page imports from
+capacity instead of restating constants.
+
+### Sharing — shareable state first, buttons last
+
+There is **no URL state anywhere on the site** (no `useSearchParams`, no
+`URLSearchParams`), and **every page shares one global OG card**: a link to the quorum
+comic previews identically to the homepage.
+
+- **Encode calculator state in the URL.** The capacity model is a pure function of its
+  inputs — that is its central credibility claim — yet dialling in a scenario produces
+  something you cannot send to anyone. A URL that carries the input state turns every
+  verdict into a link, and that is what actually gets pasted into a work chat. "Here
+  is the exact scenario" travels; "share on X" does not. Every shared link is also a
+  deep link back into real content, which does the marketing job a widget was supposed
+  to do.
+- **Per-page OG cards**, so the preview varies with the page. The renderer already
+  exists — headless Chrome over an HTML template — it just produces one card today.
+- **One plain share control**: `navigator.share` where it exists, copy-link
+  everywhere else. No platform icon row, and no third-party SDK — a share widget would
+  be the first external script on a site that is currently fully self-contained.
+
+### Sequencing — why none of the big menus are first
+
+The composer's own gate says to build it only once the component library is rich
+enough to be worth composing, and **six flagship deep-dives and eleven comics already
+clear that bar.** A seventh component makes the site longer, not better. Meanwhile the
+two weakest surfaces are the experimental sims and comic comprehension, and both are
+about how the depth that already exists *lands*. So: sharpen before building. The
+composer stays the exception, because it is the synthesis rather than more of the same.
+
+### Loose ends
+
+- **Cloudflare toggles** — Always Use HTTPS (`http://systemscomic.com` currently
+  serves plaintext with no redirect) and a `www` CNAME plus redirect rule
+  (`www.systemscomic.com` does not resolve).
+- **27 merged remote branches**, all cross-referenced against merged PRs, safe to
+  delete.
+
+## Shipped
 
 - ✅ **The concept lens is drawn — 11 of 11 ideas live.** Part I gained **Ch 1 · Tail
   Latency** (the average is nobody's experience; `1 − 0.99¹⁰⁰ = 63%` for fan-out *and*
@@ -229,8 +394,24 @@ Spark · inference engines (vLLM) · "Inside a web server" (concurrency models +
 
 ## Ship it
 
-- **Deploy** — static Vite build → Vercel/Netlify/Cloudflare/Pages (needs an SPA
-  rewrite rule so deep links like `/components/kafka` survive a hard refresh).
+- ✅ **Deployed — [systemscomic.com](https://systemscomic.com).** A static-assets
+  Cloudflare **Worker**, not Pages: the "Connect to Git" flow now creates a Worker and
+  runs `wrangler deploy`, which auto-detects Vite and refuses below v6 — so the answer
+  was to state the deployment explicitly in `wrangler.jsonc` rather than chase a major
+  upgrade for a plugin this site would not use. The SPA rewrite is
+  `not_found_handling: "single-page-application"`, and it is the *only* fallback:
+  a Pages-style `public/_redirects` with `/* /index.html 200` failed the deploy
+  outright, because Workers validates that file server-side and correctly calls a
+  catch-all rewriting to a path the catch-all also matches an infinite loop. Shipped
+  alongside it: route-level code splitting, a 1200×630 OG card, `_headers` (immutable
+  assets, revalidated index), README + MIT licence, and the repo renamed to
+  `ddia-live-comic`.
+  Two lessons worth keeping. `wrangler deploy --dry-run` does **not** exercise
+  server-side validation, so a config can pass locally and fail on deploy. And route
+  splitting is a cascade hazard: lazy chunks changed stylesheet *order*, which flipped
+  the winner between two rules of identical specificity and overlapped a table's text.
+  All stylesheets are now imported from `main.tsx` in explicit order, theme last, and
+  the overrides were rewritten to be order-independent.
 - **Support / sponsor** — a Support section with a sponsor QR (GitHub Sponsors / Ko-fi).
 
 ---
