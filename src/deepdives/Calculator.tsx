@@ -926,6 +926,27 @@ export default function Calculator() {
             <Ctl label={DERIVED_INP.label} info={DERIVED_INP.info} hint={DERIVED_INP.hint} val={DERIVED_INP.fmt(v.derived)}>
               <Slider inp={DERIVED_INP} value={v.derived} set={set('derived')} />
             </Ctl>
+            {/* These two rows quietly contradict each other, and the page used to
+                answer it silently. "Must be current" is a promise about the read
+                path to the PRIMARY; a derived copy is written after the fact, so
+                it cannot keep that promise at any budget. Someone who sets both
+                will reasonably read the panel as "all of them are current".
+                Same failure as a comic that assumes a setup the reader lacks —
+                the tool never promised it, but it let you believe it. */}
+            {recency === 'current' && v.derived >= 1 && (
+              <div className="note note-caveat">
+                <b>“Current” stops at the primary.</b> Derived copies are written{' '}
+                <em>after</em> the write returns, so they are behind by construction and no
+                amount of money changes that. Updating one <em>inside</em> the write instead
+                is either a cross-key atomic write — the{' '}
+                <b>Writes that span keys</b> row above — or a{' '}
+                {/* Link, not <a> — a full reload here would throw away the
+                    requirements the reader just set, which is a cruel way to
+                    answer a caveat about their own configuration. */}
+                <Link to="/read/stream-table">dual write</Link>, which is the bug Ch 11 exists
+                to explain.
+              </div>
+            )}
             <Ctl label="How users get new data" info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
               <Picker options={FRESH} value={fresh} onPick={pickReq(setFresh)} />
             </Ctl>

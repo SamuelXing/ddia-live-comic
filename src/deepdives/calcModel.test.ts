@@ -463,3 +463,69 @@ describe('a column is a thing you could install', () => {
     })
   })
 })
+
+/* The requirements are a filter, and a filter can in principle remove
+   everything. Nothing in `model` handles that case: engineWin seeds a reduce
+   with `alive[0]`, and the line after it asserts the result non-null with `!`.
+   On an empty list that is `undefined` laundered through a type assertion —
+   a crash or a garbage verdict, not a graceful "nothing fits".
+
+   It cannot happen today. The reason is worth writing down, because it is an
+   accident rather than a design: NO filter is written to keep a store alive,
+   and sharded SQL survives all of them only as a side effect of its own
+   capabilities. Six requirements, two options each, so 64 combinations —
+   small enough to simply try all of them rather than argue about it. */
+describe('the candidate list can never empty', () => {
+  const OPTS = {
+    fresh: ['pull', 'push'],
+    txn: ['single', 'multi'],
+    loss: ['keep', 'rebuild'],
+    analytics: ['no', 'yes'],
+    access: ['point', 'range'],
+    recency: ['stale', 'current'],
+  }
+
+  const COMBOS: Req[] = []
+  for (const fresh of OPTS.fresh)
+    for (const txn of OPTS.txn)
+      for (const loss of OPTS.loss)
+        for (const analytics of OPTS.analytics)
+          for (const access of OPTS.access)
+            for (const recency of OPTS.recency)
+              COMBOS.push({ fresh, txn, loss, analytics, access, recency })
+
+  /* Two of the five disqualifications are load-dependent, not requirement-
+     dependent — the in-memory RAM check and the single-primary shard check —
+     so the sweep has to move along the load axis too. Every value sits on its
+     own ladder, the same rule the sliders obey. */
+  const SCALES: { name: string; v: Vals }[] = [
+    { name: 'one small box', v: vals({ dau: 1e4, actions: 1, peak: 1, fanout: 0, writeSize: 1, readSize: 1, retention: 1 }) },
+    { name: 'defaults', v: vals() },
+    { name: 'very large', v: vals({ dau: 5e8, actions: 200, peak: 10, fanout: 1000, writeSize: 5000, readSize: 10000, retention: 60 }) },
+  ]
+
+  it('every requirement combination, at every scale, leaves a store standing', () => {
+    expect(COMBOS.length).toBe(64)
+    SCALES.forEach((s) =>
+      COMBOS.forEach((r) => {
+        const m = model(s.v, r)
+        const alive = m.eCols.filter((c) => !c.dq).map((c) => c.id)
+        const where = `${s.name} · ${Object.values(r).join('/')}`
+        expect(alive.length, where).toBeGreaterThan(0)
+        // and the winner has to be one of the survivors rather than the
+        // undefined the `!` would otherwise hide
+        expect(alive, where).toContain(m.engineWin)
+      }),
+    )
+  })
+
+  it('names the store the guarantee actually rests on', () => {
+    /* A canary. If this list ever stops containing sqlShard, the test above
+       is one new filter away from failing, and whoever added that filter
+       should find out here rather than from a blank verdict in production. */
+    const universal = STORES.filter((st) =>
+      SCALES.every((s) => COMBOS.every((r) => !model(s.v, r).eCols.find((c) => c.id === st.id)!.dq)),
+    ).map((st) => st.id)
+    expect(universal).toContain('sqlShard')
+  })
+})
