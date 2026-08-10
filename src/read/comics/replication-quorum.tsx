@@ -9,7 +9,7 @@ export const replicationQuorum: Comic = {
   dek: 'What if no node is the boss? Let clients write to several replicas at once — and lean on a little arithmetic to still read fresh data.',
   minutes: 5,
   caption:
-    'Leader-based replication has one door for writes, and a scramble when the leader dies. **Leaderless** systems (Dynamo, Cassandra, Riak) throw that out: a client sends every write to **several replicas at once**, and reads from several too. The magic that keeps it correct is one inequality.',
+    'Leader-based replication has one door for writes — which quietly means one node decides **what happened first**. **Leaderless** systems (Dynamo, Cassandra, Riak) throw out both: a client sends each write to **several replicas at once**, and *nothing* puts two writes in an order. Hold on to that second loss; it is where this chapter ends up. What keeps reads fresh in the meantime is one inequality.',
   steps: [
     {
       n: 'Step 01',
@@ -18,6 +18,7 @@ export const replicationQuorum: Comic = {
       diagram: <QuorumWriteDiagram />,
       body: [
         'With **N** replicas, don’t wait for all of them. A write succeeds once **W** replicas acknowledge; a read asks **R** replicas and takes the newest answer.',
+        'Any client can do this to any replica at any moment. No node is funnelling the writes, which means no node is **sequencing** them either — a fact that stays quiet until Step 04.',
         'Fast and available — a few dead replicas don’t stop you. But how do you avoid reading stale data when nobody is in charge?',
       ],
       code: {
@@ -70,7 +71,7 @@ export const replicationQuorum: Comic = {
       },
       body: [
         'The same knobs trade speed for safety. Want **fast writes**? Lower W. Want **fast reads**? Lower R. Want them cheap and are willing to read stale? Break the inequality on purpose.',
-        '**Read repair** and **anti-entropy** run in the background to heal replicas that missed a write, so the stragglers converge over time.',
+        '**Read repair** and [[anti-entropy|A background sweep that continuously compares replicas and copies over whatever is missing. Read repair only heals the keys somebody happens to read; anti-entropy eventually reaches the ones nobody asks for.]] run in the background to heal replicas that missed a write, so the stragglers converge over time.',
       ],
     },
     {
@@ -91,7 +92,9 @@ export const replicationQuorum: Comic = {
         ],
       },
       body: [
-        'Quorums are not magic. Concurrent writes to different replicas can still **conflict**, and edge cases (sloppy quorums, timing) can hand back stale data even when `W + R > N`. Leaderless buys availability; it does not buy you linearizability for free.',
+        'Step 01 said a read takes **the newest** answer. This is where that word breaks. With no leader, two clients can write the same key at the same instant to *different* replicas — and since nothing sequenced them, there is no fact of the matter about which one came second.',
+        'And `W + R > N` does not rescue you, because it never promised what it looks like it promises. Overlap guarantees your read **sees every candidate value**. It does not tell you which one is *right*. Freshness and resolution are different problems, and the inequality only solves the first.',
+        'So conflicts are not an edge case bolted onto the design — they are the bill for removing the leader. Add sloppy quorums and clock skew on top and reads can go stale too. Leaderless buys availability; it does not buy [[linearizability|The illusion that only one copy of the data exists: every operation appears to take effect at a single instant, and once a write is acknowledged every later read sees it. Ch 9 builds it with consensus.]] for free.',
       ],
       deeper: {
         summary: 'How leaderless stores resolve concurrent writes.',
