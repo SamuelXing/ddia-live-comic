@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { LagDiagram, ReadYourWritesDiagram, MonotonicDiagram, CausalDiagram } from '../diagrams'
+import { LagDiagram, ReadYourWritesDiagram, MonotonicDiagram, CausalDiagram, TwoDeviceDiagram } from '../diagrams'
 
 export const replicationLag: Comic = {
   slug: 'replication-lag',
@@ -88,7 +88,10 @@ export const replicationLag: Comic = {
   inTheWild: {
     note: 'why “just add a guarantee” is harder than it sounds',
     points: [
-      '“Show users their own writes” sounds simple until they post on their phone and read on their laptop. The laptop doesn’t know the phone just posted, reads a stale follower, and the post is missing. Now you have to track writes per *user*, not per device.',
+      {
+        t: '“Show users their own writes” sounds simple until they post on their phone and read on their laptop. The laptop doesn’t know the phone just posted, reads a stale follower, and the post is missing. Now you have to track writes per *user*, not per device.',
+        figure: <TwoDeviceDiagram />,
+      },
       'Pinning a user to one replica (so time doesn’t run backwards) works — until that replica dies or gets overloaded and you have to move them. They may land on a *more*-stale one, and time runs backwards anyway. The guarantee is only as stable as the routing under it.',
       'You’d like to route around lagging followers, but measuring lag is slippery: a follower can report “caught up” overall and still be seconds behind on the *one* partition you care about. Averages hide the replica that’s badly stale.',
       'In the demo, lag is milliseconds. In production a burst of writes, a slow disk, or a long query on a follower can stretch it to seconds or minutes — usually right when traffic is highest and users are most likely to notice.',

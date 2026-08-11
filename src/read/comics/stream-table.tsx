@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { DualityDiagram, CompactionDiagram, WindowDiagram, ReplicationLogDiagram } from '../diagrams'
+import { DualityDiagram, CompactionDiagram, WindowDiagram, ReplicationLogDiagram, CdcGapDiagram } from '../diagrams'
 
 export const streamTable: Comic = {
   slug: 'stream-table',
@@ -138,7 +138,10 @@ export const streamTable: Comic = {
   ],
   inTheWild: {
     points: [
-      '**Application-level events miss writes; CDC does not.** If the app publishes the event, then every migration, backfill and manual `UPDATE` bypasses the stream. Reading the database’s own replication log catches all of them — at the cost of your stream now being coupled to a schema you did not design for consumers.',
+      {
+        t: '**Application-level events miss writes; CDC does not.** If the app publishes the event, then every migration, backfill and manual `UPDATE` bypasses the stream. Reading the database’s own replication log catches all of them — at the cost of your stream now being coupled to a schema you did not design for consumers.',
+        figure: <CdcGapDiagram />,
+      },
       '**"Exactly once" is really effectively once.** Nothing can guarantee a message is delivered precisely one time across a network. What is achievable is that *processing it twice has the same effect as processing it once* — idempotent writes, or atomically committing the output alongside the consumer offset. If a system claims exactly-once, it is claiming one of those two.',
       '**Replay is only possible as far back as your retention.** A seven-day retention means a new consumer can rebuild seven days of history and no more. If the log is meant to be the source of truth, retention is a correctness setting rather than a cost setting — which is why compaction exists.',
       '**Compaction does not bound a key space that keeps growing.** One record per key is only a bound if the number of keys is bounded. Keyed by user, it is. Keyed by session or request id, the compacted log grows forever and you have made a very expensive queue.',

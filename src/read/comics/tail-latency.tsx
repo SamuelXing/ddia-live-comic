@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { TailDiagram, FanoutTailDiagram, HedgeDiagram, SilenceDiagram } from '../diagrams'
+import { TailDiagram, FanoutTailDiagram, HedgeDiagram, SilenceDiagram, CoordinatedOmissionDiagram } from '../diagrams'
 
 export const tailLatency: Comic = {
   slug: 'tail-latency',
@@ -149,7 +149,10 @@ export const tailLatency: Comic = {
   ],
   inTheWild: {
     points: [
-      '**Your load generator is probably lying to you.** Most benchmarks send the next request only after the previous one returns — so when the system stalls, the generator stalls politely with it and simply never records the requests it should have sent. Gil Tene named this **coordinated omission**, and it can hide an order of magnitude of tail.',
+      {
+        t: '**Your load generator is probably lying to you.** Most benchmarks send the next request only after the previous one returns — so when the system stalls, the generator stalls politely with it and simply never records the requests it should have sent. Gil Tene named this **coordinated omission**, and it can hide an order of magnitude of tail.',
+        figure: <CoordinatedOmissionDiagram />,
+      },
       '**Where you measure changes the answer.** Server-side timing starts when the request is dequeued, which excludes the queue it just sat in — the exact thing you are hunting. Client-side timing includes the network, the retries, and the connection setup, and is the only number that matches what a user felt.',
       '**Tails are made by things you do not control.** A garbage collection pause, a background compaction, a noisy neighbour on shared hardware, a periodic log rotation, a CPU dropping into a lower power state. This is why the tail is a variance problem rather than a performance problem, and why redundancy beats optimization against it.',
       '**Percentiles need enough samples to mean anything.** A p999 over 200 requests is describing a single request. Windows short enough to alert on are frequently too short to compute the percentile you are alerting on.',

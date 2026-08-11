@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { ShuffleDiagram, BroadcastJoinDiagram, SkewDiagram, AmplificationDiagram } from '../diagrams'
+import { ShuffleDiagram, BroadcastJoinDiagram, SkewDiagram, AmplificationDiagram, NullSkewDiagram } from '../diagrams'
 
 export const shuffle: Comic = {
   slug: 'shuffle',
@@ -148,7 +148,10 @@ export const shuffle: Comic = {
   ],
   inTheWild: {
     points: [
-      '**Skew is usually a `NULL` or a default.** The most common hot key in production is not a celebrity — it is `NULL`, `""`, `0`, or `unknown`, which every unmatched row shares. Filter those out before the join and a great many "mysteriously slow" jobs become fast.',
+      {
+        t: '**Skew is usually a `NULL` or a default.** The most common hot key in production is not a celebrity — it is `NULL`, `""`, `0`, or `unknown`, which every unmatched row shares. Filter those out before the join and a great many "mysteriously slow" jobs become fast.',
+        figure: <NullSkewDiagram />,
+      },
       '**The broadcast threshold is a guess about data you have not read.** Planners decide to broadcast from table statistics, and statistics go stale. When they are wrong the job does not slow down, it runs every worker out of memory simultaneously.',
       '**Small files destroy the map side.** A mapper is scheduled per input split; ten thousand tiny files means ten thousand tasks whose startup cost dwarfs their work. Compaction of the input is often a bigger win than anything you do to the query.',
       '**Speculative execution hides skew rather than fixing it.** Frameworks re-launch slow tasks on other machines and take the first to finish, which rescues a genuinely unlucky machine — but a task that is slow because it holds 10% of the rows will be exactly as slow on its replacement, and you have now done the work twice.',

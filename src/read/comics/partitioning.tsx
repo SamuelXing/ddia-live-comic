@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { RingDiagram, ModuloDiagram, StampedeDiagram, VirtualNodesDiagram } from '../diagrams'
+import { RingDiagram, ModuloDiagram, StampedeDiagram, VirtualNodesDiagram, ScatterGatherDiagram } from '../diagrams'
 
 export const partitioning: Comic = {
   slug: 'partitioning',
@@ -114,7 +114,10 @@ export const partitioning: Comic = {
     note: 'where a perfectly balanced ring still tips over',
     points: [
       'Adding a node moves only ~1/N of the keys — but that’s still gigabytes streaming across the network while the cluster serves live traffic. Do it at peak and rebalancing competes with users for the same bandwidth; big clusters deliberately *throttle* it so it doesn’t cause an outage.',
-      'One key, one node is fast. But “give me all orders from last week” now has to ask *every* node and merge the answers (a **scatter-gather**). The more finely you split, the slower these whole-dataset questions get.',
+      {
+        t: 'One key, one node is fast. But “give me all orders from last week” now has to ask *every* node and merge the answers (a **scatter-gather**). The more finely you split, the slower these whole-dataset questions get.',
+        figure: <ScatterGatherDiagram />,
+      },
       'The ring routes by the *primary* key. Search by anything else — email, status — and that value lives on a different node than the row. You either ask every partition (slow) or keep a *second* index partitioned differently (and now must keep it in sync).',
       'Partition by `user_id`, then later need to query by region? Too late — the data’s already scattered by user. The **partition key is one of the hardest things to change after launch**, because changing it means re-shuffling everything.',
     ],
