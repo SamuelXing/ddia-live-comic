@@ -14,18 +14,20 @@ import {
   TailDiagram,
   ShuffleDiagram,
   DualityDiagram,
+  CompoundKeyDiagram,
 } from './diagrams'
 
 
 /** Each idea's inked panel — the graphic that leads the card. Pulled from the
  *  same diagrams the comics use, so the index is a peek at the panels inside. */
-const PANEL: Record<string, ReactNode> = {
+export const PANEL: Record<string, ReactNode> = {
   'tail-latency': <TailDiagram />,
   storage: <StorageDiagram />,
   'replication-leader': <LeaderFollowerDiagram />,
   'replication-lag': <LagDiagram />,
   'replication-quorum': <QuorumDiagram />,
   partitioning: <RingDiagram />,
+  'partition-key': <CompoundKeyDiagram />,
   transactions: <WriteSkewDiagram />,
   'distributed-troubles': <TimeoutDiagram />,
   consensus: <RaftDiagram />,
@@ -47,7 +49,7 @@ interface Part {
   ideas: Idea[]
 }
 
-const PARTS: Part[] = [
+export const PARTS: Part[] = [
   {
     rn: 'I',
     pt: 'Foundations',
@@ -66,6 +68,7 @@ const PARTS: Part[] = [
       { no: 'Ch 5', title: 'Replication Lag', hook: 'Async replication means your followers live a little in the past.', slug: 'replication-lag' },
       { no: 'Ch 5', title: 'Leaderless & Quorums', hook: 'No boss — just the inequality W + R > N.', slug: 'replication-quorum' },
       { no: 'Ch 6', title: 'Consistent Hashing', hook: 'Add a node and move ~1/N of the keys, not ~80%.', slug: 'partitioning' },
+      { no: 'Ch 6', title: 'Choosing the Partition Key', hook: 'Hash it and range scans ask everyone; sort it and today takes every write.', slug: 'partition-key' },
       { no: 'Ch 7', title: 'Isolation Levels', hook: 'Dirty reads, write skew, phantoms — anomalies, frame by frame.', slug: 'transactions' },
       { no: 'Ch 8', title: 'Why It’s Hard', hook: 'Unreliable clocks, timeouts, and how a healthy server gets declared dead.', slug: 'distributed-troubles' },
       { no: 'Ch 9', title: 'Raft, Illustrated', hook: 'Leader election and a replicated log that survives a split vote.', slug: 'consensus' },
@@ -81,6 +84,8 @@ const PARTS: Part[] = [
     ],
   },
 ]
+
+const LIVE_COUNT = PARTS.flatMap((p) => p.ideas).filter((i) => i.slug).length
 
 export default function IndexPage() {
   useEffect(() => {
@@ -120,7 +125,10 @@ export default function IndexPage() {
             short comic, then follow it into the real machines and architectures where it actually lives.
           </p>
           <div className="gn-tags">
-            <span className="gn-tag">11 ideas live</span>
+            {/* counted, not typed — the last comic shipped with this still
+                reading "11", because a hand-written number has no reason to
+                change when a card is added below it. */}
+            <span className="gn-tag">{LIVE_COUNT} ideas live</span>
             <span className="gn-tag">Parts I–III drawn</span>
           </div>
         </header>

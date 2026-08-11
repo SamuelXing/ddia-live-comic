@@ -92,6 +92,7 @@ export default function S3Page() {
           <IdeaStrip
             ideas={[
               { slug: 'partitioning', label: 'Consistent Hashing' },
+              { slug: 'partition-key', label: 'Choosing the Partition Key' },
               { slug: 'storage', label: 'The Storage Engine' },
             ]}
           />

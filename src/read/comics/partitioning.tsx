@@ -115,11 +115,11 @@ export const partitioning: Comic = {
     points: [
       'Adding a node moves only ~1/N of the keys — but that’s still gigabytes streaming across the network while the cluster serves live traffic. Do it at peak and rebalancing competes with users for the same bandwidth; big clusters deliberately *throttle* it so it doesn’t cause an outage.',
       {
-        t: 'One key, one node is fast. But “give me all orders from last week” now has to ask *every* node and merge the answers (a **scatter-gather**). The more finely you split, the slower these whole-dataset questions get.',
+        t: 'One key, one node is fast. But “give me all orders from last week” now has to ask *every* node and merge the answers (a [[scatter-gather|One query sent to every partition, whose partial answers are then combined. Its cost grows with the number of nodes and it waits on the slowest one — so unlike most things here, it gets worse as you scale out.]]). The more finely you split, the slower these whole-dataset questions get.',
         figure: <ScatterGatherDiagram />,
       },
       'The ring routes by the *primary* key. Search by anything else — email, status — and that value lives on a different node than the row. You either ask every partition (slow) or keep a *second* index partitioned differently (and now must keep it in sync).',
-      'Partition by `user_id`, then later need to query by region? Too late — the data’s already scattered by user. The **partition key is one of the hardest things to change after launch**, because changing it means re-shuffling everything.',
+      'Partition by `user_id`, then later need to query by region? Too late — the data’s already scattered by user. The [[partition key|The part of a row that decides which node holds it — not necessarily the primary key, and not necessarily one column. Ch 6’s companion comic is entirely about choosing it.]] **is one of the hardest things to change after launch**, because changing it means re-shuffling everything.',
     ],
   },
   tradeoffs: {
@@ -160,5 +160,5 @@ export const partitioning: Comic = {
     title: 'Watch the ring rebalance under load',
     body: 'You’ve got the idea. Now operate it at production scale: add a node and watch exactly which keys move — the mechanism inside Redis Cluster’s hash slots and Kafka’s partition assignment.',
   },
-  next: { slug: 'transactions', title: 'Isolation Levels' },
+  next: { slug: 'partition-key', title: 'Choosing the Partition Key' },
 }

@@ -5,6 +5,7 @@ import { replicationLeader } from './replication-leader'
 import { replicationLag } from './replication-lag'
 import { replicationQuorum } from './replication-quorum'
 import { partitioning } from './partitioning'
+import { partitionKey } from './partition-key'
 import { transactions } from './transactions'
 import { distributedTroubles } from './distributed-troubles'
 import { consensus } from './consensus'
@@ -19,6 +20,7 @@ export const COMICS: Comic[] = [
   replicationLag,
   replicationQuorum,
   partitioning,
+  partitionKey,
   transactions,
   distributedTroubles,
   consensus,
