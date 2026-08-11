@@ -184,8 +184,3 @@
 .dd-page .mini-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; }
 .dd-page .mini-card h4 { margin: 0 0 6px; font-size: 14.5px; display: flex; align-items: center; gap: 8px; color: var(--ink); }
 .dd-page .mini-card p { margin: 0; font-size: 13px; }
-
-/* Scenario sharing. The share action sits with Reset all because they are the
-   two things you do to a whole scenario rather than to one slider. */
-.dd-page .sb-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.dd-page .share-btn.ok { color: var(--good); border-color: color-mix(in srgb, var(--good) 45%, transparent); }
