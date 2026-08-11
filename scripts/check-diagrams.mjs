@@ -19,16 +19,27 @@ const b=await chromium.launch({executablePath:exe});
 const BASE=process.env.BASE_URL||'http://localhost:5173';
 const slugs=['tail-latency','storage','replication-leader','replication-lag','replication-quorum','partitioning','transactions','distributed-troubles','consensus','shuffle','stream-table'];
 const all=[];
+let measured=0;
 for (const s of slugs){
   const p=await b.newPage({viewport:{width:1200,height:1200}});
+  const pageErrors=[];
+  p.on('pageerror',e=>pageErrors.push(e.message));
+  p.on('console',m=>m.type()==='error'&&pageErrors.push(m.text()));
   await p.goto(BASE+'/read/'+s,{waitUntil:'networkidle'});
+  // The in-the-wild and tradeoffs blocks are <details>, collapsed by default,
+  // and getBBox() reports zeros for a display:none subtree — so a figure in a
+  // bullet would measure as a point at the origin and silently pass. Open
+  // everything first, then measure.
+  await p.$$eval('details',ds=>ds.forEach(d=>{d.open=true}));
   await p.waitForTimeout(250);
   const issues=await p.evaluate(()=>{
     const out=[], P=0.6; // tolerance
     const box=el=>{const b=el.getBBox();return{x:b.x,y:b.y,width:b.width,height:b.height}};
     const inter=(a,b)=>!(a.x+a.width<=b.x||b.x+b.width<=a.x||a.y+a.height<=b.y||b.y+b.height<=a.y);
     const inside=(t,r)=>t.x>=r.x-P&&t.y>=r.y-P&&t.x+t.width<=r.x+r.width+P&&t.y+t.height<=r.y+r.height+P;
-    document.querySelectorAll('.gn-diagram svg').forEach((svg,si)=>{
+    // .gn-wild-fig too: a figure attached to an in-the-wild bullet is exactly
+    // as unable to lay out its own text as a panel diagram is.
+    document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg').forEach((svg,si)=>{
       const [vx,vy,vw,vh]=svg.getAttribute('viewBox').split(/\s+/).map(Number);
       const rects=[...svg.querySelectorAll('rect')].map(box);
       const circles=[...svg.querySelectorAll('circle')].map(c=>({
@@ -62,11 +73,20 @@ for (const s of slugs){
             if(!shielded) out.push(`[LINE-THROUGH-TEXT] "${hit.s}"`); break; }
         }
       });
-    }); return out;
+    }); return {out,seen:document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg').length};
   });
-  [...new Set(issues)].forEach(i=>all.push(`${s} ${i}`));
+  [...new Set(issues.out)].forEach(i=>all.push(`${s} ${i}`));
+  /* A geometry lint that measures nothing reports the same "OK" as one that
+     measured everything, which is the worst failure a checker can have — it
+     was silently passing while the app 500'd on a duplicate export, and the
+     bad diagram shipped past it. Two guards, both of which would have caught
+     that: the page must render errors-free, and every comic must yield at
+     least one diagram to measure. */
+  if(pageErrors.length) all.push(`${s} [PAGE-ERROR] ${pageErrors[0].slice(0,160)}`);
+  else if(!issues.seen) all.push(`${s} [NO-DIAGRAMS-FOUND] page rendered but nothing was measured — selector or route is wrong`);
+  measured+=issues.seen;
   await p.close();
 }
 await b.close();
 if(all.length){console.error('Diagram issues:\n'+all.join('\n')+`\n\n${all.length} issue(s).`);process.exit(1)}
-console.log('Diagram geometry OK - no issues.')
+console.log(`Diagram geometry OK - ${measured} diagram(s) measured across ${slugs.length} comics.`)

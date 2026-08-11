@@ -1,5 +1,8 @@
 import type { Comic } from '../types'
-import { QuorumDiagram, QuorumWriteDiagram, DialsDiagram, ConflictDiagram } from '../diagrams'
+import {
+  QuorumDiagram, QuorumWriteDiagram, DialsDiagram, ConflictDiagram,
+  SlowestOfRDiagram, ZombieValueDiagram, LwwSkewDiagram, SloppyQuorumDiagram,
+} from '../diagrams'
 
 export const replicationQuorum: Comic = {
   slug: 'replication-quorum',
@@ -112,10 +115,25 @@ export const replicationQuorum: Comic = {
   inTheWild: {
     note: '5 ways the math still bites in production',
     points: [
-      'Ask for the freshest read and you wait for the **slowest** of your R replicas. One slow machine slows *every* read — so in real clusters, tail latency (not correctness) is what quietly pushes teams to accept slightly staler reads.',
-      'Delete a key while one replica happens to be offline. It comes back later still holding the old value, and hands it right back — **the thing you deleted reappears.** (This is why a delete leaves a little “was-deleted” marker, a *tombstone*, that lingers a while.)',
-      'When two people write the same key at the same moment, many systems just keep the one with the newer **clock timestamp** and throw the other away — no error, no warning. And if the two clocks disagree, the “winner” might even be the *older* write. **Someone’s change silently vanishes.**',
-      'During a network split, some systems take your write on **whatever nodes they can still reach** instead of the key’s real replicas, just to stay up. The write “succeeds” — but a normal read later asks the real replicas, which never got it, so it looks lost. (This stand-in trick is a *sloppy quorum*.)',
+      {
+        t: 'Ask for the freshest read and you wait for the **slowest** of your R replicas. One slow machine slows *every* read — so in real clusters, tail latency (not correctness) is what quietly pushes teams to accept slightly staler reads.',
+        figure: <SlowestOfRDiagram />,
+      },
+      {
+        t: 'Delete a key while one replica happens to be offline. It comes back later still holding the old value, and hands it right back — **the thing you deleted reappears.** (This is why a delete leaves a little “was-deleted” marker, a *tombstone*, that lingers a while.)',
+        figure: <ZombieValueDiagram />,
+      },
+      {
+        t: 'When two people write the same key at the same moment, many systems just keep the one with the newer **clock timestamp** and throw the other away — no error, no warning. And if the two clocks disagree, the “winner” might even be the *older* write. **Someone’s change silently vanishes.**',
+        figure: <LwwSkewDiagram />,
+      },
+      {
+        t: 'During a network split, some systems take your write on **whatever nodes they can still reach** instead of the key’s real replicas, just to stay up. The write “succeeds” — but a normal read later asks the real replicas, which never got it, so it looks lost. (This stand-in trick is a *sloppy quorum*.)',
+        figure: <SloppyQuorumDiagram />,
+      },
+      /* No figure. This one is advice about who to believe, not a mechanism —
+         there is no sequence to draw, and a drawing here would be decoration
+         competing with the four above it. */
       'Databases advertise strong guarantees; a famous test suite called **Jepsen** keeps catching them break those promises under network trouble. When it really matters, trust the test results, not the datasheet.',
     ],
   },

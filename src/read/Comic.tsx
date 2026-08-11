@@ -191,9 +191,18 @@ export default function ComicView({ comic }: { comic: Comic }) {
                 <span className="chev">▸</span>
               </summary>
               <ul>
-                {comic.inTheWild.points.map((p, i) => (
-                  <li key={i}>{rich(p)}</li>
-                ))}
+                {comic.inTheWild.points.map((p, i) => {
+                  /* A bullet is either prose or prose plus a figure. Normalising
+                     here rather than at every call site keeps the 40-odd bullets
+                     that are pure prose written as plain strings. */
+                  const pt = typeof p === 'string' ? { t: p, figure: undefined } : p
+                  return (
+                    <li key={i}>
+                      {rich(pt.t)}
+                      {pt.figure && <div className="gn-wild-fig">{pt.figure}</div>}
+                    </li>
+                  )
+                })}
               </ul>
             </details>
           )}

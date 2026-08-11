@@ -417,6 +417,12 @@
 .gn-wild li { font-size: 14.5px; color: var(--ink-2); line-height: 1.55; margin: 9px 0; }
 .gn-wild li::marker { color: var(--terra); }
 .gn-wild li b { color: var(--ink); font-weight: 600; }
+/* A bullet's own figure. Capped rather than full-bleed: these sit inside a
+   list item, and a drawing as wide as the section would read as the section's
+   figure instead of that bullet's. */
+.gn-wild-fig { margin: 10px 0 14px; max-width: 420px; }
+.gn-wild-fig svg { display: block; width: 100%; height: auto;
+  background: var(--paper-2); border: 1.5px solid var(--ink-line); }
 
 /* "The call" — a decision framework */
 .gn-tradeoffs { margin-top: 2px; border: 2px solid var(--ink-line); box-shadow: 3px 3px 0 var(--denim); background: var(--paper-2); }
