@@ -12,8 +12,8 @@ at the end of this section says why they are not first.
 
 **The comprehension track, the calculator-correctness track and the sims' engine fork are
 done** (#30, #32–#38, #43, #45); what they found and what shipped is in `Shipped`. What is
-left here is the cost calculator, one unfinished half of sharing, one parked idea and one
-unsourced number.
+left here is the cost calculator, one unfinished half of sharing, one rejected experiment
+kept as a warning, and one unsourced number.
 
 ### A third calculator: cost
 
@@ -65,37 +65,39 @@ records both what was built and the process mistake that produced it. One item r
   what a reader reads in a chat client, and this is the half that only changes the
   thumbnail.
 
-### The calculator's basic view — built, parked
+### The calculator's basic view — built, rejected
 
-**Built on `calc-basic-view`, PR #46, closed unmerged.** The idea holds up and the
-machinery works; what shipped was missing the part that makes it a *view*.
+**Built on `calc-basic-view`, PR #46, closed unmerged. Sam did not like it.** Not a
+scoping problem and not a missing toggle — the thing itself did not earn its place, so
+this is a record of what was tried, not a plan to try it again. Anyone reaching for
+"let's simplify the calculator" should read it as a warning first.
 
-Thirty inputs is a wall, and most do nothing for most scenarios. `fold(v, req)` in
-`calcModel.ts` moves every input one rung either way and keeps it visible only if the page
-changes its mind about something — the store, the components, the shard count. The five
-presets fold to **7–12 visible out of 29**. It is computed rather than hand-picked, and
-that earns its keep: `fsync` is load-bearing on a social feed and inert on metrics ingest,
-so any frozen "basic list" is wrong for one of them. Being a pure function of `(v, req)`
-means a shared link folds the way it folded for whoever sent it — verified in a second
-browser.
+The mechanism, because it worked and is worth not re-deriving: `fold(v, req)` moves every
+input one rung either way and keeps it visible only if the page changes its mind about
+something — the store, the components, the shard count. The five presets folded to **7–12
+visible out of 29**. Computed rather than hand-picked, which earned its keep: `fsync` is
+load-bearing on a social feed and inert on metrics ingest, so any frozen "basic list" is
+wrong for one of them. As a pure function of `(v, req)` a shared link folded the way it
+folded for whoever sent it.
 
-Two things worth keeping from the build:
+Two findings that outlive the feature:
 
-- **The fold must be stricter than the sensitivity panel beside it.** That table forgives a
+- **A fold must be stricter than the sensitivity panel beside it.** That table forgives a
   shard count that drifts without doubling, because flagging every wobble would bury the
-  assumptions that flip a decision. The fold cannot: *"hidden, and it only moves the number
-  you are reading by forty percent"* is the sentence the feature exists to never say. The
-  first version shared `diffOutcome` and the tests caught it immediately.
-- **Fold the control, never the number.** Every value stays printed in the workings column,
-  so the page's claim — the arithmetic is on the page and you can check it — survives. The
-  guarantee is narrower than "nothing changed": *nothing hidden can change the
-  architecture*.
+  assumptions that flip a decision. A fold cannot: *"hidden, and it only moves the number
+  you are reading by forty percent"* is the sentence such a feature exists to never say.
+  The first version shared `diffOutcome` and the tests caught it immediately.
+- **Fold the control, never the number.** Every value stayed printed in the workings
+  column, so the page's claim — the arithmetic is on the page and you can check it —
+  survived. The guarantee was narrower than "nothing changed": *nothing hidden can change
+  the architecture*.
 
-**Why it was parked:** it had no affordance. The panel simply had fewer sliders in it, and
-the only sign anything was withheld was a note *below* a dozen controls. Asked "where is
-the basic view?", the honest answer was that there wasn't one to see — a behaviour, not a
-view. Anything that revives this starts with a mode control at the top of the panel that
-says which one you are in.
+What it got wrong, on the evidence: it had no affordance — the panel simply had fewer
+sliders in it, and the only sign anything was withheld was a note below a dozen controls.
+Asked "where is the basic view?", the honest answer was that there was nothing to see. But
+that is a description of one flaw, not a fix list. **The page is thirty sliders on
+purpose**, and the wall of constants is part of what makes it trustworthy; that is the
+prior any future attempt has to argue against.
 
 ### Loose end from the sims
 
