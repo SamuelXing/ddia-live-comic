@@ -14,18 +14,20 @@ import {
   TailDiagram,
   ShuffleDiagram,
   DualityDiagram,
+  CompoundKeyDiagram,
 } from './diagrams'
 
 
 /** Each idea's inked panel — the graphic that leads the card. Pulled from the
  *  same diagrams the comics use, so the index is a peek at the panels inside. */
-const PANEL: Record<string, ReactNode> = {
+export const PANEL: Record<string, ReactNode> = {
   'tail-latency': <TailDiagram />,
   storage: <StorageDiagram />,
   'replication-leader': <LeaderFollowerDiagram />,
   'replication-lag': <LagDiagram />,
   'replication-quorum': <QuorumDiagram />,
   partitioning: <RingDiagram />,
+  'partition-key': <CompoundKeyDiagram />,
   transactions: <WriteSkewDiagram />,
   'distributed-troubles': <TimeoutDiagram />,
   consensus: <RaftDiagram />,
@@ -47,7 +49,7 @@ interface Part {
   ideas: Idea[]
 }
 
-const PARTS: Part[] = [
+export const PARTS: Part[] = [
   {
     rn: 'I',
     pt: 'Foundations',
@@ -82,6 +84,8 @@ const PARTS: Part[] = [
     ],
   },
 ]
+
+const LIVE_COUNT = PARTS.flatMap((p) => p.ideas).filter((i) => i.slug).length
 
 export default function IndexPage() {
   useEffect(() => {
@@ -121,7 +125,10 @@ export default function IndexPage() {
             short comic, then follow it into the real machines and architectures where it actually lives.
           </p>
           <div className="gn-tags">
-            <span className="gn-tag">11 ideas live</span>
+            {/* counted, not typed — the last comic shipped with this still
+                reading "11", because a hand-written number has no reason to
+                change when a card is added below it. */}
+            <span className="gn-tag">{LIVE_COUNT} ideas live</span>
             <span className="gn-tag">Parts I–III drawn</span>
           </div>
         </header>

@@ -4,8 +4,8 @@ import ScrollToTop from './components/ScrollToTop'
 import { titleForPath } from './routeTitle'
 import SiteNav from './components/SiteNav'
 
-/* Every route is a separate chunk. Without this the whole site — eleven idea
-   comics, six deep-dives with their traces, two calculators, two sims — ships
+/* Every route is a separate chunk. Without this the whole site — every idea
+   comic, six deep-dives with their traces, two calculators, two sims — ships
    as one bundle, so a reader who followed a link to a single comic downloads
    all of it. The nav and the scroll handler stay eager: they are on every page
    and they are what the fallback below renders. */
