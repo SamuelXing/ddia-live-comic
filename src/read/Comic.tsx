@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
 import { rich } from './rich'
+import ShareMenu from '../components/ShareMenu'
+import { SITE_TITLE } from '../routeTitle'
 
 // self-hosted fonts (no runtime network dependency)
 
@@ -105,6 +107,13 @@ function Panel({ step }: { step: Step }) {
 }
 
 export default function ComicView({ comic }: { comic: Comic }) {
+  /* The comic titles the tab, because it already holds the comic — doing it in
+     App's route table would mean importing every comic into the eager chunk.
+     Sharing reads document.title, so this is what labels a shared link. */
+  useEffect(() => {
+    document.title = `${comic.title} · ${comic.chapterNo} · ${SITE_TITLE}`
+  }, [comic])
+
   const barRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -160,6 +169,11 @@ export default function ComicView({ comic }: { comic: Comic }) {
           <Link className="gn-link" to="/read">
             ← All ideas
           </Link>
+          {/* A comic is the most shareable thing on the site, and this page
+              carries its own reading-mode nav rather than SiteNav — so it has
+              to opt in explicitly or it is the one place the control is
+              missing. */}
+          <ShareMenu />
         </div>
       </nav>
 

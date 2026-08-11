@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom'
 import { REPO_URL } from '../site'
+import ShareMenu from './ShareMenu'
 
 /** The GitHub mark (Octicon `mark-github`, 16px), inlined rather than fetched
  *  so the nav never waits on a network request to finish drawing itself. */
@@ -50,6 +51,7 @@ export default function SiteNav() {
           <GitHubMark />
           <span className="lbl">Star</span>
         </a>
+        <ShareMenu />
       </div>
     </nav>
   )
