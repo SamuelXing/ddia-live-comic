@@ -1,6 +1,7 @@
-import { lazy, Suspense } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import ScrollToTop from './components/ScrollToTop'
+import { titleForPath } from './routeTitle'
 import SiteNav from './components/SiteNav'
 
 /* Every route is a separate chunk. Without this the whole site — eleven idea
@@ -35,10 +36,24 @@ function RouteFallback() {
   )
 }
 
+
+/** Keeps document.title describing the page you are actually on. Sharing reads
+ *  it, and so do browser tabs, bookmarks and history — all of which said the
+ *  same sentence on every route until now. */
+function RouteTitle() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const t = titleForPath(pathname)
+    if (t) document.title = t
+  }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <>
       <ScrollToTop />
+      <RouteTitle />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />

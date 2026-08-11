@@ -698,3 +698,29 @@
 .dd-page[class] .tbl-terms td:nth-child(3), .dd-page[class] .tbl-terms th:nth-child(3) { width: 10%; white-space: nowrap; }
 .dd-page[class] .tbl-terms td:nth-child(4), .dd-page[class] .tbl-terms th:nth-child(4) { width: 49%; }
 .dd-page[class] .tbl-terms .num { white-space: nowrap; }
+
+/* ---- share menu ---------------------------------------------------------
+   Sits with the GitHub link because both are things you do TO the page rather
+   than places you go. The menu is absolutely positioned so opening it never
+   reflows the nav — the nav already wraps at narrow widths, and a row that
+   grows on click would shove the links under the reader's cursor. */
+.gn-share { position: relative; display: inline-flex; }
+.gn-share-btn { display: inline-flex; align-items: center; gap: 6px; background: none;
+  border: 0; font: inherit; cursor: pointer; }
+.gn-share-btn svg { width: 13px; height: 13px; fill: currentColor; flex: none; }
+@media (max-width: 620px) { .gn-share-btn .lbl { display: none; } }
+.gn-share-menu {
+  position: absolute; top: calc(100% + 7px); right: 0; z-index: 40; min-width: 152px;
+  display: flex; flex-direction: column;
+  background: var(--paper-2, #fffdf8); border: 2px solid var(--ink-line, #1a1a1a);
+  box-shadow: 3px 3px 0 var(--denim, #3f6191);
+}
+.gn-share-menu a, .gn-share-menu button {
+  display: block; width: 100%; text-align: left; padding: 8px 13px;
+  font-family: var(--gn-mono, ui-monospace, Menlo, monospace); font-size: 12.5px;
+  color: var(--ink, #16130f); text-decoration: none; background: none;
+  border: 0; border-bottom: 1px solid var(--rule, #ded7ca); cursor: pointer;
+}
+.gn-share-menu > :last-child { border-bottom: 0; }
+.gn-share-menu a:hover, .gn-share-menu button:hover { background: var(--card-2, #f5eedd); }
+.gn-share-menu button.ok { color: #2f7d52; }
