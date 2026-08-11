@@ -154,7 +154,7 @@ export const tailLatency: Comic = {
         figure: <CoordinatedOmissionDiagram />,
       },
       '**Where you measure changes the answer.** Server-side timing starts when the request is dequeued, which excludes the queue it just sat in — the exact thing you are hunting. Client-side timing includes the network, the retries, and the connection setup, and is the only number that matches what a user felt.',
-      '**Tails are made by things you do not control.** A garbage collection pause, a background compaction, a noisy neighbour on shared hardware, a periodic log rotation, a CPU dropping into a lower power state. This is why the tail is a variance problem rather than a performance problem, and why redundancy beats optimization against it.',
+      '**Tails are made by things you do not control.** A garbage collection pause, a background [[compaction|The merge an LSM-tree engine runs in the background to fold its sorted files together. Your query never asks for it and never sees it — but it competes with your query for the same disk. Ch 3.]], a noisy neighbour on shared hardware, a periodic log rotation, a CPU dropping into a lower power state. This is why the tail is a variance problem rather than a performance problem, and why redundancy beats optimization against it.',
       '**Percentiles need enough samples to mean anything.** A p999 over 200 requests is describing a single request. Windows short enough to alert on are frequently too short to compute the percentile you are alerting on.',
       '**The p99 of your service is not the p99 your user feels.** A user session is many requests. At 100 requests per session, the chance of hitting at least one p99 request is the same arithmetic as fan-out: 63%.',
     ],
