@@ -264,3 +264,41 @@ export const STAGES: StageDef[] = [
     },
   },
 ]
+
+/* ---------------------------------------------------------------
+   Control state, moved out of the page component because it is model
+   rather than view: stage defaults and the cost estimate are pure
+   functions of the mission definition, and nothing could test them
+   while they sat in a React file next to a canvas.
+   --------------------------------------------------------------- */
+
+export interface Controls {
+  traffic: number
+  writeShare: number // percent
+  cacheHit: number // percent
+  web: number
+  replicas: number
+  partitions: number
+  pgShards: number
+  redisShards: number
+  celeb: boolean
+  regions: number
+  repl: number // percent
+}
+
+export function defaultsFor(stageIdx: number, prev?: Controls): Controls {
+  const st = STAGES[stageIdx]
+  return {
+    traffic: prev?.traffic ?? 48,
+    writeShare: prev?.writeShare ?? 18,
+    cacheHit: prev?.cacheHit ?? 85,
+    web: st.web ?? 2,
+    replicas: 2,
+    partitions: 8,
+    pgShards: 1,
+    redisShards: 1,
+    celeb: false,
+    regions: 3,
+    repl: 12,
+  }
+}

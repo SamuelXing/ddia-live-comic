@@ -2,39 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FeedEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
-import { REQ, STAGES } from './model'
-import type { GoalCtx } from './model'
-
-interface Controls {
-  traffic: number
-  writeShare: number // percent
-  cacheHit: number // percent
-  web: number
-  replicas: number
-  partitions: number
-  pgShards: number
-  redisShards: number
-  celeb: boolean
-  regions: number
-  repl: number // percent
-}
-
-function defaultsFor(stageIdx: number, prev?: Controls): Controls {
-  const st = STAGES[stageIdx]
-  return {
-    traffic: prev?.traffic ?? 48,
-    writeShare: prev?.writeShare ?? 18,
-    cacheHit: prev?.cacheHit ?? 85,
-    web: st.web ?? 2,
-    replicas: 2,
-    partitions: 8,
-    pgShards: 1,
-    redisShards: 1,
-    celeb: false,
-    regions: 3,
-    repl: 12,
-  }
-}
+import { REQ, STAGES, defaultsFor } from './model'
+import type { GoalCtx, Controls } from './model'
 
 function Ctl({
   label,
