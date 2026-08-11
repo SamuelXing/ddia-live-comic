@@ -421,7 +421,8 @@
    list item, and a drawing as wide as the section would read as the section's
    figure instead of that bullet's. */
 .gn-wild-fig { margin: 10px 0 14px; max-width: 420px; }
-.gn-wild-fig svg { display: block; width: 100%; height: auto;
+.gn-deeper-fig { margin: 10px 0 12px; max-width: 400px; }
+.gn-wild-fig svg, .gn-deeper-fig svg { display: block; width: 100%; height: auto;
   background: var(--paper-2); border: 1.5px solid var(--ink-line); }
 
 /* "The call" — a decision framework */

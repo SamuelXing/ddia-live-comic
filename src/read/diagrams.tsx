@@ -1475,3 +1475,35 @@ export function VersionBloatDiagram() {
     </svg>
   )
 }
+
+/** Ch 5 quorum · Step 04 deeper — what `concurrent(v1, v2)` actually tests.
+ *  Each replica keeps a counter; a write carries the counters it had seen. The
+ *  whole comparison is per-counter, which is why it fits in one small table. */
+export function VersionVectorDiagram() {
+  return (
+    <svg viewBox="0 0 240 108" role="img" aria-label="Two comparisons of version vectors. When every counter in A is greater than or equal to B's, A already saw B and wins outright. When each version holds a counter the other lacks, neither saw the other, so both are kept as siblings.">
+      <text x="42" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>version A</text>
+      <text x="112" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>version B</text>
+      <text x="192" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>concurrent?</text>
+
+      <rect x="16" y="20" width="52" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="42" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>a:2 b:1</text>
+      <text x="90" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>vs</text>
+      <rect x="100" y="20" width="52" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="126" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>a:1 b:1</text>
+      <text x="192" y="29" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>no — A saw B</text>
+      <text x="192" y="38" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>A just wins</text>
+
+      <rect x="16" y="52" width="52" height="18" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="42" y="64" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>a:2 b:1</text>
+      <text x="90" y="64" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>vs</text>
+      <rect x="100" y="52" width="52" height="18" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="126" y="64" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>a:1 b:2</text>
+      <text x="192" y="61" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>yes — keep both</text>
+      <text x="192" y="70" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>siblings</text>
+
+      <text x="120" y="88" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>every counter in A ≥ B’s → A already saw B</text>
+      <text x="120" y="100" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>each holds one the other lacks → concurrent</text>
+    </svg>
+  )
+}

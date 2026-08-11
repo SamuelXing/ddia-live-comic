@@ -39,7 +39,7 @@ for (const s of slugs){
     const inside=(t,r)=>t.x>=r.x-P&&t.y>=r.y-P&&t.x+t.width<=r.x+r.width+P&&t.y+t.height<=r.y+r.height+P;
     // .gn-wild-fig too: a figure attached to an in-the-wild bullet is exactly
     // as unable to lay out its own text as a panel diagram is.
-    document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg').forEach((svg,si)=>{
+    document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg').forEach((svg,si)=>{
       const [vx,vy,vw,vh]=svg.getAttribute('viewBox').split(/\s+/).map(Number);
       const rects=[...svg.querySelectorAll('rect')].map(box);
       const circles=[...svg.querySelectorAll('circle')].map(c=>({
@@ -73,7 +73,7 @@ for (const s of slugs){
             if(!shielded) out.push(`[LINE-THROUGH-TEXT] "${hit.s}"`); break; }
         }
       });
-    }); return {out,seen:document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg').length};
+    }); return {out,seen:document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg').length};
   });
   [...new Set(issues.out)].forEach(i=>all.push(`${s} ${i}`));
   /* A geometry lint that measures nothing reports the same "OK" as one that
