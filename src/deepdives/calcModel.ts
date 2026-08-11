@@ -730,7 +730,11 @@ export interface Flip {
 }
 
 /** constants the DECISIONS write into — perturbing an output models nothing */
-const DECIDED = new Set(['overhead', 'readAmp', 'writeAmp'])
+/** Constants the page's own decisions write, not the reader: the transport
+ *  choice sets protocol overhead, the store choice sets both amplifications.
+ *  They are outputs wearing an input's clothes, which is why the sensitivity
+ *  sweep skips them — and why a shared link must not carry them either. */
+export const DECIDED = new Set(['overhead', 'readAmp', 'writeAmp'])
 
 function diffOutcome(a: Outcome, b: Outcome): string[] {
   const out: string[] = []
