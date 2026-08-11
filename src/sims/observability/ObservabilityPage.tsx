@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FeedEngine, fmtRps } from './engine'
+import { ObservabilityEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
 import { REQ, STAGES, defaultsFor, estCostUSD } from './model'
 import type { GoalCtx, Controls } from './model'
@@ -55,7 +55,7 @@ function Kpi({ k, v, u, cls }: { k: string; v: string; u: string; cls?: string }
 
 export default function ObservabilityPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const engineRef = useRef<FeedEngine | null>(null)
+  const engineRef = useRef<ObservabilityEngine | null>(null)
   const [stageIdx, setStageIdx] = useState(0)
   const [controls, setControls] = useState<Controls>(() => defaultsFor(0))
   const [running, setRunning] = useState(true)
@@ -71,7 +71,7 @@ export default function ObservabilityPage() {
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
-    const engine = new FeedEngine(canvas)
+    const engine = new ObservabilityEngine(canvas)
     engineRef.current = engine
     engine.setStage(0)
     engine.start()

@@ -15,29 +15,10 @@ export const REQ: Record<ReqType, { label: string; color: string }> = {
 
 export const FANOUT_COLOR = '#c07fe0'
 
-export type Role =
-  | 'src'
-  | 'edge'
-  | 'net'
-  | 'web'
-  | 'svc'
-  | 'cache'
-  | 'queue'
-  | 'db'
-  | 'store'
-  | 'mono'
-
-export interface NodeTpl {
-  id: string
-  label: string
-  kind?: string
-  role: Role
-  col: number
-  instances?: number
-  slotsPer?: number
-  serviceMs?: number
-  scalable?: 'web' | 'replica'
-}
+/* Node shape and roles are the engine's, not this sim's — both sims draw the
+   same kinds of station on the same canvas. */
+export type { Role, NodeTpl } from '../engine'
+import type { NodeTpl } from '../engine'
 
 /* Node templates. kind drives capacity behaviour; slots = instances × slotsPer;
    capacity(units/s) = slots ÷ (serviceMs/1000).

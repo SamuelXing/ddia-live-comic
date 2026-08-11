@@ -3,9 +3,10 @@
    A logs/metrics/traces pipeline as a queueing network:
    agents → gateway → buffer → indexer → hot/cold store, plus a
    query path reading it back. Pure data; the engine consumes it.
-   Reuses the Feed sim's engine primitives (nodes-as-queues,
-   particles, snapshots) with observability-specific hooks:
-   cardinality (inflates index/query cost) and clusters (federation).
+   Runs on the shared engine in ../engine.ts, which supplies the
+   queueing primitives (nodes-as-queues, particles, snapshots);
+   this sim's own mechanics — cardinality and federation — live in
+   ./engine.ts.
    ============================================================ */
 
 export type ReqType = 'log' | 'metric' | 'trace' | 'query'
@@ -16,9 +17,6 @@ export const REQ: Record<ReqType, { label: string; color: string }> = {
   trace: { label: 'trace span', color: '#9085e9' },
   query: { label: 'query / dashboard', color: '#e6a72a' },
 }
-
-/** Unused here (no particle fan-out), but the shared engine imports it. */
-export const FANOUT_COLOR = '#c07fe0'
 
 /** Ingest-vs-query split → per-type spawn weights. */
 export function typeWeights(queryShare: number): Record<ReqType, number> {
@@ -32,29 +30,10 @@ export function typeWeights(queryShare: number): Record<ReqType, number> {
   }
 }
 
-export type Role =
-  | 'src'
-  | 'edge'
-  | 'net'
-  | 'web'
-  | 'svc'
-  | 'cache'
-  | 'queue'
-  | 'db'
-  | 'store'
-  | 'mono'
-
-export interface NodeTpl {
-  id: string
-  label: string
-  kind?: string
-  role: Role
-  col: number
-  instances?: number
-  slotsPer?: number
-  serviceMs?: number
-  scalable?: 'web' | 'replica'
-}
+/* Node shape and roles are the engine's, not this sim's — both sims draw the
+   same kinds of station on the same canvas. */
+export type { Role, NodeTpl } from '../engine'
+import type { NodeTpl } from '../engine'
 
 /* Node templates. slots = instances × slotsPer; capacity(units/s) =
    slots ÷ (serviceMs/1000). serviceMs floors at the engine's 25 ms.
@@ -116,8 +95,6 @@ export interface StageDef {
   idx?: number
   /** Ingest volume (units) this stage opens at, sized for its lesson. */
   ingest0?: number
-  /** Engine-compat shim (geo-map mode from the shared engine; unused here). */
-  map?: boolean
   controls: StageControls
   routes: (s: { cacheHit: number }) => Partial<Record<ReqType, string[]>>
   goals: Goal[]
