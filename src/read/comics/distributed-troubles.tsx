@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { TimeoutDiagram, SilenceDiagram, ClockSkewDiagram, FencingDiagram } from '../diagrams'
+import { TimeoutDiagram, SilenceDiagram, ClockSkewDiagram, FencingDiagram, PausedNotDeadDiagram } from '../diagrams'
 
 export const distributedTroubles: Comic = {
   slug: 'distributed-troubles',
@@ -113,7 +113,10 @@ export const distributedTroubles: Comic = {
   inTheWild: {
     note: 'why perfectly healthy systems get declared dead',
     points: [
-      'A garbage-collection pause, or a hypervisor pausing your VM, can freeze a *healthy* process for hundreds of milliseconds — sometimes seconds. To everyone else it looks dead; to itself, no time passed. Big heaps and noisy-neighbour clouds make this routine, not rare.',
+      {
+        t: 'A garbage-collection pause, or a hypervisor pausing your VM, can freeze a *healthy* process for hundreds of milliseconds — sometimes seconds. To everyone else it looks dead; to itself, no time passed. Big heaps and noisy-neighbour clouds make this routine, not rare.',
+        figure: <PausedNotDeadDiagram />,
+      },
       'The “declare it dead” timeout is a trap. Too short and normal network jitter triggers false failovers that thrash the cluster. Too long and a real failure leaves you down that whole window. No value is right for both — and the right value drifts as your load changes.',
       'It’s tempting to order events across machines by their timestamps. But wall clocks drift, and NTP can jump one *backwards* — so a “later” timestamp can belong to an *earlier* event. Systems that trusted timestamps for ordering have silently dropped the newer write.',
       'The scary failures aren’t clean deaths. A node can reach some peers but not others, or serve reads but not writes, or be slow for just one client. Half the cluster thinks it’s alive, half thinks it’s dead — and both are right from where they stand. (a **gray failure**)',

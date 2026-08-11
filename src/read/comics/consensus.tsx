@@ -1,5 +1,11 @@
 import type { Comic } from '../types'
-import { RaftDiagram, ConsistencyKindsDiagram, LogCommitDiagram, SplitVoteDiagram } from '../diagrams'
+import {
+  RaftDiagram,
+  ConsistencyKindsDiagram,
+  LogCommitDiagram,
+  SplitVoteDiagram,
+  SplitMajorityDiagram,
+} from '../diagrams'
 
 export const consensus: Comic = {
   slug: 'consensus',
@@ -101,7 +107,10 @@ export const consensus: Comic = {
     points: [
       'A committed write has to reach a majority and hear back *before* it counts — at least one round-trip to other machines on every write. Fine inside one datacenter; brutal across regions, where that’s tens of milliseconds each time. Consensus trades latency for agreement.',
       'All writes funnel through **one leader**, and each write fans out to the followers. You can’t speed writes up by adding nodes — more nodes means *more* messages per commit, not fewer. Consensus is for agreement, not throughput.',
-      'Adding or removing a node from a *live* group is one of the trickiest things you can do. Do it naively and you can briefly have two overlapping majorities that each elect a leader — a split brain. Raft has a careful “joint consensus” dance precisely because this is where real clusters have corrupted themselves.',
+      {
+        t: 'Adding or removing a node from a *live* group is one of the trickiest things you can do. Do it naively and you can briefly have two overlapping majorities that each elect a leader — a split brain. Raft has a careful “joint consensus” dance precisely because this is where real clusters have corrupted themselves.',
+        figure: <SplitMajorityDiagram />,
+      },
       'You rarely *implement* Raft — but you run it: **etcd, ZooKeeper, Kafka’s controller, Consul**. When one gets slow, it’s often consensus latency (a slow disk on the leader, a far-away follower) showing up as mysterious slowness in everything that depends on it.',
     ],
   },

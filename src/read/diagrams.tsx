@@ -1258,3 +1258,220 @@ export function SloppyQuorumDiagram() {
     </svg>
   )
 }
+
+/** Ch 9 consensus · wild — a naive membership change can leave two majorities
+ *  that share no node, so both elect a leader. */
+export function SplitMajorityDiagram() {
+  return (
+    <svg viewBox="0 0 240 96" role="img" aria-label="The old three-node group's majority is A and B; the new five-node group's majority is C, D and E. The two majorities share no node, so each elects its own leader.">
+      <text x="6" y="24" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>old</text>
+      <rect x="30" y="12" width="22" height="17" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="2" />
+      <text x="41" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>A</text>
+      <rect x="56" y="12" width="22" height="17" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="2" />
+      <text x="67" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>B</text>
+      <rect x="82" y="12" width="22" height="17" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="93" y="24" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>C</text>
+      <text x="114" y="24" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>2 of 3 elects a leader</text>
+      <text x="6" y="56" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>new</text>
+      <rect x="30" y="44" width="22" height="17" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="41" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>A</text>
+      <rect x="56" y="44" width="22" height="17" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="67" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>B</text>
+      <rect x="82" y="44" width="22" height="17" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="93" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>C</text>
+      <rect x="108" y="44" width="22" height="17" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="119" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>D</text>
+      <rect x="134" y="44" width="22" height="17" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="145" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>E</text>
+      <text x="164" y="56" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>3 of 5 elects</text>
+      <text x="120" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the two majorities share no node</text>
+    </svg>
+  )
+}
+
+/** Ch 8 troubles · wild — a stop-the-world pause is indistinguishable from death. */
+export function PausedNotDeadDiagram() {
+  return (
+    <svg viewBox="0 0 240 100" role="img" aria-label="A healthy process is frozen by a garbage-collection pause; its peers stop hearing heartbeats and declare it dead, and the process resumes with no idea.">
+      <text x="14" y="14" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>one healthy process</text>
+      <line x1="14" y1="34" x2="226" y2="34" stroke={INK} strokeWidth="1.5" />
+      <rect x="96" y="22" width="62" height="24" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="127" y="37" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>GC pause</text>
+      {/* below the lifeline, not on it — centred on the line these were struck
+          through by it, which the geometry lint flags as [LINE-THROUGH-TEXT] */}
+      <text x="52" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>alive</text>
+      <text x="194" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>alive</text>
+      <path d="M127 48 L127 62" stroke={TERRA} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="127" y="74" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>peers: “it is dead”</text>
+      <text x="120" y="94" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>it never noticed it was gone</text>
+    </svg>
+  )
+}
+
+/** Ch 6 partitioning · wild — a query that names no partition key asks everyone. */
+export function ScatterGatherDiagram() {
+  return (
+    <svg viewBox="0 0 240 100" role="img" aria-label="One query that does not name a partition key is sent to every node, and their partial answers must be merged into one result.">
+      <defs>
+        <marker id="gn-sg" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5 z" fill={MUTED} /></marker>
+      </defs>
+      <rect x="4" y="32" width="40" height="20" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="24" y="45" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>query</text>
+      {[8, 27, 46, 65].map((y) => (
+        <g key={y}>
+          <path d={`M46 42 L${74} ${y + 7}`} stroke={MUTED} strokeWidth="1" markerEnd="url(#gn-sg)" />
+          <rect x="76" y={y} width="26" height="14" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+          <path d={`M104 ${y + 7} L${140} 42`} stroke={MUTED} strokeWidth="1" markerEnd="url(#gn-sg)" />
+        </g>
+      ))}
+      <rect x="144" y="32" width="46" height="20" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="167" y="45" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>merge</text>
+      <text x="120" y="94" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>one question, every node, then a merge</text>
+    </svg>
+  )
+}
+
+/** Ch 5 lag · wild — read-your-writes breaks the moment a second device reads. */
+export function TwoDeviceDiagram() {
+  return (
+    <svg viewBox="0 0 240 100" role="img" aria-label="A phone writes to the leader while the same person's laptop reads from a follower that has not caught up, so their own post is missing.">
+      <defs>
+        <marker id="gn-td-d" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={DENIM} /></marker>
+        <marker id="gn-td-m" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={MUTED} /></marker>
+      </defs>
+      <rect x="4" y="10" width="46" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="27" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>phone</text>
+      <path d="M52 19 L96 19" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-td-d)" />
+      <text x="74" y="13" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={DENIM}>posts</text>
+      <rect x="100" y="8" width="60" height="22" rx="2" fill={DENIM} stroke={INK} strokeWidth="1.5" />
+      <text x="130" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill="#fff">leader</text>
+      <path d="M130 32 L130 52" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 3" markerEnd="url(#gn-td-m)" />
+      <text x="152" y="45" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>lag</text>
+      <rect x="100" y="56" width="60" height="22" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="130" y="71" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>follower</text>
+      <rect x="4" y="58" width="46" height="18" rx="2" fill="#fff" stroke={TERRA} strokeWidth="2" />
+      <text x="27" y="71" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>laptop</text>
+      <path d="M96 67 L54 67" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-td-d)" />
+      <text x="196" y="71" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>“no post yet”</text>
+      <text x="120" y="94" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>one person, two devices, two replicas</text>
+    </svg>
+  )
+}
+
+/** Ch 5 leader · wild — the old leader is unreachable, not dead. */
+export function SplitBrainDiagram() {
+  return (
+    <svg viewBox="0 0 240 96" role="img" aria-label="A network split leaves the old leader alive on one side while a new leader is elected on the other, and both accept writes.">
+      <line x1="120" y1="6" x2="120" y2="62" stroke={MUTED} strokeWidth="1.5" strokeDasharray="4 3" />
+      <text x="120" y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>network split</text>
+      <rect x="10" y="16" width="88" height="22" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="54" y="31" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>old leader, alive</text>
+      <text x="54" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>takes writes</text>
+      <rect x="142" y="16" width="88" height="22" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="186" y="31" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>new leader, elected</text>
+      <text x="186" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>takes writes too</text>
+      <text x="120" y="90" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>both believe they are the only one</text>
+    </svg>
+  )
+}
+
+/** Ch 10 shuffle · wild — the hot key is almost never a celebrity. */
+export function NullSkewDiagram() {
+  return (
+    <svg viewBox="0 0 240 100" role="img" aria-label="A bar chart of rows per key: several ordinary keys are small and the NULL key towers over all of them.">
+      <line x1="14" y1="70" x2="226" y2="70" stroke={INK} strokeWidth="1.5" />
+      {[
+        ['user_a', 9, 22], ['user_b', 13, 46], ['user_c', 8, 70], ['user_d', 11, 94],
+      ].map(([, h, x]) => (
+        <rect key={x as number} x={x as number} y={70 - (h as number)} width="18" height={h as number} fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      ))}
+      <rect x="118" y="16" width="18" height="54" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <rect x="142" y="60" width="18" height="10" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      <rect x="166" y="58" width="18" height="12" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      <text x="127" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>NULL</text>
+      <text x="70" y="82" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>ordinary keys</text>
+      <text x="120" y="96" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>one reducer gets every unmatched row</text>
+    </svg>
+  )
+}
+
+/** Ch 3 storage · wild — a B-tree delete frees space inside the page, not the file. */
+export function FragmentationDiagram() {
+  return (
+    <svg viewBox="0 0 240 88" role="img" aria-label="A database file drawn as a row of pages: only a third hold live rows and the rest are freed holes, yet the file on disk is still the full size.">
+      <text x="14" y="14" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>live rows</text>
+      <rect x="14" y="20" width="212" height="26" fill="none" stroke={INK} strokeWidth="1.5" />
+      {[0, 3, 7, 10].map((i) => (
+        <rect key={i} x={16 + i * 17.4} width="15.4" y="22" height="22" fill="#dfe7f2" stroke={DENIM} strokeWidth="1" />
+      ))}
+      {[1, 2, 4, 5, 6, 8, 9, 11].map((i) => (
+        <rect key={i} x={16 + i * 17.4} width="15.4" y="22" height="22" fill="none" stroke={MUTED} strokeWidth="0.8" strokeDasharray="2 2" />
+      ))}
+      <text x="226" y="58" textAnchor="end" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>the file never shrank</text>
+      <text x="120" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>a delete frees space inside a page</text>
+    </svg>
+  )
+}
+
+/** Ch 11 stream–table · wild — only the log sees every write. */
+export function CdcGapDiagram() {
+  return (
+    <svg viewBox="0 0 240 104" role="img" aria-label="An application write publishes an event, a migration writing straight to the database publishes nothing, and change data capture reading the log sees both.">
+      <defs>
+        <marker id="gn-cdc" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5 z" fill={MUTED} /></marker>
+      </defs>
+      <text x="6" y="20" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>app write</text>
+      <path d="M62 16 L84 16" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-cdc)" />
+      <rect x="88" y="7" width="106" height="18" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      <text x="141" y="19" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>publishes an event</text>
+      <text x="6" y="52" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>migration</text>
+      <path d="M62 48 L84 48" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-cdc)" />
+      <rect x="88" y="39" width="106" height="18" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="141" y="51" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>publishes nothing</text>
+      <text x="6" y="84" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>CDC on the log</text>
+      <path d="M84 80 L96 80" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-cdc)" />
+      <rect x="100" y="71" width="94" height="18" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      <text x="147" y="83" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>sees both of them</text>
+      <text x="120" y="100" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the log is the only complete record</text>
+    </svg>
+  )
+}
+
+/** Ch 1 tail · wild — the benchmark stops sending during the stall it is measuring. */
+export function CoordinatedOmissionDiagram() {
+  return (
+    <svg viewBox="0 0 240 108" role="img" aria-label="The requests you meant to send arrive on a steady schedule, but during a 200 millisecond stall the load generator sends nothing, so the stall erases the very requests that would have measured it.">
+      <text x="14" y="14" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>meant to send</text>
+      <line x1="14" y1="26" x2="226" y2="26" stroke={INK} strokeWidth="1.2" />
+      {Array.from({ length: 18 }, (_, i) => 18 + i * 12).map((x) => (
+        <line key={x} x1={x} y1="20" x2={x} y2="32" stroke={DENIM} strokeWidth="1.6" />
+      ))}
+      <rect x="102" y="40" width="60" height="18" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="132" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>200 ms stall</text>
+      <text x="14" y="72" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>actually sent</text>
+      <line x1="14" y1="84" x2="226" y2="84" stroke={INK} strokeWidth="1.2" />
+      {Array.from({ length: 18 }, (_, i) => 18 + i * 12).filter((x) => x < 102 || x > 162).map((x) => (
+        <line key={x} x1={x} y1="78" x2={x} y2="90" stroke={DENIM} strokeWidth="1.6" />
+      ))}
+      <text x="132" y="102" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>the stall erased its own evidence</text>
+    </svg>
+  )
+}
+
+/** Ch 7 transactions · wild — one open transaction pins every version behind it. */
+export function VersionBloatDiagram() {
+  return (
+    <svg viewBox="0 0 240 92" role="img" aria-label="A single long-running transaction stays open across the whole timeline, so every old row version created during it must be kept alive.">
+      <rect x="14" y="14" width="200" height="16" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+      <text x="114" y="26" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>one transaction, still open</text>
+      {[0, 1, 2, 3, 4, 5].map((i) => (
+        <g key={i}>
+          <rect x={16 + i * 33} y="42" width="28" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="1.5" />
+          <text x={30 + i * 33} y="54" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>{'v' + (i + 1)}</text>
+        </g>
+      ))}
+      <text x="120" y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>none of these can be vacuumed yet</text>
+      <text x="120" y="86" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the table grows while nothing changes</text>
+    </svg>
+  )
+}

@@ -1,5 +1,12 @@
 import type { Comic } from '../types'
-import { WriteSkewDiagram, AtomicityDiagram, NonRepeatableDiagram, MvccDiagram, TwoPlSsiDiagram } from '../diagrams'
+import {
+  WriteSkewDiagram,
+  AtomicityDiagram,
+  NonRepeatableDiagram,
+  MvccDiagram,
+  TwoPlSsiDiagram,
+  VersionBloatDiagram,
+} from '../diagrams'
 
 export const transactions: Comic = {
   slug: 'transactions',
@@ -142,7 +149,10 @@ export const transactions: Comic = {
       'The standard’s level *names* lie. Oracle’s “Serializable” is actually snapshot isolation; one database’s “Repeatable Read” differs from the next. You can’t trust the label — you have to check what your *specific* database does under it.',
       'Most databases default to **Read Committed**, not something stronger. So unless you changed it, two reads in the same transaction can already return different values — and most apps never notice until a subtle bug surfaces in production.',
       'Write skew is nasty because nothing *looks* wrong: two transactions each read, each check a rule (“at least one doctor on call”), each write a different row. No conflict, both commit, rule broken. Any *check-then-act* across rows — booking the last seat, enforcing a limit — can hide this and pass every test that runs the transactions one at a time.',
-      'MVCC keeps old row versions so your snapshot stays stable — but one long-running transaction forces the database to keep *every* old version alive that whole time, bloating storage and slowing everyone until it finishes. A single forgotten open transaction can quietly degrade the whole database.',
+      {
+        t: 'MVCC keeps old row versions so your snapshot stays stable — but one long-running transaction forces the database to keep *every* old version alive that whole time, bloating storage and slowing everyone until it finishes. A single forgotten open transaction can quietly degrade the whole database.',
+        figure: <VersionBloatDiagram />,
+      },
     ],
   },
   tradeoffs: {

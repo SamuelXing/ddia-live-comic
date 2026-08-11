@@ -1,5 +1,5 @@
 import type { Comic } from '../types'
-import { LeaderFollowerDiagram, ReplicationLogDiagram, SyncAsyncDiagram } from '../diagrams'
+import { LeaderFollowerDiagram, ReplicationLogDiagram, SyncAsyncDiagram, SplitBrainDiagram } from '../diagrams'
 
 export const replicationLeader: Comic = {
   slug: 'replication-leader',
@@ -89,7 +89,10 @@ export const replicationLeader: Comic = {
   inTheWild: {
     note: 'failover — where the simple design gets its sharp edges',
     points: [
-      'If the old leader isn’t really dead — just unreachable for a moment — you can end up with **two leaders** both taking writes. Now two nodes disagree about the truth, and merging them later means someone’s writes get thrown away. This is why promotion should need a *majority* to agree, not one node’s hunch. (a **split brain**)',
+      {
+        t: 'If the old leader isn’t really dead — just unreachable for a moment — you can end up with **two leaders** both taking writes. Now two nodes disagree about the truth, and merging them later means someone’s writes get thrown away. This is why promotion should need a *majority* to agree, not one node’s hunch. (a **split brain**)',
+        figure: <SplitBrainDiagram />,
+      },
       'When the leader dies, *which* follower takes over? Under async, every follower is missing something — and promoting the one that’s furthest behind throws away the most data. Systems try to pick the most caught-up follower, but “most caught-up” still isn’t “caught up.”',
       'How long do you wait before declaring the leader dead? Too short and a brief network hiccup triggers a needless, disruptive failover. Too long and you’re simply down for that whole window. **No single timeout is right for both.**',
       'The instant failover happens, every read that was spread across followers piles onto the brand-new leader while the others catch up. A failover meant to save you can trigger a load spike that knocks you over *again*.',
