@@ -1153,3 +1153,108 @@ export function WindowDiagram() {
     </svg>
   )
 }
+
+/* ---------------------------------------------------------------------------
+   In-the-wild figures. Wider and shorter than a panel diagram, because they
+   sit inside a list item rather than a panel, and capped at 420px by
+   .gn-wild-fig — so the usable text size is close to a panel's despite the
+   wider viewBox. Only bullets whose subject is a SEQUENCE or a MISMATCH get
+   one; prose is better at everything else.
+   --------------------------------------------------------------------------- */
+
+/** Ch 5 quorum · wild 1 — a read waits on the slowest of its R replicas. */
+export function SlowestOfRDiagram() {
+  return (
+    <svg viewBox="0 0 240 92" role="img" aria-label="Three replicas answer in 2, 3 and 40 milliseconds; the read cannot return until the slowest one does, so it takes 40 milliseconds.">
+      <defs>
+        <marker id="gn-sor-m" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={MUTED} /></marker>
+        <marker id="gn-sor-t" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={TERRA} /></marker>
+      </defs>
+      <rect x="6" y="8" width="56" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="34" y="19" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>A · 2 ms</text>
+      <rect x="6" y="30" width="56" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="34" y="41" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>B · 3 ms</text>
+      <rect x="6" y="52" width="56" height="16" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="34" y="63" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>C · 40 ms</text>
+      <path d="M64 16 L128 32" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-sor-m)" />
+      <path d="M64 38 L128 38" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-sor-m)" />
+      <path d="M64 60 L128 44" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-sor-t)" />
+      <rect x="134" y="24" width="100" height="28" rx="2" fill="#fff" stroke={TERRA} strokeWidth="2" />
+      <text x="184" y="36" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>read returns</text>
+      <text x="184" y="47" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>at 40 ms</text>
+      <text x="120" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the slowest replica sets the latency</text>
+    </svg>
+  )
+}
+
+/** Ch 5 quorum · wild 2 — a replica that missed the delete hands the value back. */
+export function ZombieValueDiagram() {
+  return (
+    <svg viewBox="0 0 240 88" role="img" aria-label="A delete happens while replica C is offline; C rejoins still holding the old value, and a later read gets it back.">
+      <line x1="14" y1="46" x2="226" y2="46" stroke={INK} strokeWidth="1.5" />
+      <circle cx="40" cy="46" r="4" fill={DENIM} />
+      <text x="40" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>delete</text>
+      <text x="40" y="62" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>C offline</text>
+      <circle cx="122" cy="46" r="4" fill={MUTED} />
+      <text x="122" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>C rejoins</text>
+      <circle cx="198" cy="46" r="4" fill={TERRA} />
+      <text x="198" y="32" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>read</text>
+      <text x="198" y="62" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>old value</text>
+      <text x="120" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>a tombstone is what tells C it was deleted</text>
+    </svg>
+  )
+}
+
+/** Ch 5 quorum · wild 3 — last-write-wins on skewed clocks drops the newer write.
+ *  Distinct from Ch 8's ClockSkewDiagram, which shows the clocks themselves
+ *  disagreeing; this one shows what LWW then does with those timestamps. */
+export function LwwSkewDiagram() {
+  return (
+    <svg viewBox="0 0 240 96" role="img" aria-label="Two writes carry clock timestamps that disagree with the order they happened in, so last-write-wins keeps the older write and silently drops the newer one.">
+      <defs>
+        <marker id="gn-skew" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={MUTED} /></marker>
+      </defs>
+      <rect x="6" y="8" width="92" height="28" rx="2" fill="#fff" stroke={TERRA} strokeWidth="2" />
+      <text x="52" y="20" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>A — happened 2nd</text>
+      <text x="52" y="31" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>clock says 10:00:03</text>
+      <rect x="6" y="44" width="92" height="28" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" />
+      <text x="52" y="56" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>B — happened 1st</text>
+      <text x="52" y="67" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>clock says 10:00:07</text>
+      <path d="M100 22 L134 32" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-skew)" />
+      <path d="M100 58 L134 46" stroke={MUTED} strokeWidth="1.5" markerEnd="url(#gn-skew)" />
+      <rect x="140" y="26" width="94" height="28" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="187" y="38" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>keeps max(ts)</text>
+      <text x="187" y="49" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>B wins</text>
+      <text x="120" y="88" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>the newer write is the one that vanishes</text>
+    </svg>
+  )
+}
+
+/** Ch 5 quorum · wild 4 — a sloppy quorum writes somewhere the read never looks. */
+export function SloppyQuorumDiagram() {
+  return (
+    <svg viewBox="0 0 240 92" role="img" aria-label="A write is accepted by stand-in nodes D and E, while a later read asks the key's real replicas A, B and C, which never received it.">
+      <defs>
+        <marker id="gn-slp-d" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={DENIM} /></marker>
+        <marker id="gn-slp-t" markerWidth="6" markerHeight="6" refX="4.5" refY="3" orient="auto"><path d="M0 0 L6 3 L0 6 z" fill={TERRA} /></marker>
+      </defs>
+      <text x="6" y="23" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>write</text>
+      <path d="M36 19 L54 19" stroke={DENIM} strokeWidth="2" markerEnd="url(#gn-slp-d)" />
+      <rect x="58" y="10" width="24" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="70" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>D</text>
+      <rect x="88" y="10" width="24" height="18" rx="2" fill="#fff" stroke={DENIM} strokeWidth="2" />
+      <text x="100" y="23" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>E</text>
+      <text x="120" y="23" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>stand-ins, not the key’s nodes</text>
+      <text x="6" y="61" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={TERRA}>read</text>
+      <path d="M36 57 L54 57" stroke={TERRA} strokeWidth="2" markerEnd="url(#gn-slp-t)" />
+      <rect x="58" y="48" width="24" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="70" y="61" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>A</text>
+      <rect x="88" y="48" width="24" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="100" y="61" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>B</text>
+      <rect x="118" y="48" width="24" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.5" strokeDasharray="3 2" />
+      <text x="130" y="61" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={MUTED}>C</text>
+      <text x="148" y="61" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>never got it</text>
+      <text x="120" y="84" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>it succeeded — the read looks in the right place</text>
+    </svg>
+  )
+}

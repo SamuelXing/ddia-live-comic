@@ -63,10 +63,22 @@ export interface Step {
 /** "In the wild" — where the clean idea gets complicated in production: the
  *  variance, the failure modes, the caveats textbooks skip. The point is to make
  *  the reader confront that the model is the easy 20%. */
+/** One in-the-wild bullet. A bare string stays legal — most bullets are prose
+ *  and should stay prose — but a bullet describing something that happens *in
+ *  sequence* or *across nodes* can carry its own figure, which text alone
+ *  makes the reader assemble in their head. */
+export interface WildPoint {
+  t: string
+  /** draw this only when the drawing does work the sentence cannot. A figure
+   *  per bullet would turn the section into a gallery and bury the two or
+   *  three that actually matter. */
+  figure?: ReactNode
+}
+
 export interface InTheWild {
   /** defaults to "where the clean idea gets complicated" */
   note?: string
-  points: string[]
+  points: (string | WildPoint)[]
 }
 
 /** A real decision framework — the axes engineers actually weigh, and when to
