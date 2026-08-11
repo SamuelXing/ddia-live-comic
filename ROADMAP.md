@@ -10,95 +10,15 @@ Roughly the order I would do them in. The three long menus further down — app 
 paper-driven components, the composer — are the longer game, and the sequencing note
 at the end of this section says why they are not first.
 
-### Comprehension polish
-
-The 11-comic audit found **one outlier comic and two problems that are structural
-rather than local**. The outlier is fixed (#30): leaderless writes are not sequenced
-by anything, and `W + R > N` guarantees a read *sees* every candidate value while
-saying nothing about which one is right — freshness and resolution are different
-problems. The last two items below surfaced *after* the audit, from reading the comics
-against the surfaces that depend on them — which is the check the audit itself did not
-run, and the one that found the most.
-
-- **`InTheWild.points` is typed `string[]`**, so not one of the **49** in-the-wild
-  bullets across 11 comics can carry a figure *by construction*. It reads as a wall
-  of text because the format forbids anything else. Change the type, update the
-  renderer, then draw the bullets that earn a drawing — not all 49.
-- **Terms used before they are defined.** Five comics use the inline
-  `[[term|definition]]` glossary exactly zero times: replication-lag,
-  replication-leader, stream-table, tail-latency (replication-quorum is now fixed).
-  Sweep for forward references and gloss them in place.
-- **`concurrent(v1, v2)` is a magic function.** The quorum comic's Step 04 puts that
-  call on screen and never says what is inside it; *version vectors* are named three
-  times in that comic and defined none. The fix is not "teach vector clocks" — it is
-  to define the function the page already promised, in the existing `deeper` fold-out
-  where the mechanism belongs: each replica keeps a counter, a write carries the
-  counters it saw, and if every counter in A is ≥ B's then A saw B, while if each
-  holds one the other lacks they are concurrent. That comparison is two counter maps
-  and an arrow, so it lands as a figure. Deliberately staying out of the Rung 1 body:
-  Cassandra is last-write-wins and DynamoDB dropped vector clocks, so most readers
-  will never operate one.
-- **Hash vs range partitioning is a hole under a page we already ship.** DDIA opens
-  Ch 6 with it, *before* consistent hashing; this site gives it **two rows of a
-  tradeoffs table** and one clause for range. The Ch 6 comic is titled *Consistent
-  Hashing* and every step of it is about rebalancing cost, so the six-panel
-  one-misconception format pushed the choice itself into the table — working as
-  designed, but the gap is real, because **three other surfaces depend on the
-  distinction and none of them teaches it**:
-  - The capacity calculator's *first* requirement row is `Fetch one thing / Scan a
-    range`, and its own info text calls the sort key "the most consequential schema
-    decision you will make". That axis changes read amplification and disqualifies the
-    column store outright — a question asked in row one that no comic answers.
-  - The **hot range** failure is already a full cascade trace on the S3 deep-dive (the
-    date-prefix disaster *is* a timestamp partition key). The concept behind it gets
-    four words in the comic.
-  - **Compound keys** — partition key plus clustering column, the compromise that lets
-    you hash *and* scan — appear exactly once sitewide, as a fix in a Kafka runbook
-    row. Never taught.
-
-  **Do not bolt this onto the consistent-hashing comic**; its single misconception is
-  clean and a fifth step about a different decision would blunt it. Give it a Ch 6
-  companion built on a misconception with teeth: *"the partition key is a performance
-  detail."* It is not — it decides **which questions are possible at all**, and it is
-  close to unchangeable afterwards. The comic already says so in an in-the-wild bullet
-  and `calcModel.ts` says it about three different stores, but nowhere is it the
-  lesson. That companion is also the natural home for hot ranges, compound keys, and
-  the local-vs-global secondary-index split now compressed into one bullet.
-
-  The honest counter-argument, recorded so nobody has to rediscover it: this makes a
-  twelfth comic in a set described below as complete at "11 of 11", and it cuts
-  against the sequencing rule of sharpening before building. It earns the exception
-  only because it is not new surface — it is a hole under existing pages.
-
-### The calculator's own correctness
-
-Two findings from tracing the requirement filters in `calcModel.ts`. Neither is a
-CAP problem — **CAP cannot bind on that panel at all, because none of the seven
-requirements asks about availability.** You cannot violate a theorem whose third
-term you never requested, and "must be current" is read-your-writes on the primary
-path, not linearizability. Worth saying out loud in "what it will not tell you",
-which is already the right home for where the model is structurally blind.
-
-- **Nothing enforces that a survivor exists.** No requirement combination empties the
-  candidate list today, but only because sharded SQL passes every filter
-  *structurally*: `multiKey: 'shard'` survives cross-key atomicity, `durable` survives
-  the loss filter, `pointFast` survives point lookups, it is not the in-memory store
-  so the RAM check skips it, and its `dist` is not `one primary + replicas` so the
-  shard check skips it too. That makes it an accidental universal survivor. If `alive`
-  ever did empty, `alive.reduce(…, alive[0])` seeds with `undefined` and the `!` on
-  the next line asserts it away — a crash or silent garbage, not a graceful "nothing
-  fits". There are only 64 requirement combinations; sweep them and assert
-  `alive.length > 0`, in the shape of `sandboxes.test.ts`.
-- **"Must be current" and "who else must see each write" quietly contradict.** Derived
-  systems — the search index, the analytics table, the cache — are fed
-  asynchronously; that is the entire reason the page starts recommending a log at two
-  of them. So *must be current* is true of the primary and **cannot** be true of the
-  copies, at any budget. Someone who picks it and slides derived to 3 will reasonably
-  read that as "all four are current". Surface the tension where the two rows meet.
-  Same failure mode as the quorum comic: the page lets you believe something it never
-  promised.
+**The comprehension track and the calculator-correctness track are done** (#30, #32–#38,
+#43); what they found and what shipped is in `Shipped`, first two entries. What is left
+here is the cost calculator, one unfinished half of sharing, and the sims' internals.
 
 ### A third calculator: cost
+
+**This one needs a conversation before it needs code.** The framing below — *ratios,
+not prices* — is my answer to the maintenance problem, not an agreed one, and it is
+the whole design. If the ratio framing is wrong, nothing under it survives.
 
 The case for it being its own page rather than a column is the same one that kept
 capacity and latency apart — **it is a different shape.** Capacity is division,
@@ -131,29 +51,36 @@ observability sim is currently `~$0.10/GB` with no source — the weakest number
 site — and would import from a real model the way the latency page imports from
 capacity instead of restating constants.
 
-### Sharing — shareable state first, buttons last
+### Sharing — one half left
 
-There is **no URL state anywhere on the site** (no `useSearchParams`, no
-`URLSearchParams`), and **every page shares one global OG card**: a link to the quorum
-comic previews identically to the homepage.
+State-in-the-URL and per-route metadata shipped (#39, #42). The share **buttons** were
+built (#40) and then removed at Sam's call (#41) — see the `Shipped` entry, which
+records both what was built and the process mistake that produced it. One item remains:
 
-- **Encode calculator state in the URL.** The capacity model is a pure function of its
-  inputs — that is its central credibility claim — yet dialling in a scenario produces
-  something you cannot send to anyone. A URL that carries the input state turns every
-  verdict into a link, and that is what actually gets pasted into a work chat. "Here
-  is the exact scenario" travels; "share on X" does not. Every shared link is also a
-  deep link back into real content, which does the marketing job a widget was supposed
-  to do.
-- **Per-page OG cards**, so the preview varies with the page. The renderer already
-  exists — headless Chrome over an HTML template — it just produces one card today.
-- **One plain share control**: `navigator.share` where it exists, copy-link
-  everywhere else. No platform icon row, and no third-party SDK — a share widget would
-  be the first external script on a site that is currently fully self-contained.
+- **Per-page OG images**, so the preview *picture* varies with the page. The words
+  already do: 24 routes carry their own title and description, but all 24 sit on the
+  same picture. The renderer already exists — headless Chrome over an HTML template —
+  it just produces one card today. **Not obviously worth 24 renders**: the words are
+  what a reader reads in a chat client, and this is the half that only changes the
+  thumbnail.
+
+### The sims' internals
+
+Nothing a reader sees, which is why it is last — but the two sim engines
+(`src/sims/feed/engine.ts`, `src/sims/observability/engine.ts`, **952 and 906 lines**)
+are a fork, not two implementations. The canvas-fit fix (#38) had to be written twice,
+identically, and the second copy is where a divergence would hide. The harness (#37)
+now covers the models, so the engines can be pulled together with something watching.
+
+`estCostUSD` in the observability sim is still `~$0.10/GB` with no source — the weakest
+number on the site. It is listed under the cost calculator above because that is where
+it would import from rather than restate; if the cost page never happens, this number
+still needs either a citation or an `ASSUMED` label.
 
 ### Sequencing — why none of the big menus are first
 
 The composer's own gate says to build it only once the component library is rich
-enough to be worth composing, and **six flagship deep-dives and eleven comics already
+enough to be worth composing, and **six flagship deep-dives and twelve comics already
 clear that bar.** A seventh component makes the site longer, not better. Meanwhile the
 two weakest surfaces are the experimental sims and comic comprehension, and both are
 about how the depth that already exists *lands*. So: sharpen before building. The
@@ -164,12 +91,108 @@ composer stays the exception, because it is the synthesis rather than more of th
 - **Cloudflare toggles** — Always Use HTTPS (`http://systemscomic.com` currently
   serves plaintext with no redirect) and a `www` CNAME plus redirect rule
   (`www.systemscomic.com` does not resolve).
-- **27 merged remote branches**, all cross-referenced against merged PRs, safe to
-  delete.
+- **3 merged remote branches** — `concurrent-defined`, `roadmap-next`, `set-live-url`,
+  each carrying a squash-merged PR (#36, #31, #28), safe to delete. (This line said
+  **27** for weeks, never recounted after the cleanup that removed most of them. Note
+  that `git branch -r --merged origin/main` reports **none** of the three: every PR here
+  is squash-merged, so the branch tip is not an ancestor of `main` and the ancestry
+  check is useless on this repo. `gh pr list --head <branch>` is the one that answers.)
 
 ## Shipped
 
-- ✅ **The concept lens is drawn — 11 of 11 ideas live.** Part I gained **Ch 1 · Tail
+- ✅ **Comprehension: the whole track, and two verification tools that were lying.**
+  Six PRs against the audit finding that some pages "are not that straight and easy to
+  understand enough".
+  - **Quorums say what they do not do** (#30). Leaderless writes are not sequenced by
+    anything, and `W + R > N` guarantees a read *sees* every candidate value while
+    saying nothing about which is right. Freshness and resolution are different
+    problems, and the page had let them read as one.
+  - **`concurrent(v1, v2)` is no longer magic** (#36). The call was on screen with
+    nothing behind it; version vectors were named three times and defined none. Now
+    defined in the `deeper` fold-out with a two-counter-map figure — and kept out of
+    the Rung 1 body on purpose, since Cassandra is last-write-wins and DynamoDB
+    dropped vector clocks, so most readers will never operate one.
+  - **In-the-wild bullets can carry a figure** (#33, #34). `InTheWild.points` was typed
+    `string[]`, so the wall of text was a wall *by construction*. Typed as
+    `(string | WildPoint)[]`, then one figure per comic — not one per bullet, which
+    would have been 49 drawings and a different kind of wall.
+  - **Forward references, swept and then guarded** (#35). Two real gaps found; six of
+    the ten "hits" were my matcher hitting `next: { slug }` nav links and the `term:`
+    field name. `glossary.test.ts` now fails on a term used before the comic that
+    defines it, and a second test asserts each of the three recorded exemptions is
+    *still* a genuine forward reference — an exemption list nobody re-checks becomes
+    a list of things that used to be true.
+  - **Ch 6 companion — Choosing the Partition Key** (#43), the twelfth comic. The hole
+    it fills, recorded because it is the strongest argument this project has for a new
+    page: hash vs range is how DDIA *opens* Ch 6, before consistent hashing, and this
+    site gave it two rows of a tradeoffs table — while **three shipped surfaces
+    depended on the distinction and none taught it**. The capacity calculator's *first*
+    requirement row is `Fetch one thing / Scan a range`, and its own info text calls
+    the sort key "the most consequential schema decision you will make". The **hot
+    range** is a full cascade trace on the S3 deep-dive — the date-prefix disaster *is*
+    a timestamp partition key — and the concept behind it got four words. **Compound
+    keys** appeared once sitewide, as a fix in a Kafka runbook row. It was not new
+    surface; it was a hole under existing pages, which is why it earned an exception to
+    "sharpen before building". Deliberately *not* bolted onto the consistent-hashing
+    comic, whose single misconception is clean and would have been blunted by a fifth
+    step about a different decision. Hash → what hashing costs (scatter-gather, which gets
+    *worse* as you add nodes) → what sorting costs (the hot range, and the clock only
+    moves one way) → the compound key. Local vs global secondary indexes went in the
+    fold-out rather than becoming a fifth step. Its index card shipped blank for one
+    commit, saying "in the sketchbook" beside a working link; `index-page.test.ts` now
+    asserts every comic has a card, under the title it advertises, with a panel drawn.
+  - **Two tools were passing without checking anything.** `npm run check:diagrams`
+    reported OK while measuring **zero** diagrams — it had been green through an app
+    that 500'd on a duplicate export. It now opens every `<details>` first
+    (`getBBox()` returns zeros in a `display:none` subtree, so a figure in a collapsed
+    bullet measured as a point at the origin), fails on any page error, fails if a
+    comic yields no diagrams, and prints the count. Separately, **`npx tsc --noEmit`
+    checks nothing here** — `tsconfig.json` is solution-style (`"files": []` plus
+    references), so it exits 0 having verified nothing; the real gate is
+    `npm run typecheck` (`tsc -b`). Every "typecheck ✓" from the wrong command was
+    vacuous.
+- ✅ **The calculator's own correctness** (#32). Two findings from tracing the
+  requirement filters, and neither is a CAP problem — **CAP cannot bind on that panel
+  at all, because none of the seven requirements asks about availability.** You cannot
+  violate a theorem whose third term you never requested, and "must be current" is
+  read-your-writes on the primary path, not linearizability. That is now said out loud
+  in "what it will not tell you".
+  - **Nothing enforced that a survivor exists.** No combination empties the candidate
+    list, but only because sharded SQL passes every filter *structurally* — an
+    accidental universal survivor. Had `alive` ever emptied, `alive.reduce(…, alive[0])`
+    seeds with `undefined` and the `!` asserts it away: a crash or silent garbage, not
+    a graceful "nothing fits". All **64** combinations are now swept at three load
+    scales, plus a canary that names `sqlShard` as the store the guarantee rests on —
+    so if the thing holding it up changes, the test says which thing.
+  - **"Must be current" contradicted "who else must see each write".** Derived systems
+    are fed asynchronously — that is why the page starts recommending a log at two of
+    them — so *must be current* cannot be true of the copies at any budget. The tension
+    is surfaced where the two rows meet.
+- ✅ **The sims got a correctness floor** (#37, #38). They had no tests at all. The
+  harness reads each mission goal's **source** rather than calling it, because `&&`
+  short-circuits and a goal can pass without ever reading the control it claims to be
+  about. It immediately found one: a break-it-then-fix-it mission whose payoff goal was
+  **already ticked on arrival**. Separately, sparse stages drew a handful of nodes
+  adrift in a large canvas; both engines now compute a zoom in `layout()`.
+- ✅ **Sharing, and one thing I got wrong about how to take a request** (#39–#42).
+  Calculator state now lives in the URL, so a dialled-in scenario is a link — the model
+  is a pure function of its inputs, and that claim was unusable while the inputs could
+  not travel. 24 routes carry their own title, description and card tags, emitted as
+  flat `dist/<route>.html` at build time (scrapers do not run JS; and the
+  `<route>/index.html` form makes Cloudflare **307** to a trailing slash first — found
+  by running real `wrangler dev`, not by reasoning about it). Two bugs worth keeping:
+  `Number('')` is `0`, not `NaN`, so a truncated `?dau` link silently set daily actives
+  to the bottom rung; and constants the page decides for itself leaked into shared
+  URLs until `DECIDED` was threaded through both encode and decode.
+
+  **The process mistake:** Sam asked for a share-to-social button. I reframed it into
+  URL state and OG cards, wrote *my* version into this file titled "buttons last" with
+  a line arguing "share on X" does not travel — and built that. The reframe was worth
+  having; substituting it for the request was not. The button was then built (#40) and
+  removed at Sam's call (#41), along with the calculator's copy-link. **A reframe goes
+  alongside the request, not instead of it.**
+- ✅ **The concept lens is drawn — 11 of 11 ideas live** (twelve now, with the Ch 6
+  companion above). Part I gained **Ch 1 · Tail
   Latency** (the average is nobody's experience; `1 − 0.99¹⁰⁰ = 63%` for fan-out *and*
   for a 100-request session; hedged requests taking 1,800 ms → 74 ms; and why the cache
   did nothing for the tail). Part III gained both of its chapters: **Ch 10 · The Shuffle**
