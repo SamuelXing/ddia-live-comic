@@ -170,6 +170,8 @@ export class FeedEngine {
 
   private raf = 0
   private lastReal = 0
+  /** how much bigger than the natural size this stage draws — see layout() */
+  private zoom = 1
   private colors: Record<string, string> = {}
   private edgeCache: Array<[string, string]> = []
 
@@ -298,13 +300,31 @@ export class FeedEngine {
     })
     const colKeys = Object.keys(cols).map(Number).sort((a, b) => a - b)
     if (!colKeys.length) return
-    // Content is capped, centered, and sized by how many columns this stage
-    // actually uses — two nodes sit near each other, not at opposite walls.
+    /* Content is capped, centered, and sized by how many columns this stage
+       actually uses — two nodes sit near each other, not at opposite walls.
+
+       Capping alone was not enough. A stage-1 topology is two fixed-size nodes
+       inside a canvas that is sized for stage 6, so it drew roughly 250px of
+       content into ~1450px of frame and read as unfinished rather than simple.
+       The nodes now grow with the space instead: `zoom` scales radii and node
+       type together, so a sparse stage looks deliberate and a dense one is
+       untouched (it computes to ~1). */
     const padX = 70
     const span = colKeys.length - 1
-    const cap = Math.min(1180, Math.max(260, span * 250))
+    const NATURAL_GAP = 250
+    const cap = Math.min(1180, Math.max(420, span * 320))
     const usableW = Math.min(Math.max(260, this.W - padX * 2), cap)
     const x0 = (this.W - usableW) / 2
+    const tallest = Math.max(...colKeys.map((c) => cols[c].length))
+    this.zoom = Math.max(
+      1,
+      Math.min(
+        1.9,
+        usableW / Math.max(NATURAL_GAP, span * NATURAL_GAP),
+        // do not outgrow the vertical room a column of nodes has to share
+        tallest <= 1 ? 1.9 : (this.H * 0.66) / (tallest * 92),
+      ),
+    )
     colKeys.forEach((c, ci) => {
       const ids = cols[c]
       const x = x0 + (span < 1 ? usableW / 2 : (ci / span) * usableW)
@@ -313,7 +333,8 @@ export class FeedEngine {
         const y = this.H * 0.14 + (n === 1 ? this.H * 0.36 : (k / (n - 1)) * this.H * 0.66)
         this.nodes[id].x = x
         this.nodes[id].y = y
-        this.nodes[id].r = id === 'mono' ? 48 : this.nodes[id].role === 'src' ? 23 : 31
+        const baseR = id === 'mono' ? 48 : this.nodes[id].role === 'src' ? 23 : 31
+        this.nodes[id].r = baseR * this.zoom
       })
     })
   }
@@ -741,8 +762,8 @@ export class FeedEngine {
       ctx.arc(nd.x, nd.y, nd.r, 0, 7)
       ctx.fill()
       ctx.stroke()
-      this.txt(nd.label, nd.x, nd.y + nd.r + 13, '#8b93a6', 11, 'center')
-      this.txt(fmtRps(this.traffic), nd.x, nd.y + 3, '#c9cfdc', 12, 'center', true)
+      this.txt(nd.label, nd.x, nd.y + nd.r + 13 * this.zoom, '#8b93a6', 11 * this.zoom, 'center')
+      this.txt(fmtRps(this.traffic), nd.x, nd.y + 3, '#c9cfdc', 12 * this.zoom, 'center', true)
       return
     }
     const col = this.roleColor(nd.role)
@@ -767,15 +788,15 @@ export class FeedEngine {
       this.txt(
         ln,
         nd.x,
-        nd.y - 4 + i * 13 - (lines.length - 1) * 6.5,
+        nd.y - 4 + (i * 13 - (lines.length - 1) * 6.5) * this.zoom,
         nd.dead ? '#6b7488' : '#eef1f7',
-        12.5,
+        12.5 * this.zoom,
         'center',
         true,
       ),
     )
-    this.txt(this.subLabel(nd), nd.x, nd.y + nd.r * 0.72 + 14, nd.dead ? '#5a6072' : '#9aa3b6', 11, 'center')
-    if (nd.dead) this.txt('✕ FAILED', nd.x, nd.y + 2, this.colors.hot, 11, 'center', true)
+    this.txt(this.subLabel(nd), nd.x, nd.y + nd.r * 0.72 + 14 * this.zoom, nd.dead ? '#5a6072' : '#9aa3b6', 11 * this.zoom, 'center')
+    if (nd.dead) this.txt('✕ FAILED', nd.x, nd.y + 2, this.colors.hot, 11 * this.zoom, 'center', true)
   }
 
   private subLabel(nd: SimNode): string {
