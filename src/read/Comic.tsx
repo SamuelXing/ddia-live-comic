@@ -48,6 +48,7 @@ function DeeperAside({ d }: { d: NonNullable<Step['deeper']> }) {
         {d.body?.map((p, i) => (
           <p key={i}>{rich(p)}</p>
         ))}
+        {d.figure && <div className="gn-deeper-fig">{d.figure}</div>}
         {d.code && <CodeBlock code={d.code} />}
       </div>
     </details>

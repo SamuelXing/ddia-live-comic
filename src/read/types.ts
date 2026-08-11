@@ -29,6 +29,9 @@ export interface Deeper {
   summary: string
   body?: string[]
   code?: CodeBlock
+  /** a figure for the mechanism being explained. Same rule as a wild point's:
+   *  only where the drawing does work the sentence cannot. */
+  figure?: ReactNode
 }
 
 /** A Socratic prompt: pose a genuine question, hide the answer so the reader

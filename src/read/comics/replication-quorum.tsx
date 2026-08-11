@@ -1,7 +1,7 @@
 import type { Comic } from '../types'
 import {
   QuorumDiagram, QuorumWriteDiagram, DialsDiagram, ConflictDiagram,
-  SlowestOfRDiagram, ZombieValueDiagram, LwwSkewDiagram, SloppyQuorumDiagram,
+  SlowestOfRDiagram, ZombieValueDiagram, LwwSkewDiagram, SloppyQuorumDiagram, VersionVectorDiagram,
 } from '../diagrams'
 
 export const replicationQuorum: Comic = {
@@ -100,10 +100,16 @@ export const replicationQuorum: Comic = {
         'So conflicts are not an edge case bolted onto the design — they are the bill for removing the leader. Add sloppy quorums and [[clock skew|No two machines agree on the time exactly, and NTP can even step a clock *backwards*. So a timestamp made on one machine and one made on another are not really comparable — which is precisely what lets last-write-wins keep the older write. Ch 8 takes this apart.]] on top and reads can go stale too. Leaderless buys availability; it does not buy [[linearizability|The illusion that only one copy of the data exists: every operation appears to take effect at a single instant, and once a write is acknowledged every later read sees it. Ch 9 builds it with consensus.]] for free.',
       ],
       deeper: {
-        summary: 'How leaderless stores resolve concurrent writes.',
+        /* No markdown here: DeeperAside renders `summary` as plain text, so
+           backticks would show up literally. Every other summary in the site
+           is plain prose, which is why this has never come up. */
+        summary: 'How leaderless stores resolve concurrent writes — and what concurrent() actually tests.',
         body: [
           'Two clients write the same key at two replicas at the “same time” — which wins? **Last-write-wins** picks by timestamp and silently **drops** the other write (simple, lossy). **Version vectors** detect that the writes were concurrent and keep both as *siblings*, handing the conflict to the application to merge — or to a **CRDT** that merges deterministically (e.g. a shopping cart unions its items). There is no single right answer; there is only which data loss you can tolerate.',
+          'The code above calls `concurrent(v1, v2)` without saying what is inside it, so: **each replica keeps a counter**, and every write carries the counters it had already seen. To compare two versions you compare them counter by counter. If **every** counter in A is ≥ B’s, then A was written by somebody who had already seen B — A is simply newer, and there is no conflict to resolve. If each version holds a counter the other lacks, **neither one saw the other**. That is what “concurrent” means here, and it is the whole test.',
+          'Note what this does *not* need: a clock. Two counters cannot disagree the way two wall clocks can, which is exactly why version vectors catch what last-write-wins gets wrong. And it is worth knowing where you will actually meet this — **Cassandra uses last-write-wins and DynamoDB dropped vector clocks**, so most people read about them long before they run one.',
         ],
+        figure: <VersionVectorDiagram />,
       },
     },
   ],
