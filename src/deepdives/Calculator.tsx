@@ -28,6 +28,8 @@ import {
   type Req,
   type Vals,
   DECIDED,
+  ALL_INPUTS,
+  fold,
 } from './calcModel'
 
 /* ============================================================
@@ -140,8 +142,6 @@ const dur = (s: number) =>
   s < 90 ? Math.round(s) + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : s < 172800 ? fmt.n1(s / 3600) + ' h' : fmt.n1(s / 86400) + ' days'
 
 
-/** Every slider on the page, in one list — the same list the URL round-trips. */
-const ALL_INPUTS = [...WORKLOAD, DERIVED_INP, ...HW]
 const REQ_PICKS = [
   { key: 'fresh', options: FRESH },
   { key: 'txn', options: TXN },
@@ -160,6 +160,7 @@ export default function Calculator() {
   )
   const [v, setV] = useState<Vals>(() => ({ ...INIT, ...shared.vals }))
   const [showHw, setShowHw] = useState(false)
+  const [basic, setBasic] = useState(true)
   const [fresh, setFresh] = useState(shared.picks.fresh ?? 'pull')
   const [txn, setTxn] = useState(shared.picks.txn ?? 'single')
   const [loss, setLoss] = useState(shared.picks.loss ?? 'keep')
@@ -242,6 +243,19 @@ export default function Calculator() {
      pick rather than let it appear as if the workload changed. */
   const cWin = consequences({ ...v, ...storeConstants(winE, access) }, req, m, effT.holds)
   const sens = sensitivity(v, req)
+
+  /* Which sliders this scenario can do without. Recomputed from (v, req) like
+     everything else here, so a shared link folds the way it folded for whoever
+     sent it — and a slider that starts mattering comes back on its own.
+
+     What is folded is the CONTROL, never the number: every value is still
+     printed in the "how it is worked out" column below, so the page's claim —
+     that the arithmetic is on the page and you can check it — survives intact.
+     What the fold guarantees is narrower and is the one that matters: nothing
+     hidden here can change the architecture on the right. */
+  const f = fold(v, req)
+  const folded = basic ? f.inert.length + f.decided.length : 0
+  const shown = (id: string) => !basic || f.bearing.has(id)
 
   /* Clicking a computed percentage should answer "percent of WHAT" by taking
      you to the ceiling it was divided by, and marking it so you can see which
@@ -795,6 +809,8 @@ export default function Calculator() {
         <p>
           <b>There is no model in the loop and nothing is inferred.</b> Every number here is a
           division you could do on paper, from constants printed on the page and adjustable by you.
+          The panel starts with only the sliders <em>this</em> scenario's answer turns on; the rest
+          are one click away, and every value is printed in the workings either way.
           The arithmetic is a <em>pure function</em> — the same inputs give the same answer every
           time, with no memory of what it said before — covered by unit tests whose expected values
           were worked out by hand, and by a second suite pinned to figures real operators
@@ -1004,16 +1020,66 @@ export default function Calculator() {
             </Ctl>
 
             <p className="sb-title" style={{ marginTop: 18 }}>The workload</p>
-            {WORKLOAD.map((inp) => (
+            {WORKLOAD.filter((inp) => shown(inp.id)).map((inp) => (
               <Ctl key={inp.id} label={inp.label} info={inp.info} hint={inp.hint} val={inp.fmt(v[inp.id])}>
                 <Slider inp={inp} value={v[inp.id]} set={set(inp.id)} />
               </Ctl>
             ))}
 
-            <button className="hw-toggle" onClick={() => setShowHw((s) => !s)}>
-              {showHw ? '▾' : '▸'} The hardware underneath
-            </button>
-            {showHw && (
+            {/* In basic view the surviving constants belong beside the workload
+                they are load-bearing for, not behind a fold of their own — the
+                reader has been shown these three BECAUSE they move the answer,
+                so burying them again would undo the point. */}
+            {basic &&
+              HW.filter((inp) => f.bearing.has(inp.id)).map((inp) => (
+                <Ctl
+                  key={inp.id}
+                  label={inp.label}
+                  info={inp.info}
+                  hint={inp.hint}
+                  val={inp.fmt(v[inp.id])}
+                  tag={inp.src === 'napkin' ? 'measured' : 'assumed'}
+                >
+                  <Slider inp={inp} value={v[inp.id]} set={set(inp.id)} />
+                </Ctl>
+              ))}
+
+            {basic ? (
+              <div className="fold-note">
+                <p>
+                  <b>{folded} more {folded === 1 ? 'slider is' : 'sliders are'} folded away.</b>{' '}
+                  {f.inert.length > 0 && (
+                    <>
+                      {f.inert.length} of them,{' '}
+                      <em>moved one rung either way, leave every decision on the right unchanged</em>{' '}
+                      — same store, same components, same shard count.{' '}
+                    </>
+                  )}
+                  {f.decided.length > 0 && (
+                    <>
+                      The other {f.decided.length} are written by the decisions themselves, not by
+                      you.{' '}
+                    </>
+                  )}
+                  Their values are still printed in the workings, and any of them will reappear here
+                  the moment your scenario makes it matter.
+                </p>
+                <button className="hw-toggle" onClick={() => setBasic(false)}>
+                  Show every slider →
+                </button>
+              </div>
+            ) : (
+              <button className="hw-toggle" onClick={() => setBasic(true)}>
+                ◂ Back to what matters here
+              </button>
+            )}
+
+            {!basic && (
+              <button className="hw-toggle" onClick={() => setShowHw((s) => !s)}>
+                {showHw ? '▾' : '▸'} The hardware underneath
+              </button>
+            )}
+            {!basic && showHw && (
               <div className="hw-body">
                 <p className="hw-note">
                   Defaults are measured constants from{' '}

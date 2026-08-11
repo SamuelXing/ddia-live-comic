@@ -69,12 +69,30 @@ export function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: 
   )
 }
 
-export function Ctl({ label, info, hint, children, val }: { label: string; info?: string; hint: string; children: ReactNode; val?: string }) {
+export function Ctl({
+  label,
+  info,
+  hint,
+  children,
+  val,
+  /** measured / assumed — a hardware constant carries its provenance wherever
+   *  it is rendered, including when the basic view lifts one out of the
+   *  hardware fold because it turned out to be load-bearing. */
+  tag,
+}: {
+  label: string
+  info?: string
+  hint: string
+  children: ReactNode
+  val?: string
+  tag?: 'measured' | 'assumed'
+}) {
   return (
     <div className="ctl">
       <div className="ctl-top">
         <span className="ctl-label">
           {label}
+          {tag && <span className={tag === 'measured' ? 'src-n' : 'src-a'}>{tag}</span>}
           <Info text={info} />
         </span>
         {val && <span className="ctl-val">{val}</span>}

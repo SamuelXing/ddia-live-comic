@@ -239,6 +239,16 @@
 }
 .dd-page[class] .src-n { color: #29456c; border-color: #3f6191; }
 .dd-page[class] .src-a { color: #97462a; border-color: #bd5f3d; }
+/* what the basic view folded away, and why it was allowed to. Denim, not
+   terra: this is the page reporting something it verified, not a caveat. */
+.dd-page[class] .fold-note {
+  margin-top: 16px; border-top: 2px dashed var(--line); padding-top: 12px;
+}
+.dd-page[class] .fold-note p {
+  font-size: 12.5px; color: var(--ink-2); line-height: 1.55; margin: 0 0 10px;
+  border-left: 3px solid #3f6191; padding-left: 11px;
+}
+.dd-page[class] .fold-note em { color: var(--ink); font-style: normal; font-weight: 600; }
 
 /* calculator: instructions + verification panels */
 .dd-page[class] .calc-help { border: 2px solid #1a1a1a; background: var(--card); margin: 0 0 16px; }

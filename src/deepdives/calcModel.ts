@@ -750,18 +750,25 @@ function diffOutcome(a: Outcome, b: Outcome): string[] {
   return out
 }
 
+/** Every rung one input can move to from where it sits, one step either way. */
+function neighbours(inp: Inp, v: Vals): Array<{ step: number; dir: 'down' | 'up' }> {
+  const i = inp.steps.indexOf(v[inp.id])
+  if (i < 0) return []
+  const out: Array<{ step: number; dir: 'down' | 'up' }> = []
+  if (i - 1 >= 0) out.push({ step: inp.steps[i - 1], dir: 'down' })
+  if (i + 1 < inp.steps.length) out.push({ step: inp.steps[i + 1], dir: 'up' })
+  return out
+}
+
 export function sensitivity(v: Vals, req: Req): Flip[] {
   const base = outcome(v, req)
   const flips: Flip[] = []
   for (const h of HW) {
     if (DECIDED.has(h.id)) continue
-    const i = h.steps.indexOf(v[h.id])
-    if (i < 0) continue
-    for (const [j, dir] of [[i - 1, 'down'], [i + 1, 'up']] as const) {
-      if (j < 0 || j >= h.steps.length) continue
-      const changes = diffOutcome(base, outcome({ ...v, [h.id]: h.steps[j] }, req))
+    for (const { step, dir } of neighbours(h, v)) {
+      const changes = diffOutcome(base, outcome({ ...v, [h.id]: step }, req))
       if (changes.length)
-        flips.push({ id: h.id, label: h.label, src: h.src, from: h.fmt(v[h.id]), to: h.fmt(h.steps[j]), dir, changes })
+        flips.push({ id: h.id, label: h.label, src: h.src, from: h.fmt(v[h.id]), to: h.fmt(step), dir, changes })
     }
   }
   /* Assumptions first: a measured constant being load-bearing is a fact about
@@ -770,4 +777,77 @@ export function sensitivity(v: Vals, req: Req): Flip[] {
   return flips.sort((a, b) =>
     a.src === b.src ? b.changes.length - a.changes.length : a.src === 'assume' ? -1 : 1,
   )
+}
+
+/* ============================================================
+   THE FOLD — what a basic view is allowed to hide.
+
+   Thirty sliders is a wall, and most of them do nothing for most
+   scenarios. But hiding an input that moves the answer is worse
+   than showing it: this page's whole claim is that the arithmetic
+   is on the page and you can check it. A number the answer rests
+   on, hidden, breaks that claim in the one place it matters.
+
+   So the fold is not a hand-picked list. An input folds only if
+   the page can show it is inert HERE: moved one rung either way,
+   it changes no answer — not the store, not the components, not
+   the shard count. Change the scenario and the set changes with
+   it, so a slider that starts mattering surfaces itself.
+
+   Being a pure function of (v, req) is deliberate: it is the same
+   promise the rest of the model makes, and it means a shared link
+   folds exactly the way it folded for the person who sent it.
+   ============================================================ */
+
+/** Everything a reader can drag, requirements aside. */
+export const ALL_INPUTS: Inp[] = [...WORKLOAD, DERIVED_INP, ...HW]
+
+/* Strict, unlike diffOutcome. The sensitivity table forgives a shard count that
+   merely drifts — 40 shards or 55, the lesson is the same, and flagging every
+   wobble would bury the assumptions that actually flip a decision. The fold
+   cannot forgive it. "Hidden, and it only moves the number you are reading by
+   forty percent" is the sentence this feature exists to never have to say. */
+function sameOutcome(a: Outcome, b: Outcome): boolean {
+  if (a.store !== b.store || a.shards !== b.shards) return false
+  return (Object.keys(a.needs) as (keyof Consequences['needs'])[]).every(
+    (k) => a.needs[k] === b.needs[k],
+  )
+}
+
+export interface Fold {
+  /** ids that must stay visible: one rung either way changes an answer */
+  bearing: Set<string>
+  /** ids safe to fold, having been swept and found inert */
+  inert: string[]
+  /** ids folded WITHOUT being swept, because the page writes them itself */
+  decided: string[]
+}
+
+/** Which inputs a basic view may hide for this exact scenario. */
+export function fold(v: Vals, req: Req): Fold {
+  const base = outcome(v, req)
+  const bearing = new Set<string>()
+  const inert: string[] = []
+  const decided: string[] = []
+  for (const inp of ALL_INPUTS) {
+    /* Not swept, and never claimed as inert: the transport and store
+       decisions write these, so perturbing one models nothing a reader
+       could actually do. They fold because they are outputs, not because
+       they were tested. */
+    if (DECIDED.has(inp.id)) {
+      decided.push(inp.id)
+      continue
+    }
+    const moves = neighbours(inp, v)
+    /* An input pinned off its own ladder cannot be swept, so nothing has
+       been shown about it. Show it rather than hide it on a shrug. */
+    if (!moves.length) {
+      bearing.add(inp.id)
+      continue
+    }
+    if (moves.some(({ step }) => !sameOutcome(base, outcome({ ...v, [inp.id]: step }, req))))
+      bearing.add(inp.id)
+    else inert.push(inp.id)
+  }
+  return { bearing, inert, decided }
 }

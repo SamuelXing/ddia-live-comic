@@ -10,9 +10,9 @@ Roughly the order I would do them in. The three long menus further down — app 
 paper-driven components, the composer — are the longer game, and the sequencing note
 at the end of this section says why they are not first.
 
-**The comprehension track and the calculator-correctness track are done** (#30, #32–#38,
-#43); what they found and what shipped is in `Shipped`, first two entries. What is left
-here is the cost calculator, one unfinished half of sharing, and the sims' internals.
+**The comprehension track, the calculator-correctness track and the sims' engine fork are
+done** (#30, #32–#38, #43, #45); what they found and what shipped is in `Shipped`. What is
+left here is the cost calculator, one unfinished half of sharing, and one unsourced number.
 
 ### A third calculator: cost
 
@@ -64,18 +64,12 @@ records both what was built and the process mistake that produced it. One item r
   what a reader reads in a chat client, and this is the half that only changes the
   thumbnail.
 
-### The sims' internals
-
-Nothing a reader sees, which is why it is last — but the two sim engines
-(`src/sims/feed/engine.ts`, `src/sims/observability/engine.ts`, **952 and 906 lines**)
-are a fork, not two implementations. The canvas-fit fix (#38) had to be written twice,
-identically, and the second copy is where a divergence would hide. The harness (#37)
-now covers the models, so the engines can be pulled together with something watching.
+### Loose end from the sims
 
 `estCostUSD` in the observability sim is still `~$0.10/GB` with no source — the weakest
-number on the site. It is listed under the cost calculator above because that is where
-it would import from rather than restate; if the cost page never happens, this number
-still needs either a citation or an `ASSUMED` label.
+number on the site. It is listed under the cost calculator above because that is where it
+would import from rather than restate; if the cost page never happens, this number still
+needs either a citation or an `ASSUMED` label.
 
 ### Sequencing — why none of the big menus are first
 
@@ -100,6 +94,28 @@ composer stays the exception, because it is the synthesis rather than more of th
 
 ## Shipped
 
+- ✅ **The two sims run on one engine again** (#45). They had been running on *copies* of
+  one engine — 973 and 927 lines differing in 118 — for long enough that the observability
+  copy still opened "Feed at Scale", still declared a class named `FeedEngine`, and its
+  model carried two shims written for a shared engine that did not exist. 1,900 lines
+  became 1,264, and the geo-map subsystem moved into the feed, which is the only sim with
+  map stages.
+
+  Verified by pixel-diff rather than by argument: seeding `Math.random` and pumping rAF by
+  hand makes a run reproducible frame-for-frame (two runs on `main` came back
+  byte-identical, which is what makes the comparison mean anything). Every feed frame was
+  unchanged; every observability frame differed in exactly one 52×12 box — the node
+  caption, changed on purpose. **That caption was the fork's real damage:** the
+  observability engine had inherited the feed's `subLabel`, so it branched on `pgP`,
+  `redis` and `kafka` — kinds no observability pipeline has — and had no branch for the
+  indexer it draws. The visible symptom was an indexer reading `6×` while federation gave
+  it 8× the slots.
+
+  `engine.test.ts` now checks each sim's hooks against its own model. **The first version
+  of that test passed against a deliberately broken engine** — it matched `kind === '…'`
+  with single quotes and the bundler rewrites literals to double quotes, so it matched
+  nothing and reported success. Third time this class of bug has appeared here; it is
+  why every new guard gets broken on purpose before it is trusted.
 - ✅ **Comprehension: the whole track, and two verification tools that were lying.**
   Six PRs against the audit finding that some pages "are not that straight and easy to
   understand enough".
