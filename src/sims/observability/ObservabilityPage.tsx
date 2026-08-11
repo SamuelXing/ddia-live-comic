@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ObservabilityEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
-import { REQ, STAGES, defaultsFor, estCostUSD } from './model'
+import { COST, REQ, STAGES, defaultsFor, estCostUSD, fmtUSD } from './model'
 import type { GoalCtx, Controls } from './model'
 
 function Ctl({
@@ -172,7 +172,14 @@ export default function ObservabilityPage() {
     return !!a && STAGES[i].goals.every((g) => a.has(g.id))
   }
   const cost = snap ? estCostUSD(snap.offeredRps * 60, controls.retention, controls.hotShare) : 0
-  const costTxt = cost >= 1000 ? '$' + (cost / 1000).toFixed(1) + 'M' : '$' + Math.round(cost) + 'k'
+  /* Amber against what this stage opened at, not against a round dollar figure.
+     An absolute threshold has to be re-picked every time the prices are, and it
+     tells the player nothing — "you have doubled the bill you started with" is
+     the lesson the retention and hot-share sliders are here to teach. */
+  const costBase = (() => {
+    const d = defaultsFor(stageIdx)
+    return estCostUSD(d.ingest * 60, d.retention, d.hotShare)
+  })()
 
   return (
     <div className="sim-page">
@@ -269,7 +276,12 @@ export default function ObservabilityPage() {
                     cls={snap.p95 > 900 ? 'hot' : snap.p95 > 400 ? 'warn' : 'good'}
                   />
                   {c.tiering ? (
-                    <Kpi k="Est. cost" v={costTxt} u="/ month" cls={cost > 400 ? 'warn' : 'good'} />
+                    <Kpi
+                      k="Est. cost"
+                      v={fmtUSD(cost)}
+                      u={`/ month · assumed prices, ${COST.asOf}`}
+                      cls={cost > costBase * 2 ? 'warn' : 'good'}
+                    />
                   ) : (
                     <Kpi k="In flight" v={String(snap.inflight)} u="events" />
                   )}

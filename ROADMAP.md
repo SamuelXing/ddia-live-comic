@@ -12,8 +12,8 @@ at the end of this section says why they are not first.
 
 **The comprehension track, the calculator-correctness track and the sims' engine fork are
 done** (#30, #32–#38, #43, #45); what they found and what shipped is in `Shipped`. What is
-left here is the cost calculator, one unfinished half of sharing, one rejected experiment
-kept as a warning, and one unsourced number.
+left here is the cost calculator, one unfinished half of sharing, and one rejected
+experiment kept as a warning.
 
 ### A third calculator: cost
 
@@ -99,13 +99,6 @@ that is a description of one flaw, not a fix list. **The page is thirty sliders 
 purpose**, and the wall of constants is part of what makes it trustworthy; that is the
 prior any future attempt has to argue against.
 
-### Loose end from the sims
-
-`estCostUSD` in the observability sim is still `~$0.10/GB` with no source — the weakest
-number on the site. It is listed under the cost calculator above because that is where it
-would import from rather than restate; if the cost page never happens, this number still
-needs either a citation or an `ASSUMED` label.
-
 ### Sequencing — why none of the big menus are first
 
 The composer's own gate says to build it only once the component library is rich
@@ -129,6 +122,25 @@ composer stays the exception, because it is the synthesis rather than more of th
 
 ## Shipped
 
+- ✅ **The observability sim's cost KPI was wrong by 1000x** (#48). Chasing the roadmap's
+  own loose end — `estCostUSD` at `~$0.10/GB` with no source, "the weakest number on the
+  site" — turned up something worse than an unsourced constant. The function multiplies GB
+  by dollars-per-GB and returns **dollars**; the page formatted the result as though it
+  were **thousands**. Every figure on screen was a thousand times too big: a $664 bill
+  printed as `$664k / month`.
+
+  It survived because it looked right. A six-figure observability bill is an entirely
+  believable thing, so nothing about the page invited a second look — which is the whole
+  argument for pinning arithmetic to a case worked out by hand rather than to whether the
+  output seems plausible. `cost.test.ts` does that now, and its second test is the one the
+  bug could not have survived: one GB/day, ingest only, is **three dollars**.
+
+  The constants are named, dated and marked *assumed* on screen rather than sitting inline
+  — prices expire in a way the physics elsewhere on this site does not. The amber threshold
+  was an absolute `> 400` that a units fix would have left permanently lit; it is now twice
+  what the stage opened at, which is both repricing-proof and the actual lesson the
+  retention slider teaches. The durable claim is the **ratio** — hot storage ~10x cold —
+  and that is asserted rather than described.
 - ✅ **The two sims run on one engine again** (#45). They had been running on *copies* of
   one engine — 973 and 927 lines differing in 118 — for long enough that the observability
   copy still opened "Feed at Scale", still declared a class named `FeedEngine`, and its
