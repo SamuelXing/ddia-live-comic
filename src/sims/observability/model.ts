@@ -217,7 +217,14 @@ export const STAGES: StageDef[] = [
     goals: [
       { id: 'explode', label: 'Crank cardinality past 60%', done: (g) => g.c.cardinality >= 60 },
       { id: 'trap', label: 'Indexer pegged even at 10+ shards', done: (g) => g.c.cardinality >= 60 && g.c.indexers >= 10 && g.util('idx') >= 0.85 },
-      { id: 'fix', label: 'Drop the label (cardinality ≤ 20%) — it recovers', done: (g) => g.c.cardinality <= 20 && g.util('idx') <= 0.7 },
+      /* The `indexers >= 10` clause is not decoration. Without it this goal is
+         satisfied the instant the stage opens — it starts at cardinality 0 and
+         six shards that are not yet pegged — so the payoff box of a
+         break-it-then-fix-it mission arrived pre-ticked. Requiring the shard
+         count from `trap` also makes the lesson sharper: you keep the 10 shards
+         that did not help, change only the label, and watch it recover. One
+         variable moves. */
+      { id: 'fix', label: 'Drop the label (cardinality ≤ 20%) at 10+ shards — it recovers', done: (g) => g.c.cardinality <= 20 && g.c.indexers >= 10 && g.util('idx') <= 0.7 },
     ],
     tip: {
       h: 'Cardinality is a data-model problem, not a capacity one',
@@ -276,3 +283,45 @@ export const STAGES: StageDef[] = [
     },
   },
 ]
+
+/* ---------------------------------------------------------------
+   Control state, moved out of the page component because it is model
+   rather than view: stage defaults and the cost estimate are pure
+   functions of the mission definition, and nothing could test them
+   while they sat in a React file next to a canvas.
+   --------------------------------------------------------------- */
+
+export interface Controls {
+  ingest: number // traffic units
+  queryShare: number // percent
+  indexers: number
+  cardinality: number // percent
+  hotShare: number // percent
+  retention: number // days
+  clusters: number
+  quota: boolean
+}
+
+export function defaultsFor(stageIdx: number, prev?: Controls): Controls {
+  const st = STAGES[stageIdx]
+  return {
+    ingest: prev?.ingest ?? 48,
+    queryShare: prev?.queryShare ?? 15,
+    indexers: st.idx ?? 2,
+    cardinality: 0,
+    hotShare: 85,
+    retention: 90,
+    clusters: 1,
+    quota: false,
+  }
+}
+
+export /** Rough monthly bill: ingest at ~$0.10/GB + tiered storage (hot dear, cold cheap). */
+function estCostUSD(eventsPerSec: number, retention: number, hotShare: number): number {
+  const gbPerDay = (eventsPerSec * 86400 * 500) / 1e9 // ~500 B/event
+  const ingestMo = gbPerDay * 30 * 0.1
+  const stored = gbPerDay * retention
+  const hotGB = (stored * hotShare) / 100
+  const coldGB = stored - hotGB
+  return ingestMo + hotGB * 0.03 + coldGB * 0.003
+}

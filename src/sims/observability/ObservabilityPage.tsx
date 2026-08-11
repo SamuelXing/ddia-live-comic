@@ -2,43 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FeedEngine, fmtRps } from './engine'
 import type { Snapshot } from './engine'
-import { REQ, STAGES } from './model'
-import type { GoalCtx } from './model'
-
-interface Controls {
-  ingest: number // traffic units
-  queryShare: number // percent
-  indexers: number
-  cardinality: number // percent
-  hotShare: number // percent
-  retention: number // days
-  clusters: number
-  quota: boolean
-}
-
-function defaultsFor(stageIdx: number, prev?: Controls): Controls {
-  const st = STAGES[stageIdx]
-  return {
-    ingest: prev?.ingest ?? 48,
-    queryShare: prev?.queryShare ?? 15,
-    indexers: st.idx ?? 2,
-    cardinality: 0,
-    hotShare: 85,
-    retention: 90,
-    clusters: 1,
-    quota: false,
-  }
-}
-
-/** Rough monthly bill: ingest at ~$0.10/GB + tiered storage (hot dear, cold cheap). */
-function estCostUSD(eventsPerSec: number, retention: number, hotShare: number): number {
-  const gbPerDay = (eventsPerSec * 86400 * 500) / 1e9 // ~500 B/event
-  const ingestMo = gbPerDay * 30 * 0.1
-  const stored = gbPerDay * retention
-  const hotGB = (stored * hotShare) / 100
-  const coldGB = stored - hotGB
-  return ingestMo + hotGB * 0.03 + coldGB * 0.003
-}
+import { REQ, STAGES, defaultsFor, estCostUSD } from './model'
+import type { GoalCtx, Controls } from './model'
 
 function Ctl({
   label,
