@@ -52,6 +52,10 @@ export const ROUTES = {
     title: 'Consistent Hashing',
     desc: 'Split a dataset across many machines, then add one more. Move ~1/N of the keys instead of ~80% — and see where a balanced ring still tips over.',
   },
+  '/read/partition-key': {
+    title: 'Choosing the Partition Key',
+    desc: 'Hash the key and range scans have to ask every machine. Sort by it and today’s partition takes every write. The choice decides which questions stay cheap — and you cannot take it back.',
+  },
   '/read/transactions': {
     title: 'Isolation Levels',
     desc: 'Dirty reads, write skew and phantoms, frame by frame — and why the level names in the standard cannot be trusted.',

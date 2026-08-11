@@ -1507,3 +1507,139 @@ export function VersionVectorDiagram() {
     </svg>
   )
 }
+
+/* ---------------------------------------------------------------------------
+   Ch 6 companion — choosing the partition key. Panel-sized (176×160-ish), the
+   paper palette, same as every other idea diagram.
+   --------------------------------------------------------------------------- */
+
+/** Ch 6b · Step 01 — the same rows, cut two ways. */
+export function HashVsRangeDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="The same six rows partitioned two ways: hashing scatters neighbouring keys across all three nodes, while range partitioning keeps them in sorted order so neighbours land together.">
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>keys a b c d e f</text>
+      <text x="10" y="30" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>by hash</text>
+      {[['c f', 12], ['a e', 68], ['b d', 124]].map(([t, x]) => (
+        <g key={x as number}>
+          <rect x={x as number} y="36" width="40" height="20" rx="2" fill="#fff" stroke={DENIM} strokeWidth="1.5" />
+          <text x={(x as number) + 20} y="49" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>{t as string}</text>
+        </g>
+      ))}
+      <text x="88" y="68" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>neighbours land apart — even spread</text>
+      <line x1="10" y1="80" x2="166" y2="80" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <text x="10" y="98" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>by range</text>
+      {[['a b', 12], ['c d', 68], ['e f', 124]].map(([t, x]) => (
+        <g key={x as number}>
+          <rect x={x as number} y="104" width="40" height="20" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.5" />
+          <text x={(x as number) + 20} y="117" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>{t as string}</text>
+        </g>
+      ))}
+      <text x="88" y="136" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>neighbours stay together — sorted</text>
+      <text x="88" y="152" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={INK}>same rows, different questions</text>
+    </svg>
+  )
+}
+
+/** Ch 6b · Step 02 — what a hashed key costs: the range scan asks everyone. */
+export function RangeScanCostDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="Under a hashed key one time-range query must ask all three nodes and merge; under a sorted key the same query touches a single node.">
+      <defs>
+        <marker id="gn-rsc" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto"><path d="M0 0 L5 2.5 L0 5 z" fill={MUTED} /></marker>
+      </defs>
+      <text x="88" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={INK}>“last week’s orders”</text>
+      <text x="10" y="30" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>hashed key</text>
+      {[16, 68, 120].map((x) => (
+        <g key={x}>
+          <path d={`M88 34 L${x + 18} 44`} stroke={MUTED} strokeWidth="1" markerEnd="url(#gn-rsc)" />
+          <rect x={x} y="48" width="36" height="18" rx="2" fill="#fff" stroke={TERRA} strokeWidth="1.5" />
+        </g>
+      ))}
+      <text x="88" y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>every node, then merge</text>
+      <line x1="10" y1="92" x2="166" y2="92" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <text x="10" y="110" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>sorted key</text>
+      <path d="M88 114 L88 124" stroke={MUTED} strokeWidth="1" markerEnd="url(#gn-rsc)" />
+      <rect x="16" y="128" width="36" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1" strokeDasharray="2 2" />
+      <rect x="70" y="128" width="36" height="18" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="2" />
+      <rect x="124" y="128" width="36" height="18" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1" strokeDasharray="2 2" />
+      <text x="88" y="157" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>one node holds the whole answer</text>
+    </svg>
+  )
+}
+
+/** Ch 6b · Step 03 — sort by time and today takes every write. */
+export function HotRangeDiagram() {
+  return (
+    <svg viewBox="0 0 176 150" role="img" aria-label="Partitions ordered by date: yesterday and earlier sit idle while today's partition absorbs every incoming write.">
+      <text x="88" y="14" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>every write</text>
+      {[['Mon', 8], ['Tue', 50], ['Wed', 92]].map(([d, x]) => (
+        <g key={x as number}>
+          <rect x={x as number} y="44" width="34" height="26" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.2" />
+          <text x={(x as number) + 17} y="60" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>{d as string}</text>
+          <text x={(x as number) + 17} y="80" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>idle</text>
+        </g>
+      ))}
+      <rect x="134" y="38" width="34" height="38" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2.5" />
+      <text x="151" y="54" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>today</text>
+      <text x="151" y="66" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={TERRA}>100%</text>
+      {[[70, 20], [88, 20], [106, 20]].map(([x, y]) => (
+        <path key={x} d={`M${x} ${y} L148 34`} stroke={TERRA} strokeWidth="1.4" />
+      ))}
+      <text x="88" y="106" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>more nodes does not help —</text>
+      <text x="88" y="120" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>the load is on one of them</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>by date · and the clock moves one way</text>
+    </svg>
+  )
+}
+
+/** Ch 6b · Step 04 — hash the outer part, sort the inner one. */
+export function CompoundKeyDiagram() {
+  return (
+    <svg viewBox="0 0 176 160" role="img" aria-label="A compound key: the first part is hashed to pick the partition, and the remaining part keeps rows sorted inside that partition, so scans stay local while writes spread.">
+      <rect x="18" y="12" width="60" height="20" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="2" />
+      <text x="48" y="25" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={DENIM}>user_id</text>
+      <rect x="88" y="12" width="70" height="20" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2" />
+      <text x="123" y="25" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={TERRA}>timestamp</text>
+      <text x="48" y="44" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={DENIM}>hashed → the node</text>
+      <text x="123" y="44" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={TERRA}>sorted → within it</text>
+      {[10, 66, 122].map((x, i) => (
+        <g key={x}>
+          <rect x={x} y="60" width="44" height="52" rx="2" fill="#fff" stroke={DENIM} strokeWidth="1.5" />
+          <text x={x + 22} y="72" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={DENIM}>{'user ' + (i + 1)}</text>
+          {[80, 90, 100].map((y) => (
+            <rect key={y} x={x + 6} y={y} width="32" height="6" rx="1" fill="#fbf1ea" stroke={TERRA} strokeWidth="0.8" />
+          ))}
+        </g>
+      ))}
+      <text x="88" y="126" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>rows in time order within each user</text>
+      <text x="88" y="144" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>writes spread · one user’s scan stays</text>
+      <text x="88" y="155" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7.5" fill={DENIM}>on one node</text>
+    </svg>
+  )
+}
+
+/** Ch 6b · Step 04 deeper — a second index is either local or global. */
+export function LocalGlobalIndexDiagram() {
+  return (
+    <svg viewBox="0 0 176 150" role="img" aria-label="A local secondary index keeps each node's index beside its own rows, so a lookup must ask every node; a global index is itself partitioned by the indexed value, so a lookup hits one node but every write touches two.">
+      <text x="10" y="14" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>local — index beside its rows</text>
+      {[10, 66, 122].map((x) => (
+        <g key={x}>
+          <rect x={x} y="22" width="44" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.2" />
+          <rect x={x + 6} y="26" width="12" height="8" rx="1" fill="#dfe7f2" stroke={DENIM} strokeWidth="0.8" />
+        </g>
+      ))}
+      <text x="88" y="52" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>read asks all · write stays local</text>
+      <line x1="10" y1="64" x2="166" y2="64" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <text x="10" y="80" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>global — index partitioned itself</text>
+      {[10, 66, 122].map((x, i) => (
+        <g key={x}>
+          <rect x={x} y="88" width="44" height="16" rx="2" fill="#fff" stroke={MUTED} strokeWidth="1.2" />
+          {i === 1 && <rect x={x + 6} y="92" width="32" height="8" rx="1" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.2" />}
+        </g>
+      ))}
+      <text x="88" y="118" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>read hits one · write touches two</text>
+      <text x="88" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={MUTED}>you move the cost, you do not remove it</text>
+    </svg>
+  )
+}

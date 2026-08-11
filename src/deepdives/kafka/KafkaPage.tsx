@@ -88,6 +88,7 @@ export default function KafkaPage() {
           <IdeaStrip
             ideas={[
               { slug: 'partitioning', label: 'Consistent Hashing' },
+              { slug: 'partition-key', label: 'Choosing the Partition Key' },
               { slug: 'replication-leader', label: 'Leader & Followers' },
               { slug: 'replication-quorum', label: 'Leaderless & Quorums' },
             ]}
