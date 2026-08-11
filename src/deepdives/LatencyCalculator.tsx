@@ -1,4 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { encodeScenario, decodeScenario, writeScenario } from './shareState'
+import { ShareBtn } from './ShareBtn'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Picker, Info, Num, Slider, Ctl } from './calcUI'
@@ -31,13 +33,30 @@ const KIND_LABEL: Record<string, string> = {
   tail: 'yours, by fanning out less or hedging',
 }
 
+const L_INPUTS = [...LWORKLOAD, ...LHW]
+const L_PICKS = [
+  { key: 'path', options: PATH },
+  { key: 'geo', options: GEO },
+]
+
 export default function LatencyCalculator() {
-  const [v, setV] = useState<Vals>(LINIT)
-  const [path, setPath] = useState('read')
-  const [geo, setGeo] = useState('country')
+  // read the link in the initialiser, so the page never paints the default
+  // budget and then jumps to the shared one
+  const [shared] = useState(() =>
+    decodeScenario(L_INPUTS, typeof window === 'undefined' ? '' : window.location.search, L_PICKS),
+  )
+  const [v, setV] = useState<Vals>(() => ({ ...LINIT, ...shared.vals }))
+  const [path, setPath] = useState(shared.picks.path ?? 'read')
+  const [geo, setGeo] = useState(shared.picks.geo ?? 'country')
   const [preset, setPreset] = useState<string | null>(null)
   const [showHw, setShowHw] = useState(false)
   const req: LReq = { path, geo }
+
+  const query = encodeScenario(L_INPUTS, v, [
+    { key: 'path', value: path, def: 'read' },
+    { key: 'geo', value: geo, def: 'country' },
+  ])
+  useEffect(() => writeScenario(query), [query])
 
   const set = (id: string) => (n: number) => {
     setPreset(null)
@@ -195,7 +214,10 @@ export default function LatencyCalculator() {
           <div className="sb-controls">
             <div className="sb-head">
               <p className="sb-title" style={{ margin: 0 }}>Start from a typical request</p>
-              <button className="reset-btn" onClick={resetAll} disabled={atDefaults}>Reset all</button>
+              <div className="sb-actions">
+                <ShareBtn query={query} />
+                <button className="reset-btn" onClick={resetAll} disabled={atDefaults}>Reset all</button>
+              </div>
             </div>
             <div className="ctl">
               <Picker options={LPRESETS} value={preset ?? ''} onPick={applyPreset} />

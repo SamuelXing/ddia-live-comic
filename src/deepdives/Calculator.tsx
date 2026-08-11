@@ -1,12 +1,34 @@
 import { useEffect, useRef, useState } from 'react'
+import { encodeScenario, decodeScenario, writeScenario } from './shareState'
+import { ShareBtn } from './ShareBtn'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from './format'
 import { Picker, Info, Num, Slider, Ctl } from './calcUI'
 import {
-  WORKLOAD, DERIVED_INP, HW, FRESH, TXN, LOSS, ANALYTICS, ACCESS, RECENCY, PROTOCOLS, STORES, PRESETS, INIT, storeConstants,
-  model, consequences, sensitivity, NEED_LABEL,
-  type Ceil, type EngineCol, type Req, type Vals,
+  WORKLOAD,
+  DERIVED_INP,
+  HW,
+  FRESH,
+  TXN,
+  LOSS,
+  ANALYTICS,
+  ACCESS,
+  RECENCY,
+  PROTOCOLS,
+  STORES,
+  PRESETS,
+  INIT,
+  storeConstants,
+  model,
+  consequences,
+  sensitivity,
+  NEED_LABEL,
+  type Ceil,
+  type EngineCol,
+  type Req,
+  type Vals,
+  DECIDED,
 } from './calcModel'
 
 /* ============================================================
@@ -118,19 +140,50 @@ const pc = (x: number) => fmt.n1(x * 100) + '%'
 const dur = (s: number) =>
   s < 90 ? Math.round(s) + ' s' : s < 5400 ? Math.round(s / 60) + ' min' : s < 172800 ? fmt.n1(s / 3600) + ' h' : fmt.n1(s / 86400) + ' days'
 
+
+/** Every slider on the page, in one list — the same list the URL round-trips. */
+const ALL_INPUTS = [...WORKLOAD, DERIVED_INP, ...HW]
+const REQ_PICKS = [
+  { key: 'fresh', options: FRESH },
+  { key: 'txn', options: TXN },
+  { key: 'loss', options: LOSS },
+  { key: 'analytics', options: ANALYTICS },
+  { key: 'access', options: ACCESS },
+  { key: 'recency', options: RECENCY },
+]
+
 export default function Calculator() {
-  const [v, setV] = useState<Vals>(INIT)
+  /* Read the link once, in the initialiser rather than an effect: applying it
+     after mount would paint the default scenario first and then jump, which
+     reads as the page changing its mind about the answer. */
+  const [shared] = useState(() =>
+    decodeScenario(ALL_INPUTS, typeof window === 'undefined' ? '' : window.location.search, REQ_PICKS, DECIDED),
+  )
+  const [v, setV] = useState<Vals>(() => ({ ...INIT, ...shared.vals }))
   const [showHw, setShowHw] = useState(false)
-  const [fresh, setFresh] = useState('pull')
-  const [txn, setTxn] = useState('single')
-  const [loss, setLoss] = useState('keep')
-  const [analytics, setAnalytics] = useState('no')
-  const [access, setAccess] = useState('point')
-  const [recency, setRecency] = useState('stale')
+  const [fresh, setFresh] = useState(shared.picks.fresh ?? 'pull')
+  const [txn, setTxn] = useState(shared.picks.txn ?? 'single')
+  const [loss, setLoss] = useState(shared.picks.loss ?? 'keep')
+  const [analytics, setAnalytics] = useState(shared.picks.analytics ?? 'no')
+  const [access, setAccess] = useState(shared.picks.access ?? 'point')
+  const [recency, setRecency] = useState(shared.picks.recency ?? 'stale')
   const [pinT, setPinT] = useState<string | null>(null)
   const [pinE, setPinE] = useState<string | null>(null)
   const [preset, setPreset] = useState<string | null>(null)
   const req: Req = { fresh, txn, loss, analytics, access, recency }
+
+  /* The address bar always describes what is on screen, so "copy the URL"
+     works without a button and a shared link is never stale. replaceState, so
+     dragging a slider does not fill the back button with an undo log. */
+  const query = encodeScenario(ALL_INPUTS, v, [
+    { key: 'fresh', value: fresh, def: 'pull' },
+    { key: 'txn', value: txn, def: 'single' },
+    { key: 'loss', value: loss, def: 'keep' },
+    { key: 'analytics', value: analytics, def: 'no' },
+    { key: 'access', value: access, def: 'point' },
+    { key: 'recency', value: recency, def: 'stale' },
+  ], DECIDED)
+  useEffect(() => writeScenario(query), [query])
 
   /** any hand edit means we are no longer exactly the preset */
   const set = (id: string) => (n: number) => {
@@ -889,14 +942,17 @@ export default function Calculator() {
           <div className="sb-controls">
             <div className="sb-head">
               <p className="sb-title" style={{ margin: 0 }}>Start from a typical system</p>
-              <button
-                className="reset-btn"
-                onClick={resetAll}
-                disabled={atDefaults}
-                title={atDefaults ? 'Already at defaults' : 'Restore every requirement, input and constant to its default'}
-              >
-                Reset all
-              </button>
+              <div className="sb-actions">
+                <ShareBtn query={query} />
+                <button
+                  className="reset-btn"
+                  onClick={resetAll}
+                  disabled={atDefaults}
+                  title={atDefaults ? 'Already at defaults' : 'Restore every requirement, input and constant to its default'}
+                >
+                  Reset all
+                </button>
+              </div>
             </div>
             <div className="ctl">
               <Picker options={PRESETS} value={preset ?? ''} onPick={applyPreset} />
