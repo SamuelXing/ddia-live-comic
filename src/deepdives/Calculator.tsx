@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
 import { encodeScenario, decodeScenario, writeScenario } from './shareState'
-import { ShareBtn } from './ShareBtn'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from './format'
@@ -942,17 +941,14 @@ export default function Calculator() {
           <div className="sb-controls">
             <div className="sb-head">
               <p className="sb-title" style={{ margin: 0 }}>Start from a typical system</p>
-              <div className="sb-actions">
-                <ShareBtn query={query} />
-                <button
-                  className="reset-btn"
-                  onClick={resetAll}
-                  disabled={atDefaults}
-                  title={atDefaults ? 'Already at defaults' : 'Restore every requirement, input and constant to its default'}
-                >
-                  Reset all
-                </button>
-              </div>
+              <button
+                className="reset-btn"
+                onClick={resetAll}
+                disabled={atDefaults}
+                title={atDefaults ? 'Already at defaults' : 'Restore every requirement, input and constant to its default'}
+              >
+                Reset all
+              </button>
             </div>
             <div className="ctl">
               <Picker options={PRESETS} value={preset ?? ''} onPick={applyPreset} />

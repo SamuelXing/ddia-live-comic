@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { encodeScenario, decodeScenario, writeScenario } from './shareState'
-import { ShareBtn } from './ShareBtn'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Picker, Info, Num, Slider, Ctl } from './calcUI'
@@ -214,10 +213,7 @@ export default function LatencyCalculator() {
           <div className="sb-controls">
             <div className="sb-head">
               <p className="sb-title" style={{ margin: 0 }}>Start from a typical request</p>
-              <div className="sb-actions">
-                <ShareBtn query={query} />
-                <button className="reset-btn" onClick={resetAll} disabled={atDefaults}>Reset all</button>
-              </div>
+              <button className="reset-btn" onClick={resetAll} disabled={atDefaults}>Reset all</button>
             </div>
             <div className="ctl">
               <Picker options={LPRESETS} value={preset ?? ''} onPick={applyPreset} />

@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
 import { rich } from './rich'
-import ShareMenu from '../components/ShareMenu'
 import { SITE_TITLE } from '../routeTitle'
 
 // self-hosted fonts (no runtime network dependency)
@@ -169,11 +168,6 @@ export default function ComicView({ comic }: { comic: Comic }) {
           <Link className="gn-link" to="/read">
             ← All ideas
           </Link>
-          {/* A comic is the most shareable thing on the site, and this page
-              carries its own reading-mode nav rather than SiteNav — so it has
-              to opt in explicitly or it is the one place the control is
-              missing. */}
-          <ShareMenu />
         </div>
       </nav>
 
