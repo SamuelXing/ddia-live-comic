@@ -508,6 +508,16 @@
 .pb-act { border: 2px solid var(--ink-line); background: var(--paper-2); box-shadow: 3px 3px 0 var(--ink-line); }
 .pb-act > .ah { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--terra-ink); padding: 10px 16px 8px; border-bottom: 1px solid var(--rule); }
+/* the act opener: one figure, one paragraph, and the hinge into the next act */
+.pb-actsum { display: grid; grid-template-columns: minmax(0, 296px) 1fr; gap: 20px;
+  padding: 16px; background: var(--paper); border-bottom: 1px solid var(--rule); }
+@media (max-width: 720px) { .pb-actsum { grid-template-columns: 1fr; } }
+.pb-actsum .fig svg { width: 100%; height: auto; display: block;
+  border: 2px solid var(--ink-line); background: var(--paper); }
+.pb-actsum .txt p { margin: 0; font-size: 15px; line-height: 1.62; color: var(--ink-2); }
+.pb-actsum .txt .nx { margin-top: 10px; padding-top: 9px; border-top: 1px dashed var(--rule);
+  font-family: var(--gn-mono); font-size: 12px; line-height: 1.5; color: var(--terra-ink); }
+
 .pb-row { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: baseline;
   padding: 10px 16px; border-top: 1px solid var(--rule); text-decoration: none; }
 .pb-row:first-of-type { border-top: none; }

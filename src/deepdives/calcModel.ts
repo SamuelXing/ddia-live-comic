@@ -309,8 +309,9 @@ export const STORES: Store[] = [
     sources: [
       { label: 'Discord', href: 'https://discord.com/blog/how-discord-stores-trillions-of-messages' },
       { label: 'Netflix', href: 'https://netflixtechblog.com/benchmarking-cassandra-scalability-on-aws-over-a-million-writes-per-second-39f45f066c9e' },
+      { label: 'Twitter / Manhattan', href: 'https://blog.x.com/engineering/en_us/a/2014/manhattan-our-real-time-multi-tenant-distributed-database-for-twitter-scale' },
     ],
-    wild: 'Discord keeps trillions of messages on one (Cassandra, then ScyllaDB — 177 nodes down to 72); Netflix measured 1.1M writes/s across 288 Cassandra nodes.',
+    wild: 'Discord keeps trillions of messages on one (Cassandra, then ScyllaDB — 177 nodes down to 72); Netflix measured 1.1M writes/s across 288 Cassandra nodes. Twitter stores tweets in Manhattan, which it built rather than bought — but the data model is this one exactly: a partition key plus a sorted local key you can range-scan inside. It reached that shape the long way, announcing a move of tweets to Cassandra in 2010 and cancelling it months later to stay on sharded MySQL.',
     info: 'Cassandra, Scylla. Writes append to memory and flush in sorted batches, so ingest is cheap and every node takes writes. Reads may touch several files, and there is no coordinator to ask for a transaction.',
   },
   {
@@ -378,7 +379,15 @@ export const PRESETS: Preset[] = [
   },
   {
     id: 'feed', label: 'Social feed',
-    info: '50M readers, a post fans out to ~100 followers — the write is cheap, the deliveries are not.',
+    /* "Social feed" is at least two systems, and the column this page picks is
+       the SYSTEM OF RECORD for posts — not the timeline. Twitter's home
+       timeline is a materialised fan-out in Redis with a separate pull path for
+       high-follower accounts; the tweets themselves live in Manhattan. The
+       derived count below is set to 2 for exactly that reason, and at 2 this
+       page starts recommending a log. Worth saying in the blurb, because a
+       reader who takes the single answer as "a feed is one database" has
+       learned the opposite of the lesson. */
+    info: '50M readers, a post fans out to ~100 followers — the write is cheap, the deliveries are not. The store below is where posts LIVE; the timeline every reader sees is a derived copy, which is why this preset counts 2 derived systems.',
     req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale' },
     sets: { dau: 5e7, actions: 50, peak: 3, readPct: 90, fanout: 100, online: 10, writeSize: 1, readSize: 50, lat: 100, retention: 12, growth: 10, derived: 2 },
   },
