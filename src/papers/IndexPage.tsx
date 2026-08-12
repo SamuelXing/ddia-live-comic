@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
 import { BOOK, TOC } from './book'
+import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
 import { SITE_TITLE } from '../routeTitle'
 
@@ -58,9 +59,20 @@ export default function PapersIndexPage() {
         </header>
 
         <div className="pb-toc">
-          {TOC.map((act) => (
+          {TOC.map((act) => {
+            /* the same world, redrawn under each act's new pressure — the
+               shape change carries the plot for anyone who only looks */
+            const Figure = ACT_FIGURES[act.figure]
+            return (
             <section className="pb-act box" key={act.act} data-obs>
               <div className="ah">{act.act}</div>
+              <div className="pb-actsum">
+                <div className="fig">{Figure && <Figure />}</div>
+                <div className="txt">
+                  <p>{act.summary}</p>
+                  <p className="nx">{act.next}</p>
+                </div>
+              </div>
               {act.entries.map((e) => {
                 const live = e.slug && CHAPTER_BY_SLUG[e.slug]
                 return live ? (
@@ -78,7 +90,8 @@ export default function PapersIndexPage() {
                 )
               })}
             </section>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

@@ -79,6 +79,11 @@ export const bigtable: Chapter = {
                     why: 'One sequential `RecordAppend`, replicated ×3 as it lands — the exact operation GFS is built for. The old copy is now stale garbage you have promised to deal with *later*. Decision 3 is where "later" sends the bill.',
                   },
                   {
+                    label: 'Give every page its own little file',
+                    verdict: 'dead',
+                    why: 'Tempting — no edits, just replace the file. But now the **file system is your index**, and GFS is the worst possible one for the job: a single master holds every file’s metadata *in RAM*, and a chunk is 64 MB. Billions of 40 KB pages means billions of catalog entries guarding a rounding error of real bytes. The instinct outlived GFS, though: its modern form is **one SQL table per chat room**, and it dies the same way — the partition key moves out of the data and into the catalog, and the catalog is the one structure you cannot shard.',
+                  },
+                  {
                     label: 'Hold it all in RAM, checkpoint occasionally',
                     verdict: 'dead',
                     why: 'Petabytes, at 2004 RAM prices. Memory has a seat in this design — but as a *buffer*, not as the home.',

@@ -1,0 +1,463 @@
+/* The season's act figures — one picture per act, on the book's index page.
+   ============================================================================
+   These are not eight unrelated diagrams. They are the same world redrawn
+   under new pressure, and the SHAPE CHANGE is the argument: one box (prologue)
+   → a pyramid with a master on top (I) → a ring with nobody in charge (II) →
+   the floor underneath both (III) → a storey added on top (IV) → the whole
+   thing tipped on its side with the log at the centre (V) → a fork (VI) → the
+   ring growing its organs back (epilogue).
+
+   One fixed colour grammar, so a reader learns it once:
+     past  (muted, thin)  — what earlier acts already built; still load-bearing
+     new   (denim, thick) — what THIS act adds
+     pain  (terra)        — the pressure: what is breaking, or what it cost
+
+   Same layout discipline as diagrams.tsx: mono text is ~0.6em per character,
+   so at fontSize 7 a 24-char label needs ~100 viewBox units. Every string here
+   was budgeted against its box before being placed.
+
+   Arrowheads are drawn as paths rather than <marker> elements on purpose —
+   all eight of these render on one page, and marker ids are document-global. */
+
+import type { ReactElement } from 'react'
+
+const DENIM = '#3f6191'
+const TERRA = '#bd5f3d'
+const MUTED = '#8a8177'
+const MONO = 'JetBrains Mono, monospace'
+
+type Tone = 'past' | 'new' | 'pain'
+
+const T: Record<Tone, { s: string; f: string; w: number }> = {
+  past: { s: MUTED, f: '#ffffff', w: 1 },
+  new: { s: DENIM, f: '#e8edf5', w: 1.8 },
+  pain: { s: TERRA, f: '#f6e9e2', w: 1.8 },
+}
+
+/** A labelled box. `sub` is the second, smaller line. */
+function B({
+  x,
+  y,
+  w,
+  h,
+  tone = 'past',
+  label,
+  sub,
+}: {
+  x: number
+  y: number
+  w: number
+  h: number
+  tone?: Tone
+  label: string
+  sub?: string
+}) {
+  const c = T[tone]
+  const cx = x + w / 2
+  return (
+    <g>
+      <rect x={x} y={y} width={w} height={h} fill={c.f} stroke={c.s} strokeWidth={c.w} />
+      <text
+        x={cx}
+        y={sub ? y + h / 2 - 1 : y + h / 2 + 2.6}
+        textAnchor="middle"
+        fontFamily={MONO}
+        fontSize="7"
+        fill={c.s}
+      >
+        {label}
+      </text>
+      {sub && (
+        <text x={cx} y={y + h / 2 + 9} textAnchor="middle" fontFamily={MONO} fontSize="5.8" fill={c.s}>
+          {sub}
+        </text>
+      )}
+    </g>
+  )
+}
+
+/** A plain connector — no head. */
+function L({ x1, y1, x2, y2, tone = 'past' }: { x1: number; y1: number; x2: number; y2: number; tone?: Tone }) {
+  const c = T[tone]
+  return <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={c.s} strokeWidth={c.w} />
+}
+
+/** A connector with an arrowhead, drawn as geometry (see file header). */
+function A({
+  x1,
+  y1,
+  x2,
+  y2,
+  tone = 'past',
+  dash,
+}: {
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  tone?: Tone
+  dash?: boolean
+}) {
+  const c = T[tone]
+  const a = Math.atan2(y2 - y1, x2 - x1)
+  const bx = x2 - Math.cos(a) * 6
+  const by = y2 - Math.sin(a) * 6
+  const px = -Math.sin(a) * 3.4
+  const py = Math.cos(a) * 3.4
+  return (
+    <g>
+      <line
+        x1={x1}
+        y1={y1}
+        x2={bx}
+        y2={by}
+        stroke={c.s}
+        strokeWidth={c.w}
+        strokeDasharray={dash ? '3 3' : undefined}
+      />
+      <path d={`M${x2} ${y2} L${bx + px} ${by + py} L${bx - px} ${by - py} z`} fill={c.s} />
+    </g>
+  )
+}
+
+/** A line of type. `at` picks the anchor so callers read as coordinates. */
+function C({
+  x,
+  y,
+  tone = 'past',
+  size = 6.5,
+  mid,
+  end,
+  children,
+}: {
+  x: number
+  y: number
+  tone?: Tone
+  size?: number
+  mid?: boolean
+  end?: boolean
+  children: string
+}) {
+  return (
+    <text
+      x={x}
+      y={y}
+      textAnchor={mid ? 'middle' : end ? 'end' : 'start'}
+      fontFamily={MONO}
+      fontSize={size}
+      fill={T[tone].s}
+    >
+      {children}
+    </text>
+  )
+}
+
+/* ---------------------------------------------------------------- Prologue */
+/** The baseline shape every later act is a departure from: one box. */
+function ActPrologue() {
+  return (
+    <svg
+      viewBox="0 0 344 152"
+      role="img"
+      aria-label="A single box labelled one machine, sitting on one disk — the shape of a database before the web."
+    >
+      <C x={14} y={16} size={7}>
+        the answer, for about thirty years
+      </C>
+      <B x={72} y={30} w={200} h={54} tone="new" label="ONE MACHINE" sub="SQL · B-trees · transactions" />
+      <L x1={172} y1={84} x2={172} y2={96} tone="past" />
+      <B x={112} y={96} w={120} h={20} label="one disk, one clock" />
+      <C x={172} y={140} mid tone="pain">
+        every promise in this book is made here first
+      </C>
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------- Act I */
+/** A pyramid: two very different clients over one substrate, master on top. */
+function ActI() {
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="MapReduce and Bigtable sit on GFS, with Chubby above Bigtable — a pyramid in which every component has one master."
+    >
+      <C x={14} y={22} size={7}>
+        one substrate, two very
+      </C>
+      <C x={14} y={33} size={7}>
+        different clients
+      </C>
+
+      <B x={196} y={10} w={132} h={28} tone="new" label="Chubby" sub="master election · locks" />
+      <L x1={262} y1={38} x2={262} y2={64} tone="new" />
+
+      <B x={16} y={64} w={140} h={34} tone="new" label="MapReduce" sub="sweep all of it" />
+      <B x={188} y={64} w={140} h={34} tone="new" label="Bigtable" sub="find one row, now" />
+
+      <L x1={86} y1={98} x2={86} y2={116} tone="new" />
+      <L x1={258} y1={98} x2={258} y2={116} tone="new" />
+      <L x1={86} y1={116} x2={258} y2={116} tone="new" />
+      <L x1={172} y1={116} x2={172} y2={130} tone="new" />
+
+      <B x={32} y={130} w={280} h={34} tone="new" label="GFS" sub="64 MB chunks ×3 — append only, never edit" />
+
+      <C x={172} y={182} mid tone="pain">
+        and every one of them answers to a single master
+      </C>
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------ Act II */
+/** Deliberately the opposite picture: the pyramid struck out, a flat ring. */
+function ActII() {
+  const cx = 240
+  const cy = 92
+  const r = 54
+  const nodes = [0, 1, 2, 3, 4, 5].map((i) => {
+    const a = (-90 + i * 60) * (Math.PI / 180)
+    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }
+  })
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="The layered stack of Act One struck through, beside a ring of peer nodes with no master, one of them dead."
+    >
+      {/* the shape being rejected, drawn small and dim */}
+      <B x={28} y={30} w={64} h={16} label="master" />
+      <B x={16} y={54} w={40} h={14} label="" />
+      <B x={64} y={54} w={40} h={14} label="" />
+      <B x={16} y={76} w={88} h={14} label="GFS" />
+      <line x1={12} y1={26} x2={108} y2={94} stroke={TERRA} strokeWidth="2" />
+      <C x={16} y={110} size={6}>
+        Act I: a master
+      </C>
+      <C x={16} y={120} size={6}>
+        at the top of everything
+      </C>
+
+      <A x1={116} y1={70} x2={150} y2={70} tone="new" />
+
+      <C x={cx} y={18} mid tone="new">
+        every node takes writes
+      </C>
+      {nodes.map((n, i) => {
+        const m = nodes[(i + 1) % nodes.length]
+        return <line key={'e' + i} x1={n.x} y1={n.y} x2={m.x} y2={m.y} stroke={DENIM} strokeWidth="1.6" />
+      })}
+      {nodes.map((n, i) => (
+        <circle
+          key={'n' + i}
+          cx={n.x}
+          cy={n.y}
+          r="12"
+          fill={i === 2 ? '#f6e9e2' : '#e8edf5'}
+          stroke={i === 2 ? TERRA : DENIM}
+          strokeWidth="1.8"
+        />
+      ))}
+      {/* the dead one */}
+      <line x1={nodes[2].x - 6} y1={nodes[2].y - 6} x2={nodes[2].x + 6} y2={nodes[2].y + 6} stroke={TERRA} strokeWidth="1.8" />
+      <line x1={nodes[2].x + 6} y1={nodes[2].y - 6} x2={nodes[2].x - 6} y2={nodes[2].y + 6} stroke={TERRA} strokeWidth="1.8" />
+      <C x={cx} y={cy + 3} mid size={6.5}>
+        no master
+      </C>
+
+      <C x={172} y={180} mid tone="pain">
+        two nodes took the same cart. which one is later?
+      </C>
+    </svg>
+  )
+}
+
+/* ----------------------------------------------------------------- Act III */
+/** A flashback: the layer that was under everything, finally looked at. */
+function ActIII() {
+  return (
+    <svg
+      viewBox="0 0 344 176"
+      role="img"
+      aria-label="Bigtable, Dynamo and Cassandra resting on a newly drawn layer labelled agreement."
+    >
+      <C x={14} y={14} size={6.5}>
+        everything you have read so far
+      </C>
+      <B x={14} y={22} w={96} h={26} label="Bigtable" />
+      <B x={124} y={22} w={96} h={26} label="Dynamo" />
+      <B x={234} y={22} w={96} h={26} label="Cassandra" />
+
+      <A x1={62} y1={50} x2={62} y2={78} tone="new" dash />
+      <A x1={172} y1={50} x2={172} y2={78} tone="new" dash />
+      <A x1={282} y1={50} x2={282} y2={78} tone="new" dash />
+
+      <B x={14} y={82} w={316} h={44} tone="new" label="AGREEMENT" sub="happened-before · Paxos · Raft · ZooKeeper" />
+
+      <C x={172} y={148} mid tone="pain">
+        Chubby was already standing on this back in Act I
+      </C>
+      <C x={172} y={164} mid size={6}>
+        a flashback — this floor is older than everything above it
+      </C>
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------ Act IV */
+/** A storey added on top — and a box of hardware standing outside the stack. */
+function ActIV() {
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="A transactions layer added above Bigtable and GFS, with an external TrueTime box of GPS and atomic clocks feeding it."
+    >
+      <C x={14} y={16} tone="pain">
+        Act I gave up atomicity across rows
+      </C>
+
+      <B x={24} y={26} w={190} h={36} tone="new" label="TRANSACTIONS" sub="Percolator · Spanner" />
+      <L x1={119} y1={62} x2={119} y2={74} tone="new" />
+      <B x={24} y={74} w={190} h={30} label="Bigtable" />
+      <L x1={119} y1={104} x2={119} y2={112} />
+      <B x={24} y={112} w={190} h={26} label="GFS" />
+
+      <B x={236} y={40} w={96} h={44} tone="new" label="TrueTime" sub="GPS + atomic clocks" />
+      <A x1={236} y1={58} x2={216} y2={46} tone="new" dash />
+
+      <C x={172} y={166} mid tone="pain">
+        one bought it with a client library, the other with hardware
+      </C>
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------- Act V */
+/** The stack tipped on its side: the log at the centre, everything a reader. */
+function ActV() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="A cache, an index and a table all drawn as readers derived from a central append-only log."
+    >
+      <C x={172} y={14} mid tone="new">
+        everything above is a view of the log
+      </C>
+      <B x={22} y={22} w={88} h={26} label="the cache" />
+      <B x={128} y={22} w={88} h={26} label="the index" />
+      <B x={234} y={22} w={88} h={26} label="the table" />
+
+      <A x1={66} y1={86} x2={66} y2={50} tone="new" dash />
+      <A x1={172} y1={86} x2={172} y2={50} tone="new" dash />
+      <A x1={278} y1={86} x2={278} y2={50} tone="new" dash />
+
+      <B x={22} y={88} w={300} h={30} tone="new" label="THE LOG" sub="append only · ordered · never edited" />
+
+      <L x1={22} y1={132} x2={322} y2={132} />
+      <C x={22} y={144} size={6}>
+        offset 0
+      </C>
+      <C x={322} y={144} end size={6}>
+        now
+      </C>
+
+      <C x={172} y={168} mid tone="pain">
+        and every reader above can be behind
+      </C>
+    </svg>
+  )
+}
+
+/* ------------------------------------------------------------------ Act VI */
+/** The fork: the same table read two ways, and the split becomes permanent. */
+function ActVI() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="One table forking into a row-oriented layout for serving and a column-oriented layout for analysis."
+    >
+      <C x={172} y={14} mid size={6.5}>
+        one table, two questions
+      </C>
+      <rect x={136} y={20} width={72} height={36} fill="#fff" stroke={MUTED} strokeWidth="1" />
+      <line x1={160} y1={20} x2={160} y2={56} stroke={MUTED} strokeWidth="0.8" />
+      <line x1={184} y1={20} x2={184} y2={56} stroke={MUTED} strokeWidth="0.8" />
+      <line x1={136} y1={32} x2={208} y2={32} stroke={MUTED} strokeWidth="0.8" />
+      <line x1={136} y1={44} x2={208} y2={44} stroke={MUTED} strokeWidth="0.8" />
+
+      <A x1={150} y1={58} x2={92} y2={80} />
+      <A x1={194} y1={58} x2={252} y2={80} tone="new" />
+
+      <B x={14} y={84} w={144} h={42} label="by row" sub="give me this order" />
+      <B x={186} y={84} w={144} h={42} tone="new" label="by column" sub="sum one field of 10⁹ rows" />
+
+      <C x={172} y={152} mid tone="pain">
+        same bytes, ninety degrees apart — so you keep both
+      </C>
+      <C x={172} y={168} mid size={6}>
+        and a pipeline in between, forever
+      </C>
+    </svg>
+  )
+}
+
+/* ---------------------------------------------------------------- Epilogue */
+/** The ring of Act II, growing back the organs it was proud of removing. */
+function ActEpilogue() {
+  const cx = 86
+  const cy = 84
+  const r = 44
+  const nodes = [0, 1, 2, 3, 4, 5].map((i) => {
+    const a = (-90 + i * 60) * (Math.PI / 180)
+    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }
+  })
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="The leaderless ring of Act Two, with a leader per shard, heat-based splitting and a control plane added back onto it."
+    >
+      <C x={cx} y={18} mid size={6.5}>
+        the ring of Act II
+      </C>
+      {nodes.map((n, i) => {
+        const m = nodes[(i + 1) % nodes.length]
+        return <line key={'e' + i} x1={n.x} y1={n.y} x2={m.x} y2={m.y} stroke={MUTED} strokeWidth="1" />
+      })}
+      {nodes.map((n, i) => (
+        <circle key={'n' + i} cx={n.x} cy={n.y} r="10" fill="#fff" stroke={MUTED} strokeWidth="1" />
+      ))}
+
+      <A x1={142} y1={84} x2={174} y2={84} tone="new" />
+
+      <C x={257} y={22} mid tone="new">
+        what it grew back
+      </C>
+      <B x={182} y={30} w={150} h={26} tone="new" label="a leader per shard" />
+      <B x={182} y={64} w={150} h={26} tone="new" label="heat-based splitting" />
+      <B x={182} y={98} w={150} h={26} tone="new" label="a control plane" />
+
+      <C x={172} y={162} mid tone="pain">
+        and the other family went leaderless. call it a draw.
+      </C>
+    </svg>
+  )
+}
+
+/** Act key (from `TOC`) → its figure. Kept as a lookup rather than a field on
+ *  TOC itself because book.ts is plain data with no JSX. A test asserts the
+ *  two stay in step. */
+export const ACT_FIGURES: Record<string, () => ReactElement> = {
+  prologue: ActPrologue,
+  i: ActI,
+  ii: ActII,
+  iii: ActIII,
+  iv: ActIV,
+  v: ActV,
+  vi: ActVI,
+  epilogue: ActEpilogue,
+}
