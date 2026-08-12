@@ -355,7 +355,27 @@ export interface Preset {
   req: Req
   sets: Vals
 }
+/* The presets are chosen so that every store a workload can actually reach gets
+   reached. Five of them landed on two answers — three on wide-column, two on
+   sharded SQL — which made a six-column table look like it had one opinion.
+
+   They are still named for the SYSTEM, never for the store. Working backwards
+   from an answer ("here is the workload that picks Cassandra") would invert the
+   page's whole argument into a lookup table, and imply each store has one
+   canonical use, which is the folklore this page exists to replace. What
+   changed is the SET, not the method: two ordinary systems were missing, and
+   adding them happens to light up the two reachable columns nothing reached.
+
+   Document and Columnar are deliberately absent from that promise, and cannot
+   be added: neither can win a capacity argument at any of the 64 requirement
+   combinations, by design. See STORE_NEVER_WINS below. */
 export const PRESETS: Preset[] = [
+  {
+    id: 'app', label: 'Internal / B2B app',
+    info: '50k daily users on an ordinary transactional app — the case where the answer is still one database, and the page says so.',
+    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'no', access: 'point', recency: 'current' },
+    sets: { dau: 5e4, actions: 50, peak: 3, readPct: 85, fanout: 1, online: 10, writeSize: 2, readSize: 50, lat: 100, retention: 36, growth: 5, derived: 1 },
+  },
   {
     id: 'feed', label: 'Social feed',
     info: '50M readers, a post fans out to ~100 followers — the write is cheap, the deliveries are not.',
@@ -386,7 +406,25 @@ export const PRESETS: Preset[] = [
     req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' },
     sets: { dau: 1e8, actions: 20, peak: 3, readPct: 95, fanout: 1, online: 5, writeSize: 5000, readSize: 2000, lat: 100, retention: 60, growth: 10, derived: 1 },
   },
+  {
+    id: 'sessions', label: 'Sessions / rate limits',
+    info: 'Every request checks it, nothing is delivered, and losing a node costs a re-login — the one workload where durability stops being a filter.',
+    req: { fresh: 'pull', txn: 'single', loss: 'rebuild', analytics: 'no', access: 'point', recency: 'current' },
+    sets: { dau: 2e6, actions: 100, peak: 3, readPct: 95, fanout: 1, online: 20, writeSize: 1, readSize: 1, lat: 5, retention: 1, growth: 10, derived: 0 },
+  },
 ]
+
+/* Two of the six columns cannot win a capacity argument at ANY of the 64
+   requirement combinations, and that is a design decision rather than an
+   oversight — see each store's `chooseFor`. A reader who clicks every preset
+   and never sees them picked learns nothing from the silence, so the page says
+   it out loud, and `presets.test.ts` re-derives the claim by brute force. If
+   the model ever changes so one of these CAN win, that test fails and tells you
+   to delete the line rather than leaving the page asserting something stale. */
+export const CANNOT_WIN: Record<string, string> = {
+  doc: 'its numbers here match sharded SQL almost exactly, so it never wins on arithmetic. You choose it when a record is naturally a nested tree — a fit question this page cannot measure.',
+  col: 'it is disqualified the moment reads fetch one record, and when they do not, it is a sidecar fed from the primary rather than the system of record. It wins queries, not workloads.',
+}
 
 /** the visible constants a store implies, resolved for this access pattern */
 export function storeConstants(st: Store, access: string) {

@@ -28,6 +28,7 @@ import {
   type Req,
   type Vals,
   DECIDED,
+  CANNOT_WIN,
 } from './calcModel'
 
 /* ============================================================
@@ -1138,6 +1139,24 @@ export default function Calculator() {
                   Every column not marked <span className="vd-out-tag">out</span> is a system you could
                   actually run at this load — {alive.length === 1 ? 'here there is only one' : `here there are ${alive.length}`}.
                   Click any of them to pin it, and the rest of this page re-derives around your choice.
+                  {/* Two columns are never the answer here, at any setting. Left
+                      unexplained, that reads as a table with dead weight in it —
+                      or worse, as the reader failing to find the combination.
+                      Saying it is the lesson: these two are chosen for fit, and
+                      fit is not a thing arithmetic decides. */}
+                  {Object.keys(CANNOT_WIN).length > 0 && (
+                    <>
+                      {' '}
+                      Two of them are never picked <em>at any setting</em>, and that is not you
+                      failing to find the combination:{' '}
+                      {Object.entries(CANNOT_WIN).map(([id, why], i, arr) => (
+                        <span key={id}>
+                          <b>{STORES.find((s) => s.id === id)!.short}</b> — {why}
+                          {i < arr.length - 1 ? ' ' : ''}
+                        </span>
+                      ))}
+                    </>
+                  )}
                 </>
               }
             />
