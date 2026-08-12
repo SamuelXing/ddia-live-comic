@@ -1618,6 +1618,57 @@ export function CompoundKeyDiagram() {
   )
 }
 
+/** Ch 6b · Step 03 deeper — two hot partitions that look identical on a
+ *  dashboard and have opposite fixes. Left: many keys that sort together, so
+ *  spreading them works. Right: one key, which no partitioning scheme can
+ *  split, so the only moves are copies. */
+export function HotRangeVsHotKeyDiagram() {
+  return (
+    <svg viewBox="0 0 176 168" role="img" aria-label="Two kinds of hot partition. On the left, many distinct keys land in one partition because they sort together, and spreading them across buckets fixes it. On the right, a single key carries the heat, which no number of partitions can split, so the fixes are to copy or cache that one key.">
+      <text x="45" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>many keys</text>
+      <text x="131" y="12" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>one key</text>
+
+      {/* left: four distinct keys funnelling into one box */}
+      {[14, 30, 46, 62].map((x) => (
+        <rect key={x} x={x} y="20" width="12" height="8" rx="1" fill="#dfe7f2" stroke={DENIM} strokeWidth="0.9" />
+      ))}
+      {[20, 36, 52, 68].map((x) => (
+        <path key={x} d={`M${x} 30 L45 40`} stroke={MUTED} strokeWidth="0.8" />
+      ))}
+      <rect x="24" y="42" width="42" height="20" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2.5" />
+      <text x="45" y="55" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>100%</text>
+
+      {/* right: one key, drawn once, same hot box */}
+      <rect x="125" y="20" width="12" height="8" rx="1" fill="#fbf1ea" stroke={TERRA} strokeWidth="1.4" />
+      <path d="M131 30 L131 40" stroke={MUTED} strokeWidth="0.8" />
+      <rect x="110" y="42" width="42" height="20" rx="2" fill="#fbf1ea" stroke={TERRA} strokeWidth="2.5" />
+      <text x="131" y="55" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={TERRA}>100%</text>
+
+      <text x="88" y="76" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={MUTED}>identical on the dashboard</text>
+      <line x1="88" y1="84" x2="88" y2="152" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+
+      {/* left fix: spread them */}
+      <text x="45" y="96" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>spread them</text>
+      {[16, 38, 60].map((x) => (
+        <rect key={x} x={x} y="104" width="18" height="16" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.4" />
+      ))}
+      <text x="45" y="130" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>new key, or a</text>
+      <text x="45" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>bucket in front</text>
+
+      {/* right fix: copies, because one key cannot split */}
+      <text x="131" y="96" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6.5" fill={DENIM}>copy it</text>
+      {[104, 122, 140].map((x) => (
+        <rect key={x} x={x} y="104" width="14" height="16" rx="2" fill="#dfe7f2" stroke={DENIM} strokeWidth="1.4" />
+      ))}
+      <text x="131" y="130" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>replicas or a cache;</text>
+      <text x="131" y="140" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>more partitions</text>
+      <text x="131" y="150" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="6" fill={MUTED}>do nothing</text>
+
+      <text x="88" y="164" textAnchor="middle" fontFamily="JetBrains Mono, monospace" fontSize="7" fill={INK}>count the keys in the heat</text>
+    </svg>
+  )
+}
+
 /** Ch 6b · Step 04 deeper — a second index is either local or global. */
 export function LocalGlobalIndexDiagram() {
   return (
