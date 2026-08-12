@@ -107,8 +107,8 @@ export default function ComponentsCatalog() {
             O’Reilly.
           </span>
           <span>
-            <Link to="/read">Read the Ideas</Link> · <Link to="/components">Deep-Dives</Link> ·{' '}
-            <Link to="/sims/feed">Simulations</Link>
+            <Link to="/ddia/read">Read the Ideas</Link> · <Link to="/ddia/components">Deep-Dives</Link> ·{' '}
+            <Link to="/ddia/sims/feed">Simulations</Link>
           </span>
         </div>
       </div>

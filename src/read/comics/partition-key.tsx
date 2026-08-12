@@ -159,8 +159,8 @@ export const partitionKey: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Kafka — the key decides the partition', to: '/components/kafka', live: true },
-    { label: 'S3 — the key prefix is a shard key', to: '/components/s3', live: true },
+    { label: 'Kafka — the key decides the partition', to: '/ddia/components/kafka', live: true },
+    { label: 'S3 — the key prefix is a shard key', to: '/ddia/components/s3', live: true },
     { label: 'Capacity calculator — “how reads find the data”', to: '/calculator/capacity', live: true },
     { label: 'Cassandra', note: 'roadmap' },
   ],

@@ -70,7 +70,7 @@ export default function S3Page() {
               <span>{c.n}</span> {c.title}
             </a>
           ))}
-          <Link className="fl-toc-back" to="/components">
+          <Link className="fl-toc-back" to="/ddia/components">
             ← All components
           </Link>
         </aside>
@@ -126,7 +126,7 @@ export default function S3Page() {
             </p>
             <div className="note">
               <b>Sound familiar?</b> A key-range-partitioned index that splits partitions when they
-              get hot is exactly the mechanism in the <Link to="/read/partitioning">Consistent
+              get hot is exactly the mechanism in the <Link to="/ddia/read/partitioning">Consistent
               Hashing</Link> comic — and the hot prefix is that comic&apos;s hot key wearing a
               filename. S3 is the largest existing proof that the idea works, and Chapter 6 is the
               proof that it still needs a good shard key from you.
@@ -177,7 +177,7 @@ export default function S3Page() {
               , which also documents the ~100–200 ms small-object latency and single-instance
               transfer up to 100 Gb/s. Prices are us-east-1 S3 Standard list, used at
               order-of-magnitude only. The requests-in-flight row is Little&apos;s Law, the same one
-              driving the <Link to="/components/web">web tier</Link>.
+              driving the <Link to="/ddia/components/web">web tier</Link>.
             </p>
           </Ch>
 

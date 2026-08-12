@@ -121,9 +121,9 @@ export const replicationLeader: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Postgres — WAL streaming', to: '/components/postgres', live: true },
-    { label: 'Redis — replica of', to: '/components/redis', live: true },
-    { label: 'Kafka — ISR followers', to: '/components/kafka', live: true },
+    { label: 'Postgres — WAL streaming', to: '/ddia/components/postgres', live: true },
+    { label: 'Redis — replica of', to: '/ddia/components/redis', live: true },
+    { label: 'Kafka — ISR followers', to: '/ddia/components/kafka', live: true },
   ],
   finale: {
     title: 'One writer, many readers',

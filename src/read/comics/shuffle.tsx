@@ -192,9 +192,9 @@ export const shuffle: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Kafka — the log these pipelines usually read from', to: '/components/kafka', live: true },
-    { label: 'Consistent hashing — the partitioning the shuffle depends on', to: '/read/partitioning', live: true },
-    { label: 'Tail latency — the same "slowest part decides" arithmetic', to: '/read/tail-latency', live: true },
+    { label: 'Kafka — the log these pipelines usually read from', to: '/ddia/components/kafka', live: true },
+    { label: 'Consistent hashing — the partitioning the shuffle depends on', to: '/ddia/read/partitioning', live: true },
+    { label: 'Tail latency — the same "slowest part decides" arithmetic', to: '/ddia/read/tail-latency', live: true },
     { label: 'Capacity planning — where a full scan costs what it costs', to: '/calculator/capacity', live: true },
   ],
   finale: {

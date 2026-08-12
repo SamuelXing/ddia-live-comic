@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { REPO_URL } from '../site'
 
 /** The GitHub mark (Octicon `mark-github`, 16px), inlined rather than fetched
@@ -11,35 +11,71 @@ function GitHubMark() {
   )
 }
 
-/**
- * The one navigation bar, shared by every page (home, idea index, component
- * deep-dives, sims catalog, 404). Comic chrome, self-contained styling so it
- * looks identical on paper pages and token-flipped pages. The wordmark is
- * always the way home; the active section is highlighted.
- */
 const linkClass = ({ isActive }: { isActive: boolean }) => 'gn-link' + (isActive ? ' active' : '')
 
+/**
+ * The one navigation bar — but each book and tool on the shelf is an isolated
+ * world, so the bar changes identity with the section: its brand is the
+ * section's own wordmark (and the way to that section's home), its links are
+ * that section's internal geography, and nothing cross-links to the other
+ * books. The bookshelf at `/` is the only place the books meet.
+ */
 export default function SiteNav() {
+  const path = useLocation().pathname
+  const section = path.startsWith('/ddia')
+    ? 'ddia'
+    : path.startsWith('/papers')
+      ? 'papers'
+      : path.startsWith('/calculator')
+        ? 'calc'
+        : 'shelf'
+
   return (
     <nav className="gn-nav">
       <div className="gn-nav-in">
-        <Link className="gn-brand" to="/">
-          <b>DDIA</b>
-          <span className="tl">, as a live comic</span>
-        </Link>
+        {section === 'ddia' && (
+          <Link className="gn-brand" to="/ddia">
+            <b>DDIA</b>
+            <span className="tl">, as a live comic</span>
+          </Link>
+        )}
+        {section === 'papers' && (
+          <Link className="gn-brand" to="/papers">
+            <b>The Papers</b>
+            <span className="tl">, that broke the database</span>
+          </Link>
+        )}
+        {section === 'calc' && (
+          <Link className="gn-brand" to="/calculator">
+            <b>Calculator</b>
+            <span className="tl">, for doing napkin math</span>
+          </Link>
+        )}
+        {section === 'shelf' && (
+          <Link className="gn-brand" to="/">
+            <b>systems</b>
+            <span className="tl"> comic — the bookshelf</span>
+          </Link>
+        )}
         <span className="sp" />
-        <NavLink className={linkClass} to="/read">
-          Read the Ideas
-        </NavLink>
-        <NavLink className={linkClass} to="/components">
-          Deep-Dives
-        </NavLink>
-        <a className="gn-link" href="/#apps">
-          Simulations <span className="exp">(experimental)</span>
-        </a>
-        <NavLink className={linkClass} to="/calculator">
-          Calculator
-        </NavLink>
+        {section === 'ddia' && (
+          <>
+            <NavLink className={linkClass} to="/ddia/read">
+              Ideas
+            </NavLink>
+            <NavLink className={linkClass} to="/ddia/components">
+              Deep-Dives
+            </NavLink>
+            <a className="gn-link" href="/ddia#apps">
+              Simulations <span className="exp">(experimental)</span>
+            </a>
+          </>
+        )}
+        {section === 'papers' && path !== '/papers' && (
+          <NavLink className={linkClass} to="/papers" end>
+            ← All chapters
+          </NavLink>
+        )}
         <a
           className="gn-link gn-gh"
           href={REPO_URL}

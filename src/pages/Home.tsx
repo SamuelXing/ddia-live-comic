@@ -9,12 +9,12 @@ import { SIMS, STATUS_META } from '../sims/registry'
 const BRAND = 'DDIA, as a live comic'
 
 const COMPS = [
-  { name: 'Apache Kafka', path: '/components/kafka', color: '#c98500', desc: 'A replicated append-only log: partitioning, replication, consensus, all from one design bet.' },
-  { name: 'Postgres', path: '/components/postgres', color: '#9085e9', desc: 'The single-primary write wall: storage engines, MVCC, WAL replication, the pool → cache → shard ladder.' },
-  { name: 'Redis', path: '/components/redis', color: '#e5533b', desc: 'One CPU core, memory ceilings, eviction, cluster hash slots, and the hot-key problem.' },
-  { name: 'Web / App tier', path: '/components/web', color: '#3987e5', desc: "Stateless clones behind a balancer. Little's Law and connection fan-out." },
-  { name: 'RabbitMQ', path: '/components/rabbitmq', color: '#0f9fc2', desc: 'The smart broker: exchanges, prefetch, quorum queues, one core per queue.' },
-  { name: 'S3 / Object store', path: '/components/s3', color: '#1aa46e', desc: 'Per-prefix request limits, the latency floor, and the cost shape.' },
+  { name: 'Apache Kafka', path: '/ddia/components/kafka', color: '#c98500', desc: 'A replicated append-only log: partitioning, replication, consensus, all from one design bet.' },
+  { name: 'Postgres', path: '/ddia/components/postgres', color: '#9085e9', desc: 'The single-primary write wall: storage engines, MVCC, WAL replication, the pool → cache → shard ladder.' },
+  { name: 'Redis', path: '/ddia/components/redis', color: '#e5533b', desc: 'One CPU core, memory ceilings, eviction, cluster hash slots, and the hot-key problem.' },
+  { name: 'Web / App tier', path: '/ddia/components/web', color: '#3987e5', desc: "Stateless clones behind a balancer. Little's Law and connection fan-out." },
+  { name: 'RabbitMQ', path: '/ddia/components/rabbitmq', color: '#0f9fc2', desc: 'The smart broker: exchanges, prefetch, quorum queues, one core per queue.' },
+  { name: 'S3 / Object store', path: '/ddia/components/s3', color: '#1aa46e', desc: 'Per-prefix request limits, the latency floor, and the cost shape.' },
 ]
 
 export default function Home() {
@@ -58,10 +58,10 @@ export default function Home() {
             they break under live traffic.
           </p>
           <div className="gn-cta">
-            <Link className="gn-btn primary" to="/read">
+            <Link className="gn-btn primary" to="/ddia/read">
               ▶ Read the ideas
             </Link>
-            <Link className="gn-btn" to="/components">
+            <Link className="gn-btn" to="/ddia/components">
               See them in the machines
             </Link>
           </div>
@@ -78,7 +78,7 @@ export default function Home() {
           </p>
         </div>
         <div className="gn-idx-lenses">
-          <Link className="gn-lens gap box lift" to="/read" data-obs>
+          <Link className="gn-lens gap box lift" to="/ddia/read" data-obs>
             <span className="ll">Read · new</span>
             <h3>The Ideas</h3>
             <p>
@@ -87,7 +87,7 @@ export default function Home() {
               keyspace.
             </p>
           </Link>
-          <Link className="gn-lens built box lift" to="/components" data-obs>
+          <Link className="gn-lens built box lift" to="/ddia/components" data-obs>
             <span className="ll">Meet · built</span>
             <h3>The Machines</h3>
             <p>
@@ -212,7 +212,7 @@ export default function Home() {
               The flagship comic: add a node to a hash ring and watch a single slice of keys move
               instead of the whole keyspace — the idea behind Redis Cluster and Kafka partitions.
             </p>
-            <Link className="gn-btn primary" to="/read/partitioning">
+            <Link className="gn-btn primary" to="/ddia/read/partitioning">
               ▶ Read the first comic
             </Link>
           </div>
@@ -224,7 +224,7 @@ export default function Home() {
             Applications</em> by Martin Kleppmann. Not affiliated with the author or O’Reilly.
           </span>
           <span>
-            <Link to="/read">Read the Ideas</Link> · <Link to="/components">Deep-Dives</Link> ·{' '}
+            <Link to="/ddia/read">Read the Ideas</Link> · <Link to="/ddia/components">Deep-Dives</Link> ·{' '}
             <a href="#apps">Simulations</a>
           </span>
         </div>

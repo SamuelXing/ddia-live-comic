@@ -184,7 +184,7 @@ export const transactions: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Postgres — MVCC & isolation', to: '/components/postgres', live: true },
+    { label: 'Postgres — MVCC & isolation', to: '/ddia/components/postgres', live: true },
     { label: 'Cassandra — lightweight txns', note: 'roadmap' },
   ],
   finale: {

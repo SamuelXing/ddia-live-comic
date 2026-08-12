@@ -193,8 +193,8 @@ export const tailLatency: Comic = {
   seenIn: [
     { label: 'The latency budget — spend a p99 target, term by term', to: '/calculator/latency', live: true },
     { label: 'Capacity planning — the ceilings the queue forms in front of', to: '/calculator/capacity', live: true },
-    { label: 'Redis — one core, one command at a time, and what queues behind it', to: '/components/redis', live: true },
-    { label: 'Why it’s hard — timeouts, and a healthy server declared dead', to: '/read/distributed-troubles', live: true },
+    { label: 'Redis — one core, one command at a time, and what queues behind it', to: '/ddia/components/redis', live: true },
+    { label: 'Why it’s hard — timeouts, and a healthy server declared dead', to: '/ddia/read/distributed-troubles', live: true },
   ],
   finale: {
     title: 'The tail is variance, not slowness',

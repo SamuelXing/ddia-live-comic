@@ -133,6 +133,10 @@
    comic panel, not a thumbnail. Framed on paper so it reads as inked art. */
 .gn-diagram { display: grid; grid-template-columns: 1fr minmax(280px, 340px); gap: 24px; align-items: center; }
 @media (max-width: 700px) { .gn-diagram { grid-template-columns: 1fr; } }
+/* Interactive instruments (the papers book's designer widget and dark figure
+   panels) are not side-column illustrations — they get the panel's full width,
+   body text above them. */
+.gn-diagram:has(> .gn-design), .gn-diagram:has(> .gn-figure) { grid-template-columns: 1fr; }
 /* Same automatic-minimum-size trap as .gn-page: without this, a napkin-math
    block's min-content width (white-space: pre, so it has no wrap points)
    inflates its grid track and the page scrolls sideways. With it, .gn-code's
@@ -447,6 +451,100 @@
 .gn-continue .rungs a.live { border-color: var(--denim); color: #bcd0e6; }
 .gn-continue .rungs a:hover { transform: translate(-2px,-2px); box-shadow: 3px 3px 0 var(--denim); }
 .gn-continue .rungs span { color: #9a978d; border-color: #55524b; }
+
+/* ============================================================
+   The papers book (src/papers) — Book B chrome on the same skin.
+   ============================================================ */
+
+/* citation card under the masthead: the paper, displayed like the answer key */
+.gn-cite { margin-top: 14px; padding: 14px 18px; }
+.gn-cite .cl { font-family: var(--gn-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--terra-ink); }
+.gn-cite .ct { display: inline-block; margin-top: 4px; font-family: var(--gn-display); font-weight: 800; font-size: 18px; color: var(--ink); text-decoration: none; border-bottom: 2px solid var(--denim); }
+.gn-cite .ct:hover { color: var(--denim-ink); }
+.gn-cite .ca { margin-top: 4px; font-family: var(--gn-mono); font-size: 12px; color: var(--ink-3); }
+
+/* a dark instrument framed as an inked figure panel. The .trace styles
+   (flagship.css) consume the dark-app tokens, which are undefined under .gn —
+   define the paper-flip set here, same values comic-theme.css gives .dd-page.
+   The canvas itself stays dark; paper when you read, dark when you drive. */
+.gn .gn-figure {
+  --card: #fffdf8; --card-2: #f5eedd; --border: rgba(26,26,26,.16); --line: rgba(26,26,26,.3);
+  --ink: #16130f; --ink-2: #45403a; --muted: #8a8177; --accent: #3f6191; --accent-2: #29456c;
+  --radius: 5px; --radius-sm: 4px;
+  margin-top: 6px;
+}
+.gn .gn-figure .trace { margin: 0; border: 2px solid var(--ink-line); border-radius: 5px; box-shadow: 3px 3px 0 var(--ink-line); }
+
+/* --- DesignIt: the "you are the designer" widget --- */
+.gn-design { display: grid; gap: 14px; margin-top: 8px; }
+.gn-design-constraints { border: 2px solid var(--ink-line); background: var(--paper); padding: 12px 16px; }
+.gn-design-constraints .cl { font-family: var(--gn-mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--terra-ink); }
+.gn-design-constraints ul { margin: 8px 0 0; padding-left: 18px; }
+.gn-design-constraints li { font-size: 14.5px; color: var(--ink-2); margin: 4px 0; }
+.gn-dq { border: 2px solid var(--ink-line); background: var(--paper-2); box-shadow: 3px 3px 0 var(--ink-line); padding: 14px 16px; }
+.gn-dq .qn { font-family: var(--gn-mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+.gn-dq .qn .ok { color: var(--denim); }
+.gn-dq .qq { margin: 6px 0 10px; font-size: 15.5px; color: var(--ink); }
+.gn-dq .opts { display: flex; gap: 8px; flex-wrap: wrap; }
+.gn-dopt { font-family: var(--gn-comic); font-weight: 700; font-size: 14px; color: var(--ink);
+  background: var(--paper); border: 2px solid var(--ink-line); padding: 8px 12px; cursor: pointer;
+  transition: transform .12s cubic-bezier(.2,.7,.3,1), box-shadow .12s cubic-bezier(.2,.7,.3,1); }
+.gn-dopt:hover { transform: translate(-2px,-2px); box-shadow: 3px 3px 0 var(--ink-line); }
+.gn-dopt.is-dead { background: #f6e9e2; border-color: var(--terra-ink); color: var(--terra-ink); text-decoration: line-through; }
+.gn-dopt.is-move { background: #e8edf5; border-color: var(--denim-ink); color: var(--denim-ink); }
+.gn-dwhy { margin-top: 10px; font-size: 14px; padding: 10px 12px; border-left: 4px solid; }
+.gn-dwhy.dead { border-color: var(--terra); background: #f6e9e2; color: var(--ink-2); }
+.gn-dwhy.move { border-color: var(--denim); background: #e8edf5; color: var(--ink-2); }
+.gn-dwhy .vt { font-family: var(--gn-comic); font-weight: 700; }
+.gn-dwhy.dead .vt { color: var(--terra-ink); }
+.gn-dwhy.move .vt { color: var(--denim-ink); }
+.gn-dreveal { border: 2px solid var(--denim-ink); background: var(--paper-2); box-shadow: 4px 4px 0 var(--denim); padding: 14px 18px; }
+.gn-dreveal .rt { font-family: var(--gn-display); font-weight: 800; font-size: 19px; color: var(--denim-ink); margin-bottom: 6px; }
+.gn-dreveal p { margin: 6px 0; font-size: 14.5px; color: var(--ink-2); }
+.gn-dlocked { font-family: var(--gn-mono); font-size: 12px; color: var(--ink-3); border: 2px dashed var(--rule); padding: 10px 14px; }
+
+/* --- the book's index (table of contents) --- */
+.pb-toc { display: grid; gap: 18px; margin-top: 24px; }
+.pb-act { border: 2px solid var(--ink-line); background: var(--paper-2); box-shadow: 3px 3px 0 var(--ink-line); }
+.pb-act > .ah { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--terra-ink); padding: 10px 16px 8px; border-bottom: 1px solid var(--rule); }
+.pb-row { display: grid; grid-template-columns: 54px 1fr auto; gap: 12px; align-items: baseline;
+  padding: 10px 16px; border-top: 1px solid var(--rule); text-decoration: none; }
+.pb-row:first-of-type { border-top: none; }
+.pb-row .no { font-family: var(--gn-mono); font-size: 11.5px; color: var(--ink-3); }
+.pb-row .tt { font-family: var(--gn-display); font-weight: 700; font-size: 16.5px; color: var(--ink); }
+.pb-row .pp { font-family: var(--gn-mono); font-size: 11px; color: var(--ink-3); text-align: right; }
+a.pb-row { transition: transform .12s cubic-bezier(.2,.7,.3,1), background .12s; }
+a.pb-row:hover { background: #e8edf5; }
+a.pb-row .tt { color: var(--denim-ink); border-bottom: 2px solid var(--denim); }
+a.pb-row .pp::after { content: ' →'; color: var(--denim-ink); }
+.pb-row.soon .tt { color: var(--ink-2); font-weight: 600; }
+.pb-row.soon .badge { font-family: var(--gn-mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); border: 1.5px dashed var(--ink-3); padding: 2px 7px; }
+.pb-row.interlude .tt { font-style: italic; font-weight: 600; color: var(--ink-2); }
+@media (max-width: 560px) { .pb-row { grid-template-columns: 44px 1fr; } .pb-row .pp, .pb-row .badge { display: none; } }
+.pb-unwritten { color: #9a978d; font-family: var(--gn-mono); font-size: 12.5px; }
+
+/* --- the bookshelf (site front door) --- */
+.bs-shelf { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 24px; }
+@media (max-width: 780px) { .bs-shelf { grid-template-columns: 1fr; } }
+.bs-book { display: block; padding: 20px 22px; text-decoration: none; color: var(--ink); }
+.bs-book .bk, .bs-tool .bk, .bs-upcoming .bk { font-family: var(--gn-mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--terra-ink); }
+.bs-book h2, .bs-tool h2 { font-family: var(--gn-display); font-weight: 800; font-size: 26px; letter-spacing: -.01em;
+  margin: 6px 0 8px; color: var(--ink); }
+.bs-book p, .bs-tool p { margin: 0 0 12px; font-size: 15px; color: var(--ink-2); }
+.bs-book .bm { font-family: var(--gn-mono); font-size: 12px; color: var(--denim-ink); }
+.bs-tool { display: block; margin-top: 20px; padding: 16px 22px; text-decoration: none; color: var(--ink); }
+.bs-tool h2 { font-size: 20px; }
+.bs-tool p { margin-bottom: 0; }
+.bs-upcoming { margin-top: 20px; padding: 16px 22px; background: var(--paper); }
+.bs-upcoming .rows { margin-top: 10px; }
+.bs-upcoming .row { display: grid; grid-template-columns: minmax(160px, 0.8fr) 1.6fr; gap: 4px 16px;
+  padding: 9px 0; border-top: 1px solid var(--rule); align-items: baseline; }
+@media (max-width: 560px) { .bs-upcoming .row { grid-template-columns: 1fr; } }
+.bs-upcoming .tt { font-family: var(--gn-display); font-weight: 700; font-size: 16px; color: var(--ink-2); }
+.bs-upcoming .nn { font-family: var(--gn-mono); font-size: 11.5px; color: var(--ink-3); }
 
 @media (prefers-reduced-motion: reduce) {
   .gn *, .gn *::before, .gn *::after { transition: none !important; animation: none !important; }

@@ -143,8 +143,8 @@ export const consensus: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Kafka — KRaft controller', to: '/components/kafka', live: true },
-    { label: 'RabbitMQ — quorum queues', to: '/components/rabbitmq', live: true },
+    { label: 'Kafka — KRaft controller', to: '/ddia/components/kafka', live: true },
+    { label: 'RabbitMQ — quorum queues', to: '/ddia/components/rabbitmq', live: true },
     { label: 'etcd / Raft', note: 'roadmap' },
   ],
   finale: {

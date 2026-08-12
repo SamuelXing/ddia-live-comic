@@ -180,7 +180,7 @@ export const replicationQuorum: Comic = {
   seenIn: [
     { label: 'Cassandra — tunable W/R', note: 'roadmap' },
     { label: 'DynamoDB', note: 'roadmap' },
-    { label: 'Kafka — acks=all', to: '/components/kafka', live: true },
+    { label: 'Kafka — acks=all', to: '/ddia/components/kafka', live: true },
   ],
   finale: {
     title: 'No boss, just arithmetic',
