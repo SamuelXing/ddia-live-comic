@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import type { Comic, CodeBlock as CodeBlockT, Step } from './types'
 import { rich } from './rich'
 import { SITE_TITLE } from '../routeTitle'
+import SiteNav from '../components/SiteNav'
 
 // self-hosted fonts (no runtime network dependency)
 
@@ -69,7 +70,9 @@ function ThinkPrompt({ t }: { t: NonNullable<Step['think']> }) {
   )
 }
 
-function Panel({ step }: { step: Step }) {
+/** One comic panel. Exported because the papers book (src/papers) renders its
+ *  chapters with the same panel anatomy — one implementation, two mastheads. */
+export function Panel({ step }: { step: Step }) {
   const wide = step.span === 2 || !!step.diagram
   const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
   const body = (
@@ -158,18 +161,7 @@ export default function ComicView({ comic }: { comic: Comic }) {
         <i ref={barRef} />
       </div>
 
-      <nav className="gn-nav">
-        <div className="gn-nav-in">
-          <Link className="gn-brand" to="/">
-            <b>DDIA</b>
-            <span className="tl">, as a live comic</span>
-          </Link>
-          <span className="sp" />
-          <Link className="gn-link" to="/read">
-            ← All ideas
-          </Link>
-        </div>
-      </nav>
+      <SiteNav />
 
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
@@ -293,7 +285,7 @@ export default function ComicView({ comic }: { comic: Comic }) {
 
           <div className="gn-next">
             <span>DDIA, as a live comic — inspired by the book by Martin Kleppmann</span>
-            {comic.next && <Link to={'/read/' + comic.next.slug}>Next: {comic.next.title} →</Link>}
+            {comic.next && <Link to={'/ddia/read/' + comic.next.slug}>Next: {comic.next.title} →</Link>}
           </div>
         </main>
       </div>

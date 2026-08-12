@@ -183,11 +183,11 @@ export const streamTable: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Kafka — the log itself, in detail', to: '/components/kafka', live: true },
+    { label: 'Kafka — the log itself, in detail', to: '/ddia/components/kafka', live: true },
     { label: 'Capacity planning — where “one log, many consumers” gets recommended', to: '/calculator/capacity', live: true },
-    { label: 'The shuffle — the batch half of the same story', to: '/read/shuffle', live: true },
-    { label: 'Leader & followers — replication as the original changelog', to: '/read/replication-leader', live: true },
-    { label: 'Observability at scale — a pipeline built on exactly this shape', to: '/sims/observability', live: true },
+    { label: 'The shuffle — the batch half of the same story', to: '/ddia/read/shuffle', live: true },
+    { label: 'Leader & followers — replication as the original changelog', to: '/ddia/read/replication-leader', live: true },
+    { label: 'Observability at scale — a pipeline built on exactly this shape', to: '/ddia/sims/observability', live: true },
   ],
   finale: {
     title: 'One ordered story, many readers',

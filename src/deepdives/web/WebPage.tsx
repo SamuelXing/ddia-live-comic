@@ -69,7 +69,7 @@ export default function WebPage() {
               <span>{c.n}</span> {c.title}
             </a>
           ))}
-          <Link className="fl-toc-back" to="/components">
+          <Link className="fl-toc-back" to="/ddia/components">
             ← All components
           </Link>
         </aside>

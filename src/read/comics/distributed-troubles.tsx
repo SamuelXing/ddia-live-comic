@@ -151,8 +151,8 @@ export const distributedTroubles: Comic = {
     },
   ],
   seenIn: [
-    { label: 'RabbitMQ — failure detection', to: '/components/rabbitmq', live: true },
-    { label: 'Every simulation — fail a node', to: '/sims/feed', live: true },
+    { label: 'RabbitMQ — failure detection', to: '/ddia/components/rabbitmq', live: true },
+    { label: 'Every simulation — fail a node', to: '/ddia/sims/feed', live: true },
   ],
   finale: {
     title: 'Fail a node and watch it recover',

@@ -120,9 +120,9 @@ export const replicationLag: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Postgres — replica lag', to: '/components/postgres', live: true },
-    { label: 'Feed — read from replicas', to: '/sims/feed', live: true },
-    { label: 'Redis — async replicas', to: '/components/redis', live: true },
+    { label: 'Postgres — replica lag', to: '/ddia/components/postgres', live: true },
+    { label: 'Feed — read from replicas', to: '/ddia/sims/feed', live: true },
+    { label: 'Redis — async replicas', to: '/ddia/components/redis', live: true },
   ],
   finale: {
     title: 'The price of going fast',

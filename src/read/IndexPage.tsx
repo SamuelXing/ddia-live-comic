@@ -160,7 +160,7 @@ export default function IndexPage() {
                   </>
                 )
                 return live ? (
-                  <Link key={i} className="gn-idea box lift live" to={'/read/' + idea.slug} data-obs>
+                  <Link key={i} className="gn-idea box lift live" to={'/ddia/read/' + idea.slug} data-obs>
                     {inner}
                   </Link>
                 ) : (
@@ -176,7 +176,7 @@ export default function IndexPage() {
         <div className="gn-foot">
           <span>DDIA, as a live comic — an unofficial, illustrated companion to the book</span>
           <span>
-            <Link to="/components">Component deep-dives</Link> · <Link to="/#apps">App simulations</Link>
+            <Link to="/ddia/components">Component deep-dives</Link> · <Link to="/ddia#apps">App simulations</Link>
           </span>
         </div>
       </div>

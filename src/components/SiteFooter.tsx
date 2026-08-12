@@ -13,9 +13,9 @@ export default function SiteFooter() {
           load tests before sizing production.
         </div>
         <div className="foot-links">
-          <Link to="/read">Read the Ideas</Link>
-          <Link to="/components">Deep-Dives</Link>
-          <Link to="/sims/feed">Simulations</Link>
+          <Link to="/ddia/read">Read the Ideas</Link>
+          <Link to="/ddia/components">Deep-Dives</Link>
+          <Link to="/ddia/sims/feed">Simulations</Link>
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             Source on GitHub ★
           </a>

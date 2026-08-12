@@ -151,8 +151,8 @@ export const partitioning: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Kafka — topic partitions', to: '/components/kafka', live: true },
-    { label: 'Redis — cluster hash slots', to: '/components/redis', live: true },
+    { label: 'Kafka — topic partitions', to: '/ddia/components/kafka', live: true },
+    { label: 'Redis — cluster hash slots', to: '/ddia/components/redis', live: true },
     { label: 'Cassandra', note: 'roadmap' },
     { label: 'DynamoDB', note: 'roadmap' },
   ],

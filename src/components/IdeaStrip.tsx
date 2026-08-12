@@ -13,7 +13,7 @@ export default function IdeaStrip({ label = 'Made of these ideas', ideas }: { la
       <span className="idea-strip-l">{label}</span>
       <div className="idea-strip-links">
         {ideas.map((i) => (
-          <Link key={i.slug} to={'/read/' + i.slug}>
+          <Link key={i.slug} to={'/ddia/read/' + i.slug}>
             {i.label} →
           </Link>
         ))}

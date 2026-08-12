@@ -582,8 +582,8 @@ export default function Calculator() {
       because:
         'connections are held, not served — a mostly idle socket still costs memory, a file descriptor and a heartbeat. This tier is sized by concurrency, not by request rate, so it scales separately from everything else and is usually stateless in front of a message bus',
       to: [
-        { label: 'Web / app tier', href: '/components/web' },
-        { label: 'Idea: the trouble with distributed systems', href: '/read/distributed-troubles' },
+        { label: 'Web / app tier', href: '/ddia/components/web' },
+        { label: 'Idea: the trouble with distributed systems', href: '/ddia/read/distributed-troubles' },
       ],
     },
     {
@@ -595,8 +595,8 @@ export default function Calculator() {
       because:
         'writing once is cheap; delivering it to every recipient is what costs. Past a certain fan-out you stop pushing copies at write time and let readers pull instead — or you accept the write amplification and do it asynchronously in workers',
       to: [
-        { label: 'Idea: leader & followers', href: '/read/replication-leader' },
-        { label: 'Kafka deep-dive', href: '/components/kafka' },
+        { label: 'Idea: leader & followers', href: '/ddia/read/replication-leader' },
+        { label: 'Kafka deep-dive', href: '/ddia/components/kafka' },
       ],
     },
     {
@@ -606,7 +606,7 @@ export default function Calculator() {
       number: `${fmt.n1(c.egressGbps)} Gbps ÷ ${v.nic} Gbps per host = ${c.originHosts} hosts of pure bandwidth — after ${v.cdnHit}% offload, ${fmt.n1(c.originAfter)} Gbps and ${c.originHostsAfter} host${c.originHostsAfter === 1 ? '' : 's'}`,
       trigger: `fires when peak egress passes one ${v.nic} Gbps NIC — you are at ${fmt.n1(c.egressGbps)} Gbps`,
       because: 'serving these bytes from your own origin costs hosts and egress; a CDN moves the copy next to the user and the bill off your origin. What it cannot absorb — personalized, private — still needs origin NICs',
-      to: [{ label: 'S3 / object storage', href: '/components/s3' }],
+      to: [{ label: 'S3 / object storage', href: '/ddia/components/s3' }],
     },
     {
       key: 'blob',
@@ -618,7 +618,7 @@ export default function Calculator() {
       trigger: `fires at objects of 500 KB and up — yours are ${fmt.bytes(m.bytesW)}`,
       because:
         'a row store is built for KB-scale rows: replication, backups and vacuuming all re-carry every byte you put in it. Store a pointer in the row and the bytes in object storage, and let the CDN serve them from there',
-      to: [{ label: 'S3 / object storage', href: '/components/s3' }],
+      to: [{ label: 'S3 / object storage', href: '/ddia/components/s3' }],
     },
     {
       key: 'cache',
@@ -630,8 +630,8 @@ export default function Calculator() {
         ? `a disk read costs ${v.randRead} µs; the same read from memory costs ~20 ns. But these reads must be current, so this cannot be a read-through cache with a TTL — it has to be written or invalidated in the same breath as the database, which puts it on the write path and makes a stale entry a correctness bug rather than a slow query. Asynchronous read replicas are out for the same reason: they are behind by definition`
         : `a disk read costs ${v.randRead} µs; the same read from memory costs ~20 ns. Caching is not only about throughput — it is a 1000× latency difference. Stale reads being acceptable is what makes this cheap: entries can expire on a timer instead of being invalidated on every write`,
       to: [
-        { label: 'Redis deep-dive', href: '/components/redis' },
-        { label: 'Idea: replication lag', href: '/read/replication-lag' },
+        { label: 'Redis deep-dive', href: '/ddia/components/redis' },
+        { label: 'Idea: replication lag', href: '/ddia/read/replication-lag' },
         { label: 'What a cache does NOT do for your p99', href: '/calculator/latency' },
       ],
     },
@@ -643,8 +643,8 @@ export default function Calculator() {
       trigger: `fires above ${fmt.compact(m.cacheCeiling)}/s of delivery-side work — you are at ${fmt.compact(m.readSide)}/s`,
       because: 'a cache server is effectively single-threaded per shard, so past one core’s worth of operations you are partitioning, not scaling up',
       to: [
-        { label: 'Redis deep-dive', href: '/components/redis' },
-        { label: 'Idea: consistent hashing', href: '/read/partitioning' },
+        { label: 'Redis deep-dive', href: '/ddia/components/redis' },
+        { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
       ],
     },
     {
@@ -655,7 +655,7 @@ export default function Calculator() {
       trigger: `fires when peaks pass half the write ceiling with a peak factor of 2 or more — you are at ${pc(m.writeUtil)} of ${fmt.compact(m.writeCeiling)}/s, ×${fmt.n1(v.peak)}`,
       because: 'a durable log absorbs the spike at sequential-write speed and lets the database consume at its own pace, instead of sizing the database for the worst minute of the day',
       to: [
-        { label: 'Kafka deep-dive', href: '/components/kafka' },
+        { label: 'Kafka deep-dive', href: '/ddia/components/kafka' },
         { label: 'What the extra hop costs in ms', href: '/calculator/latency' },
       ],
     },
@@ -672,8 +672,8 @@ export default function Calculator() {
       trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now) or rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now)`,
       because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
       to: [
-        { label: 'Idea: consistent hashing', href: '/read/partitioning' },
-        { label: 'Postgres deep-dive', href: '/components/postgres' },
+        { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
+        { label: 'Postgres deep-dive', href: '/ddia/components/postgres' },
         { label: 'What scatter-gather does to your p99', href: '/calculator/latency' },
       ],
     },
@@ -694,8 +694,8 @@ export default function Calculator() {
       because:
         'inside one shard this is free; across two it needs a coordinator, a prepare phase, and an answer for what happens when the coordinator dies holding locks — slower, and failing in more ways than a local commit can. The usual escape is not a better protocol but a better partition key: pick one that keeps the things that change together on the same shard, and the distributed case stops arising',
       to: [
-        { label: 'Idea: consistent hashing', href: '/read/partitioning' },
-        { label: 'Idea: the trouble with distributed systems', href: '/read/distributed-troubles' },
+        { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
+        { label: 'Idea: the trouble with distributed systems', href: '/ddia/read/distributed-troubles' },
       ],
     },
     {
@@ -707,8 +707,8 @@ export default function Calculator() {
       because:
         'if the app writes to each system directly, two of them will eventually apply “the same” changes in different orders and drift apart forever. Write once to a durable log and let every consumer — search, analytics, cache invalidation — replay the same order at its own pace',
       to: [
-        { label: 'Kafka deep-dive', href: '/components/kafka' },
-        { label: 'Idea: leader & followers', href: '/read/replication-leader' },
+        { label: 'Kafka deep-dive', href: '/ddia/components/kafka' },
+        { label: 'Idea: leader & followers', href: '/ddia/read/replication-leader' },
       ],
     },
     {
@@ -720,8 +720,8 @@ export default function Calculator() {
       because:
         'a row store reads every column of every row to answer an aggregate. A columnar store reads only the columns the query touches and compresses them severalfold (structured data compresses 5–10×, per napkin-math) — fed from the same log by change-data-capture, so the primary never feels the scan',
       to: [
-        { label: 'Idea: B-trees vs LSM-trees', href: '/read/storage' },
-        { label: 'Kafka deep-dive', href: '/components/kafka' },
+        { label: 'Idea: B-trees vs LSM-trees', href: '/ddia/read/storage' },
+        { label: 'Kafka deep-dive', href: '/ddia/components/kafka' },
       ],
     },
   ]
@@ -995,7 +995,7 @@ export default function Calculator() {
                 {/* Link, not <a> — a full reload here would throw away the
                     requirements the reader just set, which is a cruel way to
                     answer a caveat about their own configuration. */}
-                <Link to="/read/stream-table">dual write</Link>, which is the bug Ch 11 exists
+                <Link to="/ddia/read/stream-table">dual write</Link>, which is the bug Ch 11 exists
                 to explain.
               </div>
             )}

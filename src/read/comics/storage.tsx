@@ -162,7 +162,7 @@ export const storage: Comic = {
     },
   ],
   seenIn: [
-    { label: 'Postgres — B-tree & heap', to: '/components/postgres', live: true },
+    { label: 'Postgres — B-tree & heap', to: '/ddia/components/postgres', live: true },
     { label: 'Cassandra — LSM', note: 'roadmap' },
     { label: 'ClickHouse — columnar', note: 'roadmap' },
   ],

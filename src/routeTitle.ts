@@ -16,7 +16,9 @@ export { SITE_TITLE }
  */
 export function titleForPath(path: string): string | null {
   const clean = path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
-  if (/^\/read\/[^/]+$/.test(clean)) return null
+  if (/^\/(ddia\/)?read\/[^/]+$/.test(clean)) return null
+  /* a papers chapter titles itself too, for the same bundle-weight reason */
+  if (/^\/papers\/[^/]+$/.test(clean)) return null
   const entry = ROUTES[clean as keyof typeof ROUTES]
   return fullTitle(entry)
 }
