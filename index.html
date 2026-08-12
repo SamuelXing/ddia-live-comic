@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%233987e5'/%3E%3Crect x='11' y='11' width='10' height='10' rx='2' fill='white'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="DDIA, as a live comic — an unofficial, illustrated companion to Designing Data-Intensive Applications. Read the arcane ideas of distributed systems as comics, then see them in real components and simulations." />
-    <title>DDIA, as a live comic — an illustrated companion to Designing Data-Intensive Applications</title>
+    <meta name="description" content="Live technical books — a comic about distributed systems, a story book about the papers behind it, more on the way. Read the idea, then push on it until it breaks." />
+    <title>systems comic — books with working parts</title>
 
     <!--
       Social preview. Without these, pasting a link into Slack, X, LinkedIn or
@@ -17,20 +17,26 @@
       origin below is duplicated in src/site.ts (SITE_URL) because a static
       index.html cannot import from the app — change both together when the
       first deploy assigns a hostname or a custom domain is attached.
+
+      These values are the FALLBACK, not the homepage's. scripts/emit-routes.mjs
+      overwrites dist/index.html from scripts/routes.mjs like every other route,
+      so what a scraper sees at "/" comes from the table. What survives here is
+      what an UNKNOWN url gets — so it still has to be true of the site, and the
+      emitter checks that it matches.
     -->
     <link rel="canonical" href="https://systemscomic.com/" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="DDIA, as a live comic" />
+    <meta property="og:site_name" content="systems comic" />
     <meta property="og:url" content="https://systemscomic.com/" />
-    <meta property="og:title" content="DDIA, as a live comic" />
-    <meta property="og:description" content="The arcane ideas of distributed systems, drawn as comics — then pushed until they break, in deep-dives you can drag and calculators that show their work." />
+    <meta property="og:title" content="systems comic — books with working parts" />
+    <meta property="og:description" content="Live technical books — a comic about distributed systems, a story book about the papers behind it, more on the way. Read the idea, then push on it until it breaks." />
     <meta property="og:image" content="https://systemscomic.com/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="DDIA, as a live comic — 11 ideas, 6 components, 2 calculators." />
+    <meta property="og:image:alt" content="systems comic — live technical books you can push on until they break." />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="DDIA, as a live comic" />
-    <meta name="twitter:description" content="The arcane ideas of distributed systems, drawn as comics — then pushed until they break, in deep-dives you can drag and calculators that show their work." />
+    <meta name="twitter:title" content="systems comic — books with working parts" />
+    <meta name="twitter:description" content="Live technical books — a comic about distributed systems, a story book about the papers behind it, more on the way. Read the idea, then push on it until it breaks." />
     <meta name="twitter:image" content="https://systemscomic.com/og.png" />
     <meta name="theme-color" content="#f7f4ef" />
   </head>
