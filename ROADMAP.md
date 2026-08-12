@@ -122,6 +122,32 @@ composer stays the exception, because it is the synthesis rather than more of th
 
 ## Shipped
 
+- ✅ **The calculator's presets toured two of its six columns** (#50). Sam noticed that
+  everything seemed to land on wide-column. Measured: three of five presets did, the other
+  two landed on sharded SQL, and **three stores were never shown winning anything**. Nothing
+  was broken — every individual answer was right — but a six-column table demonstrated two,
+  and `loss: 'rebuild'` was set by no preset at all, so the requirement that unlocks the
+  in-memory column was unreachable from the guided path.
+
+  The fix was **not** a workload per store, which was the tempting version. Working
+  backwards from an answer would inverse the page's own argument — requirements filter,
+  load ranks, ceilings force — into a lookup table, and imply each store has one canonical
+  use, which is the folklore the page exists to replace. What changed is the *set*: two
+  ordinary systems that were missing. An **internal/B2B app** at 50k users, which reaches
+  single-primary SQL and teaches the site's most under-taught lesson — you may not need to
+  shard anything. And **sessions / rate limits**, the one honest workload where durability
+  stops being a filter.
+
+  Two columns cannot be reached and never will be: swept all **64 requirement combinations
+  at four load scales**, and Document and Columnar win **zero**. That is by design — the
+  model already said so in each store's `chooseFor` — so the page now says it where the
+  reader would otherwise wonder, and `presets.test.ts` re-derives the claim by brute force
+  rather than trusting the prose. If the model ever changes so one of them can win, the
+  test fails and says to delete the line.
+
+  Also checked while there: the ingest preset's **332 shards** is arithmetically right —
+  50M devices x 200 events/day x 2 KB over 6 months is ~3.2 PB, which is 324 nodes at 10 TB
+  each. A big number, not a wrong one.
 - ✅ **The observability sim's cost KPI was wrong by 1000x** (#48). Chasing the roadmap's
   own loose end — `estCostUSD` at `~$0.10/GB` with no source, "the weakest number on the
   site" — turned up something worse than an unsourced constant. The function multiplies GB
