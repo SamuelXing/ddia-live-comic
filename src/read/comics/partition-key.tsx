@@ -3,6 +3,7 @@ import {
   HashVsRangeDiagram,
   RangeScanCostDiagram,
   HotRangeDiagram,
+  HotRangeVsHotKeyDiagram,
   CompoundKeyDiagram,
   LocalGlobalIndexDiagram,
 } from '../diagrams'
@@ -61,11 +62,22 @@ export const partitionKey: Comic = {
         'So sort everything by time? Now every write lands in the **same partition** — today’s. Yesterday’s node is idle. Monday’s node is idle. One machine is taking the entire write load of the cluster, and the clock guarantees it will keep happening, because time only moves in one direction.',
         'This is the failure that reads as a mystery in production: the cluster is at 8% and one node is on fire. Adding nodes does not help, because the load is not spread thin — **it is concentrated on the newest key**, and every new node starts empty.',
         'Any monotonically increasing key does this. A timestamp. An auto-increment id. A ULID. The nastier version is that it works beautifully in testing, where the data was generated all at once.',
+        'The fix depends on something the dashboard will not tell you — **how many distinct keys the heat is spread over.** That is the difference between a problem you can repartition your way out of and one you cannot, and it is worth knowing before the incident.',
       ],
       callout: {
         kind: 'bad',
         big: '1 of N',
         text: 'nodes doing the writing, however many you add. The hot range is not a capacity problem you can buy your way out of.',
+      },
+      deeper: {
+        summary: 'So what do you actually do about a hot partition?',
+        body: [
+          'Two very different failures look identical on a dashboard — one node at 100%, the rest idle — and they have opposite fixes. The question that separates them: **how many distinct keys is the heat spread over?**',
+          '**Many keys that happen to sort together** is the hot range above. The heat is only concentrated because of where those keys *landed*, so moving them fixes it. Either pick a key that spreads — the compound key in the next step — or, when you cannot change the key, put a [[bucket|A small random or hashed value prepended to a key so that rows which would otherwise sort together are split across several partitions. Called a *salt* just as often. It buys write spread and charges for it on reads.]] in front of it: `(hash(id) % 16, date)` spreads today across sixteen partitions. It works, and it costs you the thing you sorted for — a range scan now reads all sixteen and merges.',
+          '**One key** is a different animal. The celebrity account, the one product every checkout touches, the tenant forty times bigger than the rest. A key is the unit of placement, so it cannot be split by definition: **doubling your partitions changes nothing, and neither does doubling it again.** The only moves left are copies — replicate that key across nodes and spread the reads, put a cache in front of it, or split it *in the application* by writing to `key:0…key:15` and summing on read, which is how sharded counters work.',
+          'That is why the diagnosis matters more than the remedy. Repartitioning a single hot key is weeks of work that cannot help, and it is a very common way to spend them — the arithmetic never said it would work, but the dashboard looked the same either way.',
+        ],
+        figure: <HotRangeVsHotKeyDiagram />,
       },
     },
     {
@@ -116,7 +128,7 @@ export const partitionKey: Comic = {
         t: 'A key can be perfectly even on **rows** and badly uneven on **traffic**. Partition by `customer_id` and the row counts look beautiful — until one customer is forty times bigger than the rest. The data is balanced; the load is not, and only the load matters.',
       },
       {
-        t: 'The usual workaround for a hot range is to put something random in front of the key — a **bucket**: `(hash(id) % 16, date)` spreads today’s writes over sixteen partitions. It works, and it costs you the thing you sorted for: a range scan must now read all sixteen and merge them. Nobody gets out of this for free.',
+        t: 'Hot partitions are common enough that the managed services built machinery for them. **DynamoDB splits a partition when it runs hot**, not only when it runs large, and shifts throughput toward the busy one — because customers kept picking keys that concentrated. What none of it fixes is a single hot *item*: AWS’s own guidance there is to shard the write in your application or put a cache in front, which is the same admission the fold-out above makes.',
       },
       {
         t: 'The same trap shows up where you would not call it partitioning at all. **S3 partitions by key prefix**, so naming objects `logs/2024-03-01/...` puts a whole day behind one prefix — and the fix for the resulting throttling is to put the varying part first. A file naming convention turned out to be a shard key.',
