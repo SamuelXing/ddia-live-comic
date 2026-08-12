@@ -293,12 +293,46 @@ export function defaultsFor(stageIdx: number, prev?: Controls): Controls {
   }
 }
 
-export /** Rough monthly bill: ingest at ~$0.10/GB + tiered storage (hot dear, cold cheap). */
-function estCostUSD(eventsPerSec: number, retention: number, hotShare: number): number {
-  const gbPerDay = (eventsPerSec * 86400 * 500) / 1e9 // ~500 B/event
-  const ingestMo = gbPerDay * 30 * 0.1
-  const stored = gbPerDay * retention
+/* ------------------------------------------------------------------
+   The monthly bill.
+
+   Every constant here is ASSUMED — a plausible order of magnitude, not a
+   quote, and unlike the physics elsewhere on this site a price list stops
+   being true the day a vendor changes it. So they are named and dated
+   rather than buried inline, and the page says "assumed" out loud.
+
+   The durable part is not the dollars, it is the SHAPE: hot storage is
+   roughly 10x cold, so the retention slider and the hot-share slider move
+   the bill far more than the ingest rate does once you are past a few
+   weeks. That ratio survives repricing; the absolute numbers will not.
+   ------------------------------------------------------------------ */
+export const COST = {
+  /** what one event costs to store, before any indexing overhead */
+  bytesPerEvent: 500,
+  /** $/GB ingested — the shape of managed log pricing, not a quote */
+  ingestPerGB: 0.1,
+  /** $/GB-month on SSD-backed hot storage */
+  hotPerGBMo: 0.03,
+  /** $/GB-month on object storage. ~10x cheaper: the whole point of tiering */
+  coldPerGBMo: 0.003,
+  /** when these were last eyeballed against public list prices */
+  asOf: '2026-08',
+} as const
+
+/** Rough monthly bill, in DOLLARS. Ingest + tiered storage. */
+export function estCostUSD(eventsPerSec: number, retention: number, hotShare: number): number {
+  const gbPerDay = (eventsPerSec * 86400 * COST.bytesPerEvent) / 1e9
+  const ingestMo = gbPerDay * 30 * COST.ingestPerGB
+  const stored = gbPerDay * retention // retention is in days
   const hotGB = (stored * hotShare) / 100
   const coldGB = stored - hotGB
-  return ingestMo + hotGB * 0.03 + coldGB * 0.003
+  return ingestMo + hotGB * COST.hotPerGBMo + coldGB * COST.coldPerGBMo
+}
+
+/** Dollars, at whatever magnitude they land — `$664`, `$12k`, `$1.2M`. */
+export function fmtUSD(dollars: number): string {
+  if (dollars >= 1e6) return '$' + (dollars / 1e6).toFixed(1) + 'M'
+  if (dollars >= 1e4) return '$' + Math.round(dollars / 1e3) + 'k'
+  if (dollars >= 1e3) return '$' + (dollars / 1e3).toFixed(1) + 'k'
+  return '$' + Math.round(dollars)
 }
