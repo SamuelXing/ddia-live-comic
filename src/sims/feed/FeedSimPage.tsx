@@ -183,7 +183,7 @@ export default function FeedSimPage() {
   return (
     <div className="sim-page">
       <div className="topbar">
-        <Link className="home-link" to="/">
+        <Link className="home-link" to="/ddia">
           <b>DDIA</b>
           <span className="tl">, as a live comic</span>
         </Link>
@@ -191,11 +191,8 @@ export default function FeedSimPage() {
         <div className="logo">
           <span className="d" /> Feed&nbsp;at&nbsp;Scale <small>social-feed simulation</small> <span className="sim-exp" title="A sketch, not a reference architecture. One plausible design among many — real systems differ by workload, budget and team. Treat the numbers as order-of-magnitude intuition, not sizing advice.">experimental</span>
         </div>
-        <Link className="site-link" to="/ddia/components">
-          Deep-Dives
-        </Link>
-        <Link className="site-link" to="/ddia/read" title="The ideas this simulation leans on: partitioning (sharding) and replication lag (read replicas)">
-          ◆ Ideas in play
+        <Link className="site-link" to="/ddia/apps">
+          ← All simulations
         </Link>
         <div className="tb-spacer" />
         <div className="speed">

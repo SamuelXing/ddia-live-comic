@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import ThumbCanvas from '../components/ThumbCanvas'
-import { SIMS, STATUS_META } from '../sims/registry'
 
+/* /ddia is the hub, and only the hub. The three sections of this book — the
+   ideas, the deep-dives, the simulations — each own a page, and this one sends
+   you into them. The simulations used to be pasted in halfway down here behind
+   a `#apps` anchor, which is why "Simulations" was the one nav item that could
+   not be a link to anywhere. */
 
 /** Wordmark lives in one place so a rename is a one-line change. */
 const BRAND = 'DDIA, as a live comic'
@@ -95,95 +98,14 @@ export default function Home() {
               breaks, and which ideas it’s assembled from.
             </p>
           </Link>
-          <a className="gn-lens built box lift" href="#apps" data-obs>
+          <Link className="gn-lens built box lift" to="/ddia/apps" data-obs>
             <span className="ll">Watch · built</span>
             <h3>The Systems</h3>
             <p>
               Whole applications you push until they break. Requests are particles flowing through real
               services; when arrivals outrun capacity, queues stack and nodes glow red.
             </p>
-          </a>
-        </div>
-
-        {/* ---- app simulations ---- */}
-        <div className="gn-sechead" id="apps" data-obs>
-          <div className="eb">Application simulations · experimental</div>
-          <h2>Pick an app and push it until it breaks</h2>
-          <p>
-            Each simulation uses the same queueing engine — a different topology, a different workload, a
-            different set of walls. These are <em>sketches, not reference architectures</em>: one plausible
-            design per app, and a different team with different constraints would draw it differently. Use
-            them to build intuition about where things break, not to size anything real.
-          </p>
-        </div>
-        <div className="gn-gallery">
-          {SIMS.map((a) => {
-            const meta = STATUS_META[a.status]
-            const inner = (
-              <>
-                <div className="thumb">
-                  <span className={`status ${meta.cls}`}>{meta.label}</span>
-                  <ThumbCanvas accent={a.accent} />
-                </div>
-                <div className="b">
-                  <h3>
-                    <span className="em">{a.emoji}</span>
-                    {a.name}
-                  </h3>
-                  <p className="desc">{a.desc}</p>
-                  <div className="tags">
-                    {a.tags.map((t) => (
-                      <span className="tag" key={t}>
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="foot">{meta.foot}</div>
-                </div>
-              </>
-            )
-            return a.status === 'live' && a.path ? (
-              <Link className="gn-appcard box lift" to={a.path} key={a.id} data-obs>
-                {inner}
-              </Link>
-            ) : (
-              <div className="gn-appcard box soon" key={a.id} data-obs>
-                {inner}
-              </div>
-            )
-          })}
-        </div>
-
-        {/* ---- how a simulation works ---- */}
-        <div className="gn-sechead" data-obs>
-          <div className="eb">How a simulation works</div>
-          <h2>Not a cartoon — a real queueing model</h2>
-        </div>
-        <div className="gn-hiw">
-          <div className="gn-hstep box lift" data-obs>
-            <div className="n">1</div>
-            <h4>Every node is a queue</h4>
-            <p>
-              Each service and datastore has a fixed number of concurrent service slots and a service
-              time. Throughput ceiling = slots ÷ service time — the same M/M/c intuition, made visible.
-            </p>
-          </div>
-          <div className="gn-hstep box lift" data-obs>
-            <div className="n">2</div>
-            <h4>Requests are particles</h4>
-            <p>
-              Reads, posts, likes and uploads flow along real routes. When arrivals outrun a node’s
-              slots, its queue physically stacks up and latency climbs — no hand-waving.
-            </p>
-          </div>
-          <div className="gn-hstep box lift" data-obs>
-            <div className="n">3</div>
-            <h4>You climb the ladder</h4>
-            <p>
-              Scale out the web tier, add a cache, shard the database, go multi-region. Each rung
-              unlocks a control and a new wall — the order you’d hit them in production.
-            </p>
-          </div>
+          </Link>
         </div>
 
         {/* ---- building blocks ---- */}
@@ -225,7 +147,7 @@ export default function Home() {
           </span>
           <span>
             <Link to="/ddia/read">Read the Ideas</Link> · <Link to="/ddia/components">Deep-Dives</Link> ·{' '}
-            <a href="#apps">Simulations</a>
+            <Link to="/ddia/apps">Simulations</Link>
           </span>
         </div>
       </div>

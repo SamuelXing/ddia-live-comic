@@ -176,7 +176,7 @@ export default function IndexPage() {
         <div className="gn-foot">
           <span>DDIA, as a live comic — an unofficial, illustrated companion to the book</span>
           <span>
-            <Link to="/ddia/components">Component deep-dives</Link> · <Link to="/ddia#apps">App simulations</Link>
+            <Link to="/ddia">← DDIA home</Link>
           </span>
         </div>
       </div>
