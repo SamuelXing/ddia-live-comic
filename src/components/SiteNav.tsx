@@ -13,12 +13,24 @@ function GitHubMark() {
 
 const linkClass = ({ isActive }: { isActive: boolean }) => 'gn-link' + (isActive ? ' active' : '')
 
+/** The DDIA book's three sections. Each is its own world once you are inside
+ *  it, so the only nav link a section offers is the way back up its own
+ *  index — never a jump sideways into one of the others. */
+const DDIA_SECTIONS = [
+  { at: '/ddia/read', back: '← All ideas' },
+  { at: '/ddia/components', back: '← All deep-dives' },
+  { at: '/ddia/apps', back: '← All simulations' },
+]
+
 /**
- * The one navigation bar — but each book and tool on the shelf is an isolated
- * world, so the bar changes identity with the section: its brand is the
- * section's own wordmark (and the way to that section's home), its links are
- * that section's internal geography, and nothing cross-links to the other
- * books. The bookshelf at `/` is the only place the books meet.
+ * The one navigation bar — but every book, tool and section is an isolated
+ * world, so the bar changes identity with the path: its brand is that world's
+ * wordmark (and the way to its home), and it offers exactly one link, back up
+ * one level. Nothing cross-links sideways.
+ *
+ * Which means the hubs do the connecting: the bookshelf at `/` is where the
+ * books meet, and `/ddia` is where its three sections meet. A reader inside a
+ * comic is reading a comic, not choosing between three products.
  */
 export default function SiteNav() {
   const path = useLocation().pathname
@@ -29,6 +41,9 @@ export default function SiteNav() {
       : path.startsWith('/calculator')
         ? 'calc'
         : 'shelf'
+  /* only once you are *below* a section index — on the index itself the brand
+     is already the way up */
+  const ddiaBack = DDIA_SECTIONS.find((s) => path.startsWith(s.at + '/'))
 
   return (
     <nav className="gn-nav">
@@ -58,18 +73,10 @@ export default function SiteNav() {
           </Link>
         )}
         <span className="sp" />
-        {section === 'ddia' && (
-          <>
-            <NavLink className={linkClass} to="/ddia/read">
-              Ideas
-            </NavLink>
-            <NavLink className={linkClass} to="/ddia/components">
-              Deep-Dives
-            </NavLink>
-            <a className="gn-link" href="/ddia#apps">
-              Simulations <span className="exp">(experimental)</span>
-            </a>
-          </>
+        {section === 'ddia' && ddiaBack && (
+          <NavLink className={linkClass} to={ddiaBack.at} end>
+            {ddiaBack.back}
+          </NavLink>
         )}
         {section === 'papers' && path !== '/papers' && (
           <NavLink className={linkClass} to="/papers" end>

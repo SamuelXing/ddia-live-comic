@@ -12,10 +12,10 @@ export default function SiteFooter() {
           one plausible design per app, built on order-of-magnitude rules of thumb. Verify against real
           load tests before sizing production.
         </div>
+        {/* one way out, the same as the nav: back to the book's hub. The three
+            sections do not advertise each other from inside each other. */}
         <div className="foot-links">
-          <Link to="/ddia/read">Read the Ideas</Link>
-          <Link to="/ddia/components">Deep-Dives</Link>
-          <Link to="/ddia/sims/feed">Simulations</Link>
+          <Link to="/ddia">← DDIA home</Link>
           <a href={REPO_URL} target="_blank" rel="noreferrer">
             Source on GitHub ★
           </a>

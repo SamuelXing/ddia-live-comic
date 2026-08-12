@@ -12,6 +12,7 @@ import SiteNav from './components/SiteNav'
 const Bookshelf = lazy(() => import('./pages/Bookshelf'))
 const Home = lazy(() => import('./pages/Home'))
 const ComponentsCatalog = lazy(() => import('./pages/ComponentsCatalog'))
+const AppsCatalog = lazy(() => import('./pages/AppsCatalog'))
 const CalculatorPage = lazy(() => import('./pages/CalculatorPage'))
 const KafkaPage = lazy(() => import('./deepdives/kafka/KafkaPage'))
 const PostgresPage = lazy(() => import('./deepdives/postgres/PostgresPage'))
@@ -64,9 +65,12 @@ function LegacyComponent() {
   /* the calculator once lived at /components/calculator — it is its own tool now */
   return <Navigate to={name === 'calculator' ? '/calculator/capacity' : `/ddia/components/${name}`} replace />
 }
+/** The simulations have moved twice: /sims/x → /ddia/sims/x → /ddia/apps/x.
+ *  Both older spellings still land, and both keep their route-table entries so
+ *  a link shared from either era still previews as itself. */
 function LegacySim() {
   const { name } = useParams()
-  return <Navigate to={`/ddia/sims/${name}`} replace />
+  return <Navigate to={`/ddia/apps/${name}`} replace />
 }
 
 export default function App() {
@@ -90,8 +94,9 @@ export default function App() {
           <Route path="/ddia/components/rabbitmq" element={<RabbitMQPage />} />
           <Route path="/ddia/components/web" element={<WebPage />} />
           <Route path="/ddia/components/s3" element={<S3Page />} />
-          <Route path="/ddia/sims/feed" element={<FeedSimPage />} />
-          <Route path="/ddia/sims/observability" element={<ObservabilityPage />} />
+          <Route path="/ddia/apps" element={<AppsCatalog />} />
+          <Route path="/ddia/apps/feed" element={<FeedSimPage />} />
+          <Route path="/ddia/apps/observability" element={<ObservabilityPage />} />
 
           {/* Book B — the papers storybook */}
           <Route path="/papers" element={<PapersIndexPage />} />
@@ -108,6 +113,10 @@ export default function App() {
           <Route path="/components" element={<Navigate to="/ddia/components" replace />} />
           <Route path="/components/:name" element={<LegacyComponent />} />
           <Route path="/sims/:name" element={<LegacySim />} />
+          <Route path="/ddia/sims" element={<Navigate to="/ddia/apps" replace />} />
+          <Route path="/ddia/sims/:name" element={<LegacySim />} />
+          <Route path="/apps" element={<Navigate to="/ddia/apps" replace />} />
+          <Route path="/apps/:name" element={<LegacySim />} />
 
           <Route path="*" element={<NotFound />} />
         </Routes>

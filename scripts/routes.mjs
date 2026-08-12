@@ -132,15 +132,26 @@ export const ROUTES = {
     desc: 'State a p99 target and watch it get spent: physics floors, hops add, utilization multiplies, fan-out amplifies the tail. Including what will not help.',
   },
 
-  '/ddia/sims/feed': {
+  '/ddia/apps': {
+    title: 'Application simulations',
+    desc: 'Whole applications you push until they break: requests as particles, queues that stack up, and a ladder of fixes that each unlock the next wall.',
+  },
+  '/ddia/apps/feed': {
     title: 'Feed at Scale — simulation',
     desc: 'A social feed from one box to six stages of scale. Push traffic until it breaks, then fix it: replicas, cache, fan-out, shards, regions.',
   },
-  '/ddia/sims/observability': {
+  '/ddia/apps/observability': {
     title: 'Observability at Scale — simulation',
     desc: 'Logs, metrics and traces from a million agents. Buffer the firehose, scale the index tier, and hit the cardinality wall that sharding cannot climb.',
   },
 }
+
+/* The simulations moved twice — /sims/x, then /ddia/sims/x, now /ddia/apps/x.
+   The generated mirror below only knows the /ddia prefix rule, so the middle
+   spelling is written down here; it then gets its own /sims/x twin for free. */
+ROUTES['/ddia/sims'] = ROUTES['/ddia/apps']
+ROUTES['/ddia/sims/feed'] = ROUTES['/ddia/apps/feed']
+ROUTES['/ddia/sims/observability'] = ROUTES['/ddia/apps/observability']
 
 /* Legacy aliases: every /ddia/* page once lived at the same path without the
    prefix, and those URLs are in shared links and search results forever. The

@@ -187,7 +187,7 @@ export const streamTable: Comic = {
     { label: 'Capacity planning — where “one log, many consumers” gets recommended', to: '/calculator/capacity', live: true },
     { label: 'The shuffle — the batch half of the same story', to: '/ddia/read/shuffle', live: true },
     { label: 'Leader & followers — replication as the original changelog', to: '/ddia/read/replication-leader', live: true },
-    { label: 'Observability at scale — a pipeline built on exactly this shape', to: '/ddia/sims/observability', live: true },
+    { label: 'Observability at scale — a pipeline built on exactly this shape', to: '/ddia/apps/observability', live: true },
   ],
   finale: {
     title: 'One ordered story, many readers',

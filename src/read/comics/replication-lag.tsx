@@ -121,7 +121,7 @@ export const replicationLag: Comic = {
   ],
   seenIn: [
     { label: 'Postgres — replica lag', to: '/ddia/components/postgres', live: true },
-    { label: 'Feed — read from replicas', to: '/ddia/sims/feed', live: true },
+    { label: 'Feed — read from replicas', to: '/ddia/apps/feed', live: true },
     { label: 'Redis — async replicas', to: '/ddia/components/redis', live: true },
   ],
   finale: {

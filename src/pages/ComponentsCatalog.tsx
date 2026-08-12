@@ -11,7 +11,7 @@ const planned = CATALOG.filter((c) => c.status === 'planned')
 function LiveCard({ c }: { c: CatalogEntry }) {
   const full = c.status === 'flagship'
   return (
-    <Link className="gn-cat box lift" to={`/components/${c.key}`}>
+    <Link className="gn-cat box lift" to={`/ddia/components/${c.key}`}>
       <div className="gn-cat-top">
         <span className="dot" style={{ background: c.color }} />
         <h3>{c.name}</h3>
@@ -107,8 +107,7 @@ export default function ComponentsCatalog() {
             O’Reilly.
           </span>
           <span>
-            <Link to="/ddia/read">Read the Ideas</Link> · <Link to="/ddia/components">Deep-Dives</Link> ·{' '}
-            <Link to="/ddia/sims/feed">Simulations</Link>
+            <Link to="/ddia">← DDIA home</Link>
           </span>
         </div>
       </div>
