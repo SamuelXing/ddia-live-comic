@@ -167,7 +167,7 @@ export const replicationQuorum: Comic = {
     {
       year: '2013',
       title: 'Quantifying Eventual Consistency with PBS — Bailis et al. (VLDB)',
-      url: 'http://www.bailis.org/papers/pbs-vldb2012.pdf',
+      url: 'https://www.bailis.org/papers/pbs-vldb2012.pdf',
       note: 'Puts numbers on “how stale, how often” for a given W/R — turns hand-waving into a distribution.',
     },
     {

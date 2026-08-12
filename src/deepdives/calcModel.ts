@@ -310,8 +310,15 @@ export const STORES: Store[] = [
       { label: 'Discord', href: 'https://discord.com/blog/how-discord-stores-trillions-of-messages' },
       { label: 'Netflix', href: 'https://netflixtechblog.com/benchmarking-cassandra-scalability-on-aws-over-a-million-writes-per-second-39f45f066c9e' },
       { label: 'Twitter / Manhattan', href: 'https://blog.x.com/engineering/en_us/a/2014/manhattan-our-real-time-multi-tenant-distributed-database-for-twitter-scale' },
+      { label: 'Manhattan’s data model', href: 'https://blog.twitter.com/engineering/en_us/topics/infrastructure/2018/native-secondary-indexing-in-manhattan' },
+      { label: 'Twitter timelines', href: 'https://www.infoq.com/presentations/Real-Time-Delivery-Twitter' },
+      { label: 'Why not Cassandra', href: 'https://highscalability.com/blog/2010/7/11/so-why-is-twitter-really-not-using-cassandra-to-store-tweets.html' },
     ],
-    wild: 'Discord keeps trillions of messages on one (Cassandra, then ScyllaDB — 177 nodes down to 72); Netflix measured 1.1M writes/s across 288 Cassandra nodes. Twitter stores tweets in Manhattan, which it built rather than bought — but the data model is this one exactly: a partition key plus a sorted local key you can range-scan inside. It reached that shape the long way, announcing a move of tweets to Cassandra in 2010 and cancelling it months later to stay on sharded MySQL.',
+    /* Every clause here is a claim, and every claim has a link beside it — the
+       Twitter one especially, because "a social feed runs Cassandra" is the
+       thing everybody assumes and nobody checks. It does not. It runs a store
+       Twitter built, with this exact key shape. */
+    wild: 'Discord keeps trillions of messages on one (Cassandra, then ScyllaDB — 177 nodes down to 72); Netflix measured 1.1M writes/s across 288 Cassandra nodes. Twitter reached the same shape by building its own: tweets live in Manhattan, keyed by a partition key plus a sorted local key you range-scan inside. It got there the long way — a 2010 move of tweets to Cassandra was announced, then cancelled — and the home timeline every reader sees is a separate Redis fan-out, not this store.',
     info: 'Cassandra, Scylla. Writes append to memory and flush in sorted batches, so ingest is cheap and every node takes writes. Reads may touch several files, and there is no coordinator to ask for a transaction.',
   },
   {

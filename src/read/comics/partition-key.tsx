@@ -89,7 +89,7 @@ export const partitionKey: Comic = {
       body: [
         'The key does not have to be one column. Split it: the **first part picks the partition** and is hashed, and the **rest keeps the rows sorted** inside that partition.',
         'Key the messages table by `(user_id, sent_at)` and each user’s conversation lives on one node, in time order. A scan of one conversation is a single sorted read. Meanwhile writes spread across as many users as you have — no hot range, because there is no global order, only order *within* a partition.',
-        'That is the whole trick, and it is why the same shape appears everywhere: Cassandra calls the parts the partition key and the [[clustering column|The part of a compound key that orders rows *inside* one partition rather than choosing which partition they go to. Cassandra’s term; DynamoDB calls the same thing a sort key.]], DynamoDB calls them the partition key and the sort key. **You still cannot ask a question that crosses partitions cheaply** — you have simply chosen, deliberately, which questions those are.',
+        'That is the whole trick, and it is why the same shape appears everywhere: Cassandra calls the parts the partition key and the [[clustering column|The part of a compound key that orders rows *inside* one partition rather than choosing which partition they go to. Cassandra’s term; DynamoDB calls the same thing a sort key.]], DynamoDB calls them the partition key and the sort key. Twitter, which built its own store rather than adopting either, landed on a partition key and a sorted *local key* — three names, arrived at separately, for one idea. **You still cannot ask a question that crosses partitions cheaply** — you have simply chosen, deliberately, which questions those are.',
       ],
       code: {
         file: 'schema.cql',
@@ -162,6 +162,12 @@ export const partitionKey: Comic = {
       title: 'Amazon DynamoDB: A Scalable, Predictably Performant Key-value Store (USENIX ATC)',
       url: 'https://www.usenix.org/system/files/atc22-elhemali.pdf',
       note: 'Partition key + sort key in production, and §5 on what the service had to build because customers picked keys that made hot partitions.',
+    },
+    {
+      year: '2014',
+      title: 'Manhattan, Twitter’s real-time multi-tenant distributed database',
+      url: 'https://blog.x.com/engineering/en_us/a/2014/manhattan-our-real-time-multi-tenant-distributed-database-for-twitter-scale',
+      note: 'The third independent arrival at the compound key: a partition key plus a sorted local key you range-scan inside. Tweets are stored this way — and the 2018 secondary-indexing post spells the model out in full.',
     },
     {
       year: '2021',
