@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  model, consequences, outcome, sensitivity, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
+  model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
   type Req, type Vals,
 } from './calcModel'
 
@@ -194,6 +194,65 @@ describe('engine: each column is judged on the load that REACHES it', () => {
   })
 })
 
+describe('a full scan gets a price, not just a recommendation', () => {
+  /* "Someone will also analyse this" was a bare boolean: it added the columnar
+     copy to the component list and named no number, while the number that
+     justifies it — how long one pass over the data takes — sat computed in the
+     ceilings table with nothing pointing at it. */
+  it('one pass over the rows, as a share of one node’s sequential day', () => {
+    const v = vals()
+    const m = model(v, req({ analytics: 'yes' }))
+    // 1.10592e14 B ÷ 8 GiB/s (8.58993e9 B/s) = 12,874.6 s
+    close(m.scanSeconds, 12874.6)
+    // ÷ 86,400 s in a day = 14.9% of one node doing nothing else
+    const c = consequences(v, req({ analytics: 'yes' }), m, false)
+    close(c.scanDayShare, 0.149012)
+  })
+})
+
+describe('the page can say which requirements are deciding nothing right now', () => {
+  /* Not "exclude impossible combinations" — none are impossible, and a test
+     above sweeps all 128 to prove the candidate list never empties. The useful
+     thing is the opposite: name the controls that have gone quiet, and let the
+     reader see WHY they went quiet. */
+
+  it('cross-key atomicity silences the read shape — it already removed everyone it would have moved', () => {
+    // 'multi' eliminates document, wide-column, columnar and in-memory. The two
+    // relational survivors read at ×1 whether the query is a point or a range,
+    // so the access picker has nothing left to change.
+    const v = vals()
+    expect(inertRequirements(v, req({ txn: 'multi' }))).toContain('access')
+    expect(inertRequirements(v, req({ txn: 'single' }))).not.toContain('access')
+  })
+
+  it('key shape is quiet until a node holds more rows than it has RAM', () => {
+    const small = vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 })
+    expect(model(small, req()).ramHosts).toBe(1)
+    expect(inertRequirements(small, req())).toContain('keyShape')
+    // and speaks up once the data is past that line
+    expect(inertRequirements(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req())).not.toContain('keyShape')
+  })
+
+  it('narrowing the field counts, even when the winner is unchanged', () => {
+    /* At defaults the answer is sharded SQL whether or not writes span keys —
+       but "atomic across keys" still eliminates the document store, the ring,
+       the columnar store and the in-memory one. An earlier signature looked
+       only at the winner and reported this requirement as deciding nothing,
+       one row above a comparison table it had just cut in half. */
+    const v = vals()
+    expect(inertRequirements(v, req({ txn: 'multi' }))).not.toContain('txn')
+    expect(model(v, req({ txn: 'multi' })).eCols.filter((c) => !c.dq).length).toBeLessThan(
+      model(v, req({ txn: 'single' })).eCols.filter((c) => !c.dq).length,
+    )
+  })
+
+  it('never reports a requirement inert that is visibly doing something', () => {
+    // freshness always picks the transport, at every size — it can never be quiet
+    for (const v of [vals({ dau: 1e4 }), vals(), vals({ dau: 5e8 })])
+      expect(inertRequirements(v, req())).not.toContain('fresh')
+  })
+})
+
 describe('“must be current” puts the cache on the write path — and pays for it', () => {
   /* The page has always SAID this: an asynchronous copy cannot answer a read
      that must reflect the write that just happened, so the only safe cache is
@@ -347,6 +406,21 @@ describe('the buffer-pool cliff: when an insert has to seek before it can write'
     const m = heavy()
     const one = m.eCols.find((c) => c.id === 'sql')!
     close((one.colReads * 1 + one.poolMisses) / m.diskReadCeiling, one.rU)
+  })
+
+  it('below one node of RAM the key shape decides NOTHING — it is scale-gated', () => {
+    /* The rule a reader must not walk away with is "scattered ids mean LSM".
+       The cliff has a precondition, and under it the leaf page is in the buffer
+       pool whatever the id looks like — so this field is inert, and the page
+       has to be able to say so rather than implying a choice that is not live
+       yet. 100k DAU, 1 KB rows, one month kept = 55 GB, inside 128 GB. */
+    const v = vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 })
+    const a = model(v, req({ keyShape: 'monotonic' }))
+    const b = model(v, req({ keyShape: 'scattered' }))
+    expect(a.ramHosts).toBe(1)
+    expect(b.engineWin).toBe(a.engineWin)
+    expect(b.shardsNeeded).toBe(a.shardsNeeded)
+    expect(b.eCols.every((c, i) => c.poolMisses === a.eCols[i].poolMisses && c.poolMisses === 0)).toBe(true)
   })
 
   it('every preset states a key shape, and the ordered default keeps old answers', () => {

@@ -20,6 +20,7 @@ import {
   PRESETS,
   INIT,
   storeConstants,
+  inertRequirements,
   ENGINE_CONSTANTS,
   model,
   consequences,
@@ -145,6 +146,19 @@ const dur = (s: number) =>
 
 /** Every slider on the page, in one list — the same list the URL round-trips. */
 const ALL_INPUTS = [...WORKLOAD, DERIVED_INP, ...HW]
+/** Marks a requirement that currently decides nothing, and says so. The point
+ *  is not to disable it — none of the 128 combinations is illegal — but to
+ *  stop a reader inferring a rule ("scattered ids mean LSM") from a control
+ *  that is not actually live at their size. */
+function Quiet({ on }: { on: boolean }) {
+  if (!on) return null
+  return (
+    <span className="src-a" title="Flipping this changes no engine, no component and no number for the workload as configured">
+      not deciding anything here
+    </span>
+  )
+}
+
 const REQ_PICKS = [
   { key: 'fresh', options: FRESH },
   { key: 'txn', options: TXN },
@@ -176,6 +190,11 @@ export default function Calculator() {
   const [pinE, setPinE] = useState<string | null>(null)
   const [preset, setPreset] = useState<string | null>(null)
   const req: Req = { fresh, txn, loss, analytics, access, recency, keyShape }
+  /* Which of the seven are currently deciding nothing. Shown rather than
+     hidden: a greyed-out control tells the reader they may not choose; a
+     control that says "nothing turns on this right now, because X" tells them
+     what actually decided it, which is the part worth learning. */
+  const inert = new Set(inertRequirements(v, req))
 
   /* The address bar always describes what is on screen, so "copy the URL"
      works without a button and a shared link is never stale. replaceState, so
@@ -748,7 +767,7 @@ export default function Calculator() {
       key: 'analytical',
       need: c.needs.analytical,
       what: 'A separate analytical store',
-      number: `a full scan of ${fmt.bytes(m.dbStorage)} of rows at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — on the same disk your 5 ms lookups live on`,
+      number: `a full scan of ${fmt.bytes(m.dbStorage)} of rows at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — which is ${pc(c.scanDayShare)} of one node's entire sequential-read day, for ONE pass, on the same disk your 5 ms lookups live on`,
       trigger: 'gated by a requirement: set “what the data must answer” to “also analyze it”',
       because:
         'a row store reads every column of every row to answer an aggregate. A columnar store reads only the columns the query touches and compresses them severalfold (structured data compresses 5–10×, per napkin-math) — fed from the same log by change-data-capture, so the primary never feels the scan',
@@ -993,22 +1012,33 @@ export default function Calculator() {
             </div>
 
             <p className="sb-title" style={{ marginTop: 18 }}>The requirements</p>
-            <Ctl label="How reads find the data" info={ACCESS.find((o) => o.id === access)!.info} hint={ACCESS.find((o) => o.id === access)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How reads find the data <Quiet on={inert.has('access')} /></>} info={ACCESS.find((o) => o.id === access)!.info} hint={ACCESS.find((o) => o.id === access)!.info.split('.')[0] + '.'}>
               <Picker options={ACCESS} value={access} onPick={pickReq(setAccess)} />
             </Ctl>
-            <Ctl label="How fresh reads must be" info={RECENCY.find((o) => o.id === recency)!.info} hint={RECENCY.find((o) => o.id === recency)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How fresh reads must be <Quiet on={inert.has('recency')} /></>} info={RECENCY.find((o) => o.id === recency)!.info} hint={RECENCY.find((o) => o.id === recency)!.info.split('.')[0] + '.'}>
               <Picker options={RECENCY} value={recency} onPick={pickReq(setRecency)} />
             </Ctl>
-            <Ctl label="Where a new row sorts" info={KEY_SHAPE.find((o) => o.id === keyShape)!.info} hint={KEY_SHAPE.find((o) => o.id === keyShape)!.info.split('.')[0] + '.'}>
+            {/* Scale-gated, and the page has to say which side of the gate you
+                are on — otherwise the picker reads as "scattered ids mean LSM",
+                which is only true above a size most workloads never reach. */}
+            <Ctl
+              label={<>Where a new row sorts <Quiet on={inert.has('keyShape')} /></>}
+              info={KEY_SHAPE.find((o) => o.id === keyShape)!.info}
+              hint={
+                m.ramHosts <= 1
+                  ? `Not live yet — ${fmt.bytes(m.dbStorage)} of rows still fits one node's ${v.ram} GB of RAM, so the leaf page is in the buffer pool whichever you pick, and this choice moves nothing below.`
+                  : `Live — ${fmt.bytes(m.dbStorage)} of rows against ${v.ram} GB per node. Ids that land anywhere need ${fmt.compact(m.ramHosts)} shards to stay in the buffer pool; ids that sort last need none.`
+              }
+            >
               <Picker options={KEY_SHAPE} value={keyShape} onPick={pickReq(setKeyShape)} />
             </Ctl>
-            <Ctl label="Writes that span keys" info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>Writes that span keys <Quiet on={inert.has('txn')} /></>} info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
               <Picker options={TXN} value={txn} onPick={pickReq(setTxn)} />
             </Ctl>
-            <Ctl label="If a node dies, this data" info={LOSS.find((o) => o.id === loss)!.info} hint={LOSS.find((o) => o.id === loss)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>If a node dies, this data <Quiet on={inert.has('loss')} /></>} info={LOSS.find((o) => o.id === loss)!.info} hint={LOSS.find((o) => o.id === loss)!.info.split('.')[0] + '.'}>
               <Picker options={LOSS} value={loss} onPick={pickReq(setLoss)} />
             </Ctl>
-            <Ctl label="What the data must answer" info={ANALYTICS.find((o) => o.id === analytics)!.info} hint={ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>What the data must answer <Quiet on={inert.has('analytics')} /></>} info={ANALYTICS.find((o) => o.id === analytics)!.info} hint={ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0] + '.'}>
               <Picker options={ANALYTICS} value={analytics} onPick={pickReq(setAnalytics)} />
             </Ctl>
             <Ctl label={DERIVED_INP.label} info={DERIVED_INP.info} hint={DERIVED_INP.hint} val={DERIVED_INP.fmt(v.derived)}>
@@ -1035,7 +1065,7 @@ export default function Calculator() {
                 to explain.
               </div>
             )}
-            <Ctl label="How users get new data" info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How users get new data <Quiet on={inert.has('fresh')} /></>} info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
               <Picker options={FRESH} value={fresh} onPick={pickReq(setFresh)} />
             </Ctl>
 

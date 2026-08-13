@@ -151,8 +151,8 @@ export const ACCESS: Opt[] = [
   { id: 'range', label: 'Scan a range', info: 'Reads sweep an ordered slice — a time window, a feed, everything under one partition key. Sorted layouts win here, and the sort key becomes the most consequential schema decision you will make.' },
 ]
 export const KEY_SHAPE: Opt[] = [
-  { id: 'monotonic', label: 'New rows sort last', info: 'Ids that only ever grow — a timestamp, an auto-increment, Snowflake, UUIDv7. Every insert lands at the right-hand edge of the sort order, so a B-tree touches the same leaf page over and over and that page is always in memory. This is the free version, and it is a choice you make once when you pick an id format.' },
-  { id: 'scattered', label: 'New rows land anywhere', info: 'Random UUIDs, hashes, natural keys like an email — the insert point is unpredictable. A B-tree has to fetch the leaf page it is about to write, and once the data outgrows RAM that fetch is a disk seek on every single insert. An LSM does not care: it appends to a sorted buffer and puts the row in place later, during compaction. This is the field that decides whether write-heavy means "buy a bigger box" or "change engines".' },
+  { id: 'monotonic', label: 'New rows sort last', info: 'Ids that only ever grow — a timestamp, an auto-increment, Snowflake, UUIDv7. Every insert lands at the right-hand edge of the sort order, so the leaf page a B-tree has to write is the same one every time and it never leaves memory. Free at any size, and a choice you make once, when you pick an id format.' },
+  { id: 'scattered', label: 'New rows land anywhere', info: 'Random UUIDs, hashes, natural keys like an email — the insert point is unpredictable, so a B-tree has to fetch the leaf page it is about to write. THIS COSTS NOTHING UNTIL ONE NODE HOLDS MORE ROWS THAN IT HAS RAM: below that line the page is in the buffer pool whichever id format you picked, and this field moves no number on the page. Past it, every insert is a disk seek — and the way out is either many more shards, or an engine whose writes never read. Which is to say it is not a choice between B-trees and LSMs; it is a choice that only exists at a size, and this page will tell you whether you are there yet.' },
 ]
 export const RECENCY: Opt[] = [
   { id: 'stale', label: 'Slightly stale is fine', info: 'A feed a few seconds behind, a count that lags, a profile that updates eventually. This is what makes caches and read replicas legal — you can answer from a copy that has not caught up yet, which is the cheapest scaling move in this entire tool.' },
@@ -806,6 +806,17 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
      This page has said that sentence in prose since it shipped while sizing the
      tier from reads alone, so the sentence was true and the arithmetic printed
      next to it was not. */
+  /* WHAT ONE FULL SCAN COSTS, as a share of a day. `scanSeconds` has always
+     been computed and shown in the ceilings table, but the requirement that
+     depends on it — "someone will also analyse this" — was a bare boolean
+     beside it, so the page asserted the scan had to move without ever pricing
+     it. This is the price: one pass over the rows, against one node's whole
+     sequential-read day. It is the arithmetic behind "do not run analytics on
+     the primary", and it is also why the answer is a columnar copy rather
+     than a bigger disk — a column store reads only the columns the query
+     touches, compressed. */
+  const scanDayShare = m.scanSeconds / 86400
+
   const cacheOps = m.readSide + (m.cacheOnWritePath ? m.dbWrites : 0)
   const cacheNodes = Math.max(1, Math.ceil(cacheOps / m.cacheCeiling))
   const readUtil = v.readAmp === 0 ? 0 : (m.readSide * v.readAmp) / m.diskReadCeiling
@@ -859,7 +870,7 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   return {
     connections, connHosts, egressGbps, diskWriteBytes, webInstances, originHosts, cacheNodes, readUtil,
     cdnNeed, originAfter, originHostsAfter, cacheNeed, missReads, readUtilAfter,
-    writeUtilAfter, writeShards, shardNeed, shards, shardBy, cacheOps,
+    writeUtilAfter, writeShards, shardNeed, shards, shardBy, cacheOps, scanDayShare,
     monthsToWall, needs,
   }
 }
@@ -943,6 +954,61 @@ function diffOutcome(a: Outcome, b: Outcome): string[] {
   if (a.shards > 1 && b.shards > 1 && (b.shards >= a.shards * 2 || a.shards >= b.shards * 2))
     out.push(`shards go from ${int(a.shards)} to ${int(b.shards)}`)
   return out
+}
+
+/** The requirement axes, and the two values each can take. */
+const REQ_AXES: Record<string, [string, string]> = {
+  fresh: ['pull', 'push'],
+  txn: ['single', 'multi'],
+  loss: ['keep', 'rebuild'],
+  analytics: ['no', 'yes'],
+  access: ['point', 'range'],
+  recency: ['stale', 'current'],
+  keyShape: ['monotonic', 'scattered'],
+}
+
+/** Everything a requirement could plausibly move, as one comparable string. */
+function outcomeSig(v: Vals, r: Req): string {
+  const m = model(v, r)
+  const t = m.tCols.find((x) => x.id === m.transportWin)!
+  const c = consequences(v, r, m, t.holds)
+  const needs = Object.entries(c.needs)
+    .filter(([, on]) => on)
+    .map(([k]) => k)
+    .sort()
+    .join(',')
+  /* The SURVIVORS belong in the signature, not just the winner. "Atomic across
+     keys" eliminates four of the six stores; if the winner happens to be the
+     same either way, dropping the candidate set would report that requirement
+     as deciding nothing — while the comparison table the reader is looking at
+     lost two thirds of its columns. Narrowing the field is a consequence. */
+  const alive = m.eCols.filter((x) => !x.dq).map((x) => x.id).join('+')
+  return [m.engineWin, m.transportWin, alive, needs, c.shards, c.cacheNodes, c.connHosts, c.webInstances].join('|')
+}
+
+/**
+ * Which requirements currently decide nothing.
+ *
+ * A requirement can be inert for two very different reasons, and both are
+ * worth showing rather than hiding. Either something else already settled it
+ * — "atomic across keys" eliminates every store whose read cost the access
+ * pattern would have changed, so the access pattern stops mattering — or the
+ * workload has not reached the size where it starts to bite, which is the case
+ * for key shape until a node holds more rows than it has RAM.
+ *
+ * The alternative design was to grey out or prune "impossible" combinations.
+ * None are impossible (a test sweeps all 128 and the candidate list never
+ * empties), and hiding a control decides for the reader instead of telling
+ * them why it went quiet — which is the more useful half of the answer.
+ */
+export function inertRequirements(v: Vals, req: Req): string[] {
+  const here = outcomeSig(v, req)
+  return Object.entries(REQ_AXES)
+    .filter(([axis, [a, b]]) => {
+      const other = req[axis as keyof Req] === a ? b : a
+      return outcomeSig(v, { ...req, [axis]: other }) === here
+    })
+    .map(([axis]) => axis)
 }
 
 export function sensitivity(v: Vals, req: Req): Flip[] {
