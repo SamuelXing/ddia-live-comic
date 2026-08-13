@@ -113,12 +113,9 @@ composer stays the exception, because it is the synthesis rather than more of th
 - **Cloudflare toggles** — Always Use HTTPS (`http://systemscomic.com` currently
   serves plaintext with no redirect) and a `www` CNAME plus redirect rule
   (`www.systemscomic.com` does not resolve).
-- **3 merged remote branches** — `concurrent-defined`, `roadmap-next`, `set-live-url`,
-  each carrying a squash-merged PR (#36, #31, #28), safe to delete. (This line said
-  **27** for weeks, never recounted after the cleanup that removed most of them. Note
-  that `git branch -r --merged origin/main` reports **none** of the three: every PR here
-  is squash-merged, so the branch tip is not an ancestor of `main` and the ancestry
-  check is useless on this repo. `gh pr list --head <branch>` is the one that answers.)
+- **`calc-basic-view`** is the one branch still on the remote — the basic-view
+  experiment above, kept because the code and its 26 tests are there if it is ever
+  wanted. The three merged branches this line used to list are gone.
 
 ## Shipped
 

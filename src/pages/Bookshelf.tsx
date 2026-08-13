@@ -110,6 +110,22 @@ export default function Bookshelf() {
             ))}
           </div>
         </section>
+
+        {/* The shelf had no footer at all, which meant the front door of the
+            site carried no disclaimer — and book one is a companion to
+            somebody else's book. It also never expanded "DDIA", so a visitor
+            who does not already know the acronym got no help on the page most
+            likely to be their first. One line does both jobs. */}
+        <div className="gn-foot">
+          <span>
+            Book one is an unofficial companion to{' '}
+            <a href="https://dataintensive.net" target="_blank" rel="noreferrer">
+              Designing Data-Intensive Applications
+            </a>{' '}
+            by Martin Kleppmann — not affiliated with the author or O’Reilly.
+          </span>
+          <span>Everything here is drawn and written from the ideas, not from the text.</span>
+        </div>
       </div>
     </div>
   )
