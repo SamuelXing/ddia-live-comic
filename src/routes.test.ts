@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ROUTES } from '../scripts/routes.mjs'
+import { ROUTES, cardFor, cards } from '../scripts/routes.mjs'
 import type { RouteMeta } from '../scripts/routes.mjs'
 import { COMICS } from './read/comics'
 import { CHAPTERS } from './papers/chapters'
@@ -99,5 +99,42 @@ describe('titleForPath agrees with the table', () => {
     // unknown paths fall back rather than rendering "undefined"
     expect(titleForPath('/nope')).toContain('systems comic')
     expect(titleForPath('/read/')).toBe('Read the ideas · systems comic')
+  })
+})
+
+/* Social cards. The words varied per route long before the picture did — all 58
+   sat on the DDIA book's card, so a link to the papers book unfurled as a
+   different book. The images themselves are rendered by `npm run og` and
+   committed (the deploy build has no browser), and the emitter fails the build
+   when a route has no file. What is checked here is the mapping: that every
+   route resolves to a card, that a legacy alias shares its canonical's rather
+   than getting a stale duplicate, and that the names stay filesystem-safe. */
+describe('every route has a social card', () => {
+  it('resolves one for every path in the table', () => {
+    const missing = Object.keys(ROUTES).filter((p) => !cardFor(p))
+    expect(missing).toEqual([])
+  })
+
+  it('gives a legacy alias the same card as its canonical', () => {
+    const twins = Object.keys(ROUTES)
+      .filter((p) => p.startsWith('/ddia/'))
+      .map((p) => [p, p.replace(/^\/ddia/, '')] as const)
+      .filter(([, legacy]) => legacy in ROUTES)
+    expect(twins.length).toBeGreaterThan(10)
+    const split = twins.filter(([canon, legacy]) => cardFor(canon) !== cardFor(legacy))
+    expect(split).toEqual([])
+  })
+
+  it('names every card safely and uniquely', () => {
+    const names = cards().map((c) => c.name)
+    expect(names.filter((n) => !/^[a-z0-9-]+$/.test(n))).toEqual([])
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('renders one card per distinct page, not per URL', () => {
+    // 58 routes, roughly half of them legacy twins — if this ever equals the
+    // route count, the aliases have stopped sharing and half the cards are dupes
+    expect(cards().length).toBeLessThan(Object.keys(ROUTES).length)
+    expect(cards().length).toBeGreaterThan(20)
   })
 })

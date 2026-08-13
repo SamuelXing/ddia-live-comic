@@ -1,5 +1,5 @@
 {
-  "name": "ddia-live-comic",
+  "name": "systems-comic",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b --noEmit",
     "check:diagrams": "node scripts/check-diagrams.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "og": "node scripts/render-og.mjs"
   },
   "dependencies": {
     "@fontsource/comic-neue": "^5.3.0",
