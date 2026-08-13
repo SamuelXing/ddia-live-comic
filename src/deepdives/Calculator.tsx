@@ -20,6 +20,7 @@ import {
   PRESETS,
   INIT,
   storeConstants,
+  ENGINE_CONSTANTS,
   model,
   consequences,
   sensitivity,
@@ -163,6 +164,7 @@ export default function Calculator() {
   )
   const [v, setV] = useState<Vals>(() => ({ ...INIT, ...shared.vals }))
   const [showHw, setShowHw] = useState(false)
+  const [showEng, setShowEng] = useState(false)
   const [fresh, setFresh] = useState(shared.picks.fresh ?? 'pull')
   const [txn, setTxn] = useState(shared.picks.txn ?? 'single')
   const [loss, setLoss] = useState(shared.picks.loss ?? 'keep')
@@ -1071,6 +1073,75 @@ export default function Calculator() {
                     <div className="ctl-hint">{inp.hint}</div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            <button className="hw-toggle" onClick={() => setShowEng((s) => !s)}>
+              {showEng ? '▾' : '▸'} The engine constants
+            </button>
+            {showEng && (
+              <div className="hw-body">
+                <p className="hw-note">
+                  The engine decision runs on four constants per store, and unlike everything above
+                  they are <span className="src-a">assumed</span> — modelling choices, not
+                  measurements. They are the same species as a query planner's cost constants:
+                  Postgres ships{' '}
+                  <a
+                    href="https://www.postgresql.org/docs/current/runtime-config-query.html#RUNTIME-CONFIG-QUERY-CONSTANTS"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    random_page_cost = 4.0
+                  </a>{' '}
+                  and says plainly that it is a default to be tuned, not a fact. You are entitled to
+                  see the numbers that picked your database.
+                </p>
+                <div className="gn-tbl-wrap">
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Store</th>
+                        <th>Writes per write</th>
+                        <th>Lookups per read — point / range</th>
+                        <th>Insert seeks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {STORES.map((st) => (
+                        <tr key={st.id} className={st.id === effE.id ? 'is-win' : undefined}>
+                          <td>{st.short}</td>
+                          <td>×{st.sets.writeAmp}</td>
+                          <td>
+                            {st.sets.readAmp.point === 0
+                              ? 'none — RAM'
+                              : `×${st.sets.readAmp.point} / ×${st.sets.readAmp.range}`}
+                          </td>
+                          <td>{st.sets.writeReadsFirst ? 'yes' : 'no'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {ENGINE_CONSTANTS.map((c) => (
+                  <div className="ctl" key={c.k}>
+                    <div className="ctl-top">
+                      <span className="ctl-label">
+                        {c.label} <span className="src-a">assumed</span>
+                      </span>
+                    </div>
+                    <div className="ctl-hint">{c.note}</div>
+                  </div>
+                ))}
+                <p className="hw-note">
+                  One of these carries far more weight than the rest. Sweeping 1,008 workloads and
+                  flipping one input at a time, the <b>read shape</b> changes the recommended engine
+                  in <b>73.8%</b> of them — and it does that entirely by switching the ring's
+                  point-lookup penalty between ×2 and ×1. Key shape changes it in 10.7%, and never
+                  across engine families; it only decides whether the relational answer is one
+                  primary or many. So: <em>scale decides whether you shard, the read shape decides
+                  whether what you shard is a B-tree or a ring</em> — and that second decision rests
+                  on the single assumed constant above.
+                </p>
               </div>
             )}
           </div>

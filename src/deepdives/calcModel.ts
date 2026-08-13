@@ -453,6 +453,54 @@ export const CANNOT_WIN: Record<string, string> = {
   col: 'it is disqualified the moment reads fetch one record, and when they do not, it is a sidecar fed from the primary rather than the system of record. It wins queries, not workloads.',
 }
 
+/**
+ * WHERE THE ENGINE CONSTANTS COME FROM.
+ *
+ * Every slider on this page carries a provenance tag, and `sensitivity()`
+ * sweeps each one and reports the ones that flip the answer. The per-store
+ * amplification constants had neither: they sat hardcoded in STORES, invisible,
+ * unswept — and a sweep of 1,008 workloads showed the ring's point-lookup
+ * penalty alone decides relational-vs-ring in about three quarters of them.
+ * The number doing the most work was the only one nobody could see.
+ *
+ * These are the same species as a query planner's cost constants — Postgres
+ * ships `random_page_cost = 4.0` and `seq_page_cost = 1.0`, documents that they
+ * are modelling choices rather than measurements, and lets you change them.
+ * Same deal here. The reader is entitled to see the numbers that picked their
+ * database.
+ */
+export const ENGINE_CONSTANTS: {
+  k: 'writeAmp' | 'point' | 'range' | 'seek'
+  label: string
+  src: 'napkin' | 'assume'
+  note: string
+}[] = [
+  {
+    k: 'writeAmp',
+    label: 'Writes per logical write',
+    src: 'assume',
+    note: 'A B-tree commit lands in three places — the WAL, the heap page, and every index that covers the row — so ×3. An LSM appends once to a sorted buffer, so ×1 in the foreground; compaction repays the difference later, off the critical path, and this page does not charge it. That omission flatters the LSM on sustained ingest.',
+  },
+  {
+    k: 'point',
+    label: 'Disk lookups per point read',
+    src: 'assume',
+    note: 'A B-tree walks to one leaf: ×1. An LSM has to consider the memtable and several sorted runs, and bloom filters skip most but not all of them: ×2. A columnar store reassembles a row from as many files as it has columns: ×3. THIS IS THE LOAD-BEARING NUMBER — the ×2 is the entire read-side difference between relational and the ring, so it carries the whole decision whenever reads bind. It is an assumption, not a measurement, and a value of 1.5 would move a lot of answers.',
+  },
+  {
+    k: 'range',
+    label: 'Disk lookups per range read',
+    src: 'assume',
+    note: 'Everything is ×1: a B-tree walks its leaf chain, an LSM sweeps sorted contiguous rows inside one partition, a columnar store reads the columns it was built to read. Which is the real content of “range scans suit sorted layouts” — not that the LSM gets faster, but that it stops paying the point-lookup penalty above.',
+  },
+  {
+    k: 'seek',
+    label: 'Does an insert read before it writes',
+    src: 'assume',
+    note: 'A B-tree puts the row where it belongs, so it fetches that leaf page first — free while the page is resident, a disk seek when it is not. An LSM never does. Modelled as a step at exactly one node of RAM; the truth is a curve, and the buffer pool is only a fraction of RAM, so the cliff edge here is softer and earlier in reality than on this page.',
+  },
+]
+
 /** the visible constants a store implies, resolved for this access pattern */
 export function storeConstants(st: Store, access: string) {
   return { writeAmp: st.sets.writeAmp, readAmp: access === 'range' ? st.sets.readAmp.range : st.sets.readAmp.point }
