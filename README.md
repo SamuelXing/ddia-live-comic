@@ -1,6 +1,6 @@
 # systems comic
 
-**I asked an AI to write tech books. These are the books.**
+**I asked AI to write tech commics. These are the books.**
 
 **[Read them →](https://systemscomic.com)**
 
