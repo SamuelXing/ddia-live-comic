@@ -284,6 +284,32 @@ describe('the buffer-pool cliff: when an insert has to seek before it can write'
     expect(m.engineWin).toBe('sql')
   })
 
+  it('the reason named for the shard count is the reason that actually won', () => {
+    /* The page prints the shard count and the division that produced it side by
+       side; that pairing IS the product. A count of 1,342 next to arithmetic
+       yielding 19 is worse than printing no arithmetic at all, and adding the
+       memory reason without adding its name to `shardBy` did exactly that on
+       five of the seven presets before this test existed. */
+    for (const p of PRESETS) {
+      const v = { ...INIT, ...p.sets }
+      const m = model(v, p.req)
+      const c = consequences(v, p.req, m, true)
+      const claimed =
+        c.shardBy === 'memory' ? m.ramShardsNeeded
+        : c.shardBy === 'storage' ? m.storageShards
+        : c.shardBy === 'writes' ? m.writeShardsNeeded
+        : Math.max(m.storageShards, m.writeShardsNeeded)
+      expect(claimed, `${p.id} says it shards by ${c.shardBy}, which yields ${claimed}, not ${c.shards}`).toBe(c.shards)
+    }
+  })
+
+  it('the binding-wall utilisation is reproducible from reads plus insert seeks', () => {
+    // the same invariant one level down: rU has to be exactly what wallOf prints
+    const m = heavy()
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    close((one.colReads * 1 + one.poolMisses) / m.diskReadCeiling, one.rU)
+  })
+
   it('every preset states a key shape, and the ordered default keeps old answers', () => {
     /* The dimension is new; the presets are the record of what this page used
        to answer. Any preset that flips has to flip because someone decided its

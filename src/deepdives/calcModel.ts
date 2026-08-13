@@ -732,6 +732,7 @@ export function model(v: Vals, req: Req) {
     actionsPerDay, avgQps, peakQps, peakReads, peakWrites, writesPerDay, deliveries, readSide,
     bytesW, bytesR, storagePerDay, storageTotal, dbStorage, storageShards,
     writeCeiling, diskReadCeiling, cacheCeiling, seqWriteBps, seqReadBps, ramBytes, ramHosts, scanSeconds,
+    ramShardsNeeded,
     heldConns, egressFor, tCols, transportWin,
     writeUtil, logNeed, dbWrites, blobNeed, dbBytesW, eCols, engineWin, engineTie, cacheOnWritePath,
     writeShardsNeeded, shardsNeeded, monthsToDouble, amdahl, cacheAbsorbs,
@@ -764,8 +765,21 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   const writeShards = m.writeShardsNeeded
   const shardNeed = m.shardsNeeded > 1
   const shards = m.shardsNeeded
-  const shardBy: 'writes' | 'storage' | 'both' =
-    writeUtilAfter > 1 && m.storageShards > 1 ? 'both' : writeUtilAfter > 1 ? 'writes' : 'storage'
+  /* WHICH DIVISION PRODUCED THE SHARD COUNT. The page prints the count and the
+     arithmetic behind it side by side, so this has to name the reason that
+     actually won `Math.max` — not a plausible-sounding one. Memory is now a
+     third reason (scattered inserts have to keep a node's slice inside its
+     RAM), and it usually dominates by an order of magnitude: a node holds
+     ~70x more disk than memory. Reporting that count as "storage" would print
+     "1,342 shards" beside a division that yields 19. */
+  const shardBy: 'writes' | 'storage' | 'memory' | 'both' =
+    m.ramShardsNeeded >= Math.max(m.storageShards, m.writeShardsNeeded) && m.ramShardsNeeded > 1
+      ? 'memory'
+      : writeUtilAfter > 1 && m.storageShards > 1
+        ? 'both'
+        : writeUtilAfter > 1
+          ? 'writes'
+          : 'storage'
 
   const g = v.growth / 100
   const monthsToWall =

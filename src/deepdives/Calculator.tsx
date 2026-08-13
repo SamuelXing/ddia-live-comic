@@ -331,8 +331,29 @@ export default function Calculator() {
       return { ceil: 'cache', how: `${fmt.compact(m.readSide + m.dbWrites)}/s of ops ÷ ${fmt.compact(m.cacheCeiling)}/s on one core` }
     if (col.worstName === 'the write stream')
       return { ceil: 'stream', how: `${fmt.bytes(col.bw)}/s ÷ ${v.seqWrite} GiB/s sequential` }
-    return { ceil: 'reads', how: `${fmt.compact(col.colReads)}/s${m.cacheAbsorbs ? ' of misses' : ''} × ×${amp} per read ÷ ${fmt.compact(m.diskReadCeiling)}/s` }
+    const reads = `${fmt.compact(col.colReads)}/s${m.cacheAbsorbs ? ' of misses' : ''} × ×${amp} per read`
+    /* Once inserts are seeking, the reads alone no longer reproduce the number
+       on screen — the seeks are the larger half of it, and leaving them out of
+       the division is the one thing this page must never do. */
+    return {
+      ceil: 'reads',
+      how: col.poolMisses > 0
+        ? `(${reads} + ${fmt.compact(col.poolMisses)}/s of insert seeks) ÷ ${fmt.compact(m.diskReadCeiling)}/s`
+        : `${reads} ÷ ${fmt.compact(m.diskReadCeiling)}/s`,
+    }
   }
+
+  /* The shard count is a Math.max over three reasons, and the division printed
+     beside it has to be the one that WON — otherwise the page shows "1,342
+     shards" next to arithmetic that produces 19. Memory is the reason whenever
+     inserts are scattered and a node's slice has outgrown its RAM, and it
+     usually wins by an order of magnitude. */
+  const shardHow = (by: string) =>
+    by === 'memory'
+      ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — scattered inserts have to stay in the buffer pool`
+      : by === 'storage'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB per node`
+        : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s`
 
   /** what the load has already become by the time it reaches any store */
   const chain: ReactNode[] = []
@@ -408,7 +429,7 @@ export default function Calculator() {
         {joined} land within 5% of each other, so <b>throughput does not decide this one</b>.{' '}
         {c.shards > 8 ? (
           <>
-            At <Num how={c.shardBy === 'storage' ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB per node` : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s`} ceil={c.shardBy === 'storage' ? 'data' : 'writes'} jump={jump}>{c.shards} shards</Num>{' '}
+            At <Num how={shardHow(c.shardBy)} ceil={c.shardBy === 'writes' ? 'writes' : 'data'} jump={jump}>{c.shards} shards</Num>{' '}
             it is decided operationally instead: a ring rebalances itself and hand-sharded primaries do not — you own
             the routing, the rebalancing and the failover, forever. Weigh that against the atomicity scope row: what
             each one stops being able to promise.
@@ -668,13 +689,15 @@ export default function Calculator() {
       need: c.needs.shard,
       what: 'Shard the database',
       number:
-        c.shardBy === 'storage'
-          ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
-          : c.shardBy === 'writes'
-            ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
-            : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
-      trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now) or rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now)`,
-      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
+        c.shardBy === 'memory'
+          ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.ram} GB of RAM per node = ${m.ramShardsNeeded} shards. Ids that land anywhere make each insert read the leaf page it is about to write, so the split is sized to keep that page in the buffer pool — ${m.storageShards} shards is all the disk asked for`
+          : c.shardBy === 'storage'
+            ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
+            : c.shardBy === 'writes'
+              ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
+              : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
+      trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now), rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now), or scattered inserts outgrow ${v.ram} GB of RAM per node`,
+      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'memory' ? 'And this split is not for capacity at all: it is to get a node\u2019s slice back inside its RAM, so a B-tree stops paying a disk seek on every insert. It is the alternative to changing engines — Slack shards messages by channel ID across thousands of MySQL shards, the same key Discord handed to a ring.' : c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/ddia/components/postgres' },
@@ -742,7 +765,7 @@ export default function Calculator() {
     after.push({ k: 'Writes reaching the primary', v: `${fmt.compact(m.peakWrites)} → ${fmt.compact(m.dbWrites)}/s`, how: `the log absorbs the ×${fmt.n1(v.peak)} peak; the primary consumes at the daily average` })
   if (c.shardNeed)
     after.push(
-      c.shardBy === 'storage'
+      c.shardBy === 'storage' || c.shardBy === 'memory'
         ? { k: 'Data per shard', v: `${fmt.bytes(m.dbStorage / c.shards)} × ${c.shards} shards`, how: `writes per shard: ${fmt.compact(m.dbWrites / c.shards)}/s — ${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each` }
         : { k: 'Writes per shard', v: `${fmt.compact(m.dbWrites / c.shards)}/s × ${c.shards} shards`, how: `${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each · ${fmt.bytes(m.dbStorage / c.shards)} of rows each` },
     )
