@@ -211,30 +211,34 @@ describe('when nothing binds, the simplest machine wins', () => {
 
   it('a chat app with 10,000 users gets one Postgres', () => {
     const m = at(1e4)
-    // every candidate at 0.04% of its wall, and the data needs one machine
-    expect(m.shardsNeeded).toBe(1)
+    // every candidate at 0.04% of its wall, and no store needs more than one machine
+    expect(Math.max(...m.eCols.map((c) => c.shards))).toBe(1)
     expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.05)
     expect(m.engineWin).toBe('sql')
   })
 
   it('and the ring still wins where Discord actually moved', () => {
-    // 20M daily users: 1,342 shards to keep scattered inserts in the buffer
-    // pool. Nothing about that is "nothing binds" — who runs the split is the
-    // whole question, and that is the ring's argument.
+    // 20M daily users: the B-tree needs 1,342 shards to keep scattered inserts
+    // in the buffer pool; the ring needs 19 nodes for the same rows. Nothing
+    // about that is "nothing binds" — who runs the split is the whole question,
+    // and 1,342 against 19 is that question stated as a number.
     const m = at(2e7)
-    expect(m.shardsNeeded).toBeGreaterThan(8)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(19)
     expect(m.engineWin).toBe('wide')
   })
 
   it('the rule is an AND: quiet ceilings do not excuse 336 shards', () => {
     /* 5M daily users on the chat preset. Every ceiling is quiet — 21.7% is the
-       worst any survivor sees — but scattered inserts need 336 shards to stay
-       in the buffer pool. "Simple" is not the word for 336 hand-managed
-       primaries, and at that point who runs the split is the whole question.
-       So the simplicity rule stays off and the ring keeps the win. */
+       worst any survivor sees — but a B-tree taking scattered inserts needs 336
+       shards to stay in the buffer pool (4.608e13 B ÷ 1.37439e11 = 335.3 → 336),
+       where the ring needs 5 for the same rows. "Simple" is not the word for
+       336 hand-managed primaries, so the simplicity rule stays off and the
+       store with the smaller split keeps the win. */
     const m = at(5e6)
     expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.25)
-    expect(m.shardsNeeded).toBe(336)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(336)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(5)
     expect(m.engineWin).toBe('wide')
   })
 })
@@ -362,7 +366,9 @@ describe('the buffer-pool cliff: when an insert has to seek before it can write'
     close(m.dbStorage, 1.65888e15)
     expect(m.storageShards).toBe(166)
     expect(m.ramHosts).toBe(12070)
-    expect(m.shardsNeeded).toBe(12070)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(12070)
+    // the ring never pays the RAM split: 166 pieces is the whole bill
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(166)
     // behind the forced log: 31,250 ÷ 3 = 10,416.7 writes/s sustained
     close(m.dbWrites, 10416.667)
 
@@ -437,8 +443,9 @@ describe('the buffer-pool cliff: when an insert has to seek before it can write'
       const v = { ...INIT, ...p.sets }
       const m = model(v, p.req)
       const c = consequences(v, p.req, m, true)
+      const win = m.eCols.find((x) => x.id === m.engineWin)!
       const claimed =
-        c.shardBy === 'memory' ? m.ramShardsNeeded
+        c.shardBy === 'memory' ? win.ramShards
         : c.shardBy === 'storage' ? m.storageShards
         : c.shardBy === 'writes' ? m.writeShardsNeeded
         : Math.max(m.storageShards, m.writeShardsNeeded)
@@ -464,7 +471,7 @@ describe('the buffer-pool cliff: when an insert has to seek before it can write'
     const b = model(v, req({ keyShape: 'scattered' }))
     expect(a.ramHosts).toBe(1)
     expect(b.engineWin).toBe(a.engineWin)
-    expect(b.shardsNeeded).toBe(a.shardsNeeded)
+    expect(b.eCols.map((c) => c.shards)).toEqual(a.eCols.map((c) => c.shards))
     expect(b.eCols.every((c, i) => c.poolMisses === a.eCols[i].poolMisses && c.poolMisses === 0)).toBe(true)
   })
 
@@ -617,7 +624,7 @@ describe('the storage decision is decomposed, and each dimension filters', () =>
     // the disqualification is load-driven, not a blanket ban: shrink the data
     // until one machine holds it and the simplest store comes back
     const m = model(vals({ dau: 1e5, retention: 1 }), req())
-    expect(m.shardsNeeded).toBe(1)
+    expect(Math.max(...m.eCols.map((c) => c.shards))).toBe(1)
     expect(m.eCols.find((c) => c.id === 'sql')!.dq).toBeNull()
     expect(m.engineWin).toBe('sql')
   })
@@ -811,5 +818,74 @@ describe('the candidate list can never empty', () => {
       SCALES.every((s) => COMBOS.every((r) => !model(s.v, r).eCols.find((c) => c.id === st.id)!.dq)),
     ).map((st) => st.id)
     expect(universal).toContain('sqlShard')
+  })
+})
+
+describe('the shard bill is per store — the actual Slack-vs-Discord number', () => {
+  /* USER-REPORTED, the second half of it. A probe of all 896 preset×requirement
+     combinations shows sharded SQL is never disqualified — everything on this
+     page can, in fact, scale on sharded Postgres, which is what Slack, Notion
+     and Instagram did. So when the ring "wins" a tie, the page owes the reader
+     the number that actually separates the two, and it is not a utilisation
+     percentage: it is HOW MANY PIECES each engine needs the data cut into.
+     A B-tree taking scattered inserts must shard until a node's slice fits its
+     RAM; an LSM only ever shards for disk. One global `shardsNeeded` charged
+     the B-tree's split to every column — the page said "1,342 shards" while
+     recommending a ring that needs 19 nodes. */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const v = { ...INIT, ...chat.sets }
+  const m = model(v, chat.req)
+
+  it('chat at 20M: the B-tree needs 1,342 shards, the ring needs 19 nodes', () => {
+    // 5e8 writes/day × 1,024 B × 30 × 12 = 1.8432e14 B of rows.
+    // RAM: ÷ 1.37438953472e11 (128 GB) = 1,341.2 → 1,342 (scattered inserts
+    // must keep the leaf page resident). Disk: ÷ 1e13 (10 TB) = 18.4 → 19.
+    close(m.dbStorage, 1.8432e14)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(19)
+    // the ordered-id stores never pay the RAM split — only storage and rate
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.ramShards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.ramShards).toBe(1)
+  })
+
+  it('the tie is decided by the split, and the page can say so', () => {
+    // Both bind on read pressure at the same 8.68%: misses 6,944.4/s × ×1
+    // ÷ 80,000/s. Throughput separates nothing.
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    const ring = m.eCols.find((c) => c.id === 'wide')!
+    close(bt.worst, 0.086806)
+    close(ring.worst, 0.086806)
+    expect(m.engineTie).toContain('sqlShard')
+    // the winner is the store that needs 19 pieces, not 1,342
+    expect(m.engineWin).toBe('wide')
+  })
+
+  it('consequences bill the CHOSEN store, not a global maximum', () => {
+    // choose the ring (the winner): 19 shards, split for storage
+    const ring = consequences(v, chat.req, m, true)
+    expect(ring.shards).toBe(19)
+    expect(ring.shardBy).toBe('storage')
+    // pin sharded SQL instead: 1,342 shards, split to stay inside RAM
+    const bt = consequences(v, chat.req, m, true, 'sqlShard')
+    expect(bt.shards).toBe(1342)
+    expect(bt.shardBy).toBe('memory')
+  })
+
+  it('with an ordered key the bill is the same for every survivor', () => {
+    // ingest preset forced monotonic: no store pays a RAM split, so the only
+    // reasons left — data size and write rate — are store-independent
+    const ingest = PRESETS.find((p) => p.id === 'ingest')!
+    const mono = model({ ...INIT, ...ingest.sets }, { ...ingest.req, keyShape: 'monotonic' })
+    const counts = new Set(mono.eCols.filter((c) => !c.dq && c.id !== 'mem').map((c) => c.shards))
+    expect(counts.size).toBe(1)
+  })
+
+  it("single-primary SQL's obituary names the division that actually killed it", () => {
+    /* Pre-existing bug, found while building this: the dq said "needs 1,342
+       shards" while its `how` printed the STORAGE division — 184 TB ÷ 10 TB,
+       which yields 19. The pairing of claim and arithmetic is the product. */
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    expect(one.dq).toContain('1,342')
+    expect(one.dqHow).toContain('RAM')
   })
 })

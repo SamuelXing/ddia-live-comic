@@ -227,6 +227,12 @@ export default function Calculator() {
     setAnalytics(p.req.analytics)
     setAccess(p.req.access)
     setRecency(p.req.recency)
+    /* Forgetting one of these lines is invisible: the preset LOOKS applied —
+       every slider moved — while one requirement quietly keeps its old value.
+       That happened with keyShape: every preset carried it, the model priced
+       it, and no click ever set it, so the buffer-pool cliff never appeared
+       on this page for anyone using the presets. */
+    setKeyShape(p.req.keyShape)
     setPinT(null)
     setPinE(null)
     // reset workload+derived to defaults first so a preset is deterministic,
@@ -245,6 +251,7 @@ export default function Calculator() {
     setAnalytics('no')
     setAccess('point')
     setRecency('stale')
+    setKeyShape('monotonic')
     setPinT(null)
     setPinE(null)
     setPreset(null)
@@ -252,20 +259,21 @@ export default function Calculator() {
   const atDefaults =
     Object.keys(INIT).every((k) => v[k] === INIT[k]) &&
     fresh === 'pull' && txn === 'single' && loss === 'keep' && analytics === 'no' &&
-    access === 'point' && recency === 'stale' && pinT === null && pinE === null
+    access === 'point' && recency === 'stale' && keyShape === 'monotonic' && pinT === null && pinE === null
 
   // ---------- all arithmetic: the pure, unit-tested model ----------
   const m = model(v, req)
   const effT = PROTOCOLS.find((p) => p.id === (pinT ?? m.transportWin))!
   const effE = STORES.find((e) => e.id === (pinE ?? m.engineWin))!
   const winE = STORES.find((e) => e.id === m.engineWin)!
-  const c = consequences(v, req, m, effT.holds)
+  const c = consequences(v, req, m, effT.holds, effE.id)
   /* The counterfactual: the same workload with the store the ARITHMETIC picked.
      Pinning a different survivor changes what the system needs — a store whose
      reads cost twice as much can push the read pressure over the threshold that
-     forces a cache — and the honest thing is to attribute that change to the
-     pick rather than let it appear as if the workload changed. */
-  const cWin = consequences({ ...v, ...storeConstants(winE, access) }, req, m, effT.holds)
+     forces a cache, and the shard bill is per store — and the honest thing is
+     to attribute that change to the pick rather than let it appear as if the
+     workload changed. */
+  const cWin = consequences({ ...v, ...storeConstants(winE, access) }, req, m, effT.holds, winE.id)
   const sens = sensitivity(v, req)
 
   /* Clicking a computed percentage should answer "percent of WHAT" by taking
@@ -371,10 +379,25 @@ export default function Calculator() {
      usually wins by an order of magnitude. */
   const shardHow = (by: string) =>
     by === 'memory'
-      ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — scattered inserts have to stay in the buffer pool`
+      ? effE.id === 'mem'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — the dataset lives in RAM, so RAM is the disk`
+        : `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — scattered inserts have to stay in the buffer pool`
       : by === 'storage'
         ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB per node`
         : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s`
+
+  /* The same pairing, per COLUMN: each store's shard count next to the division
+     that produced it. This is the number the old global count erased — a B-tree
+     taking scattered inserts splits to fit RAM, the ring splits to fit disk,
+     and the two bills differ by the ~70× between a node's disk and its RAM. */
+  const splitHow = (col: EngineCol) =>
+    col.ramShards >= Math.max(m.storageShards, m.writeShardsNeeded) && col.ramShards > 1
+      ? col.id === 'mem'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — the dataset lives in RAM`
+        : `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — its inserts read the leaf page first, so a node's slice must fit its RAM`
+      : m.storageShards >= m.writeShardsNeeded
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB of disk per node`
+        : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s per node`
 
   /** what the load has already become by the time it reaches any store */
   const chain: ReactNode[] = []
@@ -445,10 +468,29 @@ export default function Calculator() {
   } else if (m.engineTie.length > 1) {
     const names = m.engineTie.map(shortOf)
     const joined = names.length === 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    /* The number that actually separates a tie: the split each store carries.
+       Chat at 20M DAU is the canonical case — sharded SQL and the ring bind on
+       the same wall at the same 8.7%, and what differs is 1,342 pieces against
+       19. That contrast IS the Slack-vs-Discord decision, and a single global
+       shard count used to erase it from this very sentence. */
+    const tieCols = m.engineTie.map((id) => m.eCols.find((x) => x.id === id)!)
+    const most = tieCols.reduce((a, b) => (b.shards > a.shards ? b : a))
+    const least = tieCols.reduce((a, b) => (b.shards < a.shards ? b : a))
     so = (
       <>
         {joined} land within 5% of each other, so <b>throughput does not decide this one</b>.{' '}
-        {c.shards > 8 ? (
+        {most.shards > 8 && most.shards >= least.shards * 2 ? (
+          <>
+            The split does: {shortOf(most.id)} needs{' '}
+            <Num how={splitHow(most)} ceil="data" jump={jump}>{fmt.int(most.shards)} shards</Num> — its inserts read
+            the leaf page they are about to write, so every node's slice has to fit in RAM — while {shortOf(least.id)}{' '}
+            gets by with <Num how={splitHow(least)} ceil="data" jump={jump}>{fmt.int(least.shards)}</Num>, because its
+            writes never read and only the disk sets the piece size. Both bills are paid in production for exactly
+            this workload: Slack runs the first (MySQL sharded by channel id, thousands of shards behind Vitess),
+            Discord runs the second (a ring of a few dozen nodes that rebalances itself). So the real question is who
+            operates the split — weigh it against the atomicity scope row: what each one stops being able to promise.
+          </>
+        ) : c.shards > 8 ? (
           <>
             At <Num how={shardHow(c.shardBy)} ceil={c.shardBy === 'writes' ? 'writes' : 'data'} jump={jump}>{c.shards} shards</Num>{' '}
             it is decided operationally instead: a ring rebalances itself and hand-sharded primaries do not — you own
@@ -505,12 +547,17 @@ export default function Calculator() {
       {alive.length > 1 && (
         <div className="vd-sec">
           <span className="vd-h">How close each survivor gets to its first wall</span>
+          {/* The split column is per store on purpose — it is the one number in
+              this table that can differ by ~70× between two stores whose
+              utilisations match exactly, and it used to be printed as a single
+              global count, which erased the entire Slack-vs-Discord contrast. */}
           <table className="vd-tbl">
             <thead>
               <tr>
                 <th>Store</th>
                 <th>Its first wall</th>
                 <th>How close</th>
+                <th>The split it needs</th>
                 <th>The division that produced it</th>
               </tr>
             </thead>
@@ -524,6 +571,11 @@ export default function Calculator() {
                     <td>
                       <Num how={w.how} ceil={w.ceil} jump={jump}>
                         {pc(col.worst)}
+                      </Num>
+                    </td>
+                    <td>
+                      <Num how={splitHow(col)} ceil="data" jump={jump}>
+                        {col.shards === 1 ? 'one node' : `${fmt.int(col.shards)} shards`}
                       </Num>
                     </td>
                     <td className="how">{w.how}</td>
@@ -715,14 +767,16 @@ export default function Calculator() {
       what: 'Shard the database',
       number:
         c.shardBy === 'memory'
-          ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.ram} GB of RAM per node = ${m.ramShardsNeeded} shards. Ids that land anywhere make each insert read the leaf page it is about to write, so the split is sized to keep that page in the buffer pool — ${m.storageShards} shards is all the disk asked for`
+          ? effE.id === 'mem'
+            ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node = ${effCol.shards} shards — the dataset lives in RAM, so RAM is the disk`
+            : `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.ram} GB of RAM per node = ${effCol.ramShards} shards. Ids that land anywhere make each insert read the leaf page it is about to write, so the split is sized to keep that page in the buffer pool — ${m.storageShards} shards is all the disk asked for`
           : c.shardBy === 'storage'
             ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
             : c.shardBy === 'writes'
               ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
               : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
       trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now), rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now), or scattered inserts outgrow ${v.ram} GB of RAM per node`,
-      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'memory' ? 'And this split is not for capacity at all: it is to get a node\u2019s slice back inside its RAM, so a B-tree stops paying a disk seek on every insert. It is the alternative to changing engines — Slack shards messages by channel ID across thousands of MySQL shards, the same key Discord handed to a ring.' : c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
+      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'memory' ? (effE.id === 'mem' ? 'Here RAM sets the piece size because there is nothing else: the store IS memory, and a shard is one node’s worth of it.' : 'And this split is not for capacity at all: it is to get a node\u2019s slice back inside its RAM, so a B-tree stops paying a disk seek on every insert. It is the alternative to changing engines — Slack shards messages by channel ID across thousands of MySQL shards, the same key Discord handed to a ring.') : c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/ddia/components/postgres' },

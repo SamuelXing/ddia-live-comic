@@ -297,7 +297,7 @@ describe('Netflix — throughput per node stays flat as the cluster grows (2011 
     const b = model({ ...base, dau: 2e8 }, REQ)
     close(b.peakWrites / a.peakWrites, 2)
     // per-shard write load stays within a rounding step of itself
-    const perShard = (m: ReturnType<typeof model>) => m.dbWrites / m.shardsNeeded
+    const perShard = (m: ReturnType<typeof model>) => m.dbWrites / m.eCols.find((c) => c.id === m.engineWin)!.shards
     expect(Math.abs(perShard(b) - perShard(a)) / perShard(a)).toBeLessThan(0.1)
   })
   it('the measured 11k writes/s per node sits inside our per-primary band', () => {

@@ -531,6 +531,15 @@ export interface EngineCol {
   /** the bytes ONE node holds — dbStorage split across the shards it needs.
    *  The cliff is a per-node fact, so it has to be measured after sharding. */
   nodeBytes: number
+  /** how many pieces THIS store needs the data cut into. Per store, because the
+   *  reasons differ: every store splits for data size and write rate, but only
+   *  a B-tree taking scattered inserts must also split until a node's slice
+   *  fits its RAM — ~70× more pieces than the disk alone asks for. One global
+   *  count charged that split to every column and printed the ring's bill
+   *  wrong by that factor. */
+  shards: number
+  /** the RAM-fit term of that max — 1 unless this store pays it */
+  ramShards: number
   worstName: 'the write stream' | 'read pressure' | 'the buffer-pool cliff' | 'ops on one core'
   dq: string | null
   /** the arithmetic behind the disqualification, so a claim like "needs 19
@@ -616,14 +625,19 @@ export function model(v: Vals, req: Req) {
        This is the load disqualifying a store rather than a requirement doing
        it — but it is still a disqualification, not a score: you cannot run one
        primary over ${'${n}'} shards, whatever the throughput says. */
-    if (st.dist === 'one primary + replicas' && shardsNeeded > 1)
+    const own = shardsFor(st)
+    if (st.dist === 'one primary + replicas' && own > 1)
       return {
-        why: `this data needs ${int(shardsNeeded)} shards — one primary is not on the table; the relational answer here is the sharded one`,
+        why: `this data needs ${int(own)} shards — one primary is not on the table; the relational answer here is the sharded one`,
+        /* the division shown has to be the one that WON the max — this dq once
+           said "needs 1,342 shards" beside 184 TB ÷ 10 TB, which yields 19 */
         how:
-          storageShards >= writeShardsNeeded
-            ? `${bytes(dbStorage)} of rows ÷ ${v.diskPerNode} TB per node`
-            : `${compact(dbWrites)} writes/s ÷ ${compact(writeCeiling)}/s per primary`,
-        ceil: storageShards >= writeShardsNeeded ? 'data' : 'writes',
+          ramShardsFor(st) >= Math.max(storageShards, writeShardsNeeded)
+            ? `${bytes(dbStorage)} of rows ÷ ${v.ram} GB of RAM per node — scattered inserts must keep the leaf page resident`
+            : storageShards >= writeShardsNeeded
+              ? `${bytes(dbStorage)} of rows ÷ ${v.diskPerNode} TB per node`
+              : `${compact(dbWrites)} writes/s ÷ ${compact(writeCeiling)}/s per primary`,
+        ceil: storageShards >= writeShardsNeeded || ramShardsFor(st) > 1 ? 'data' : 'writes',
       }
     return null
   }
@@ -637,18 +651,23 @@ export function model(v: Vals, req: Req) {
      it: recommending "single-primary SQL" while simultaneously reporting 185
      shards is not a trade-off, it is a contradiction. */
   const writeShardsNeeded = Math.max(1, Math.ceil(dbWrites / writeCeiling))
-  /* A THIRD reason to split, and it only exists for a B-tree taking scattered
-     inserts: shard until a node's slice fits its RAM, and the leaf page you are
-     about to write is resident again. This is not a throughput fix, it is the
-     escape route from the buffer-pool cliff below — and it is a real one, taken
-     in production: Slack shards messages by channel ID across THOUSANDS of
-     MySQL shards, the same key Discord handed to a ring. That is the actual
-     Discord-vs-Slack argument, and it is about who runs the split, not about
-     which engine is faster. Charging the seek penalty while ignoring this
-     route would have told the reader sharded MySQL cannot store chat, which is
-     false and which Slack's numbers refute. */
-  const ramShardsNeeded = req.keyShape === 'scattered' ? Math.max(1, ramHosts) : 1
-  const shardsNeeded = Math.max(storageShards, writeShardsNeeded, ramShardsNeeded)
+  /* A THIRD reason to split, and — unlike the first two — it is PER STORE: it
+     only exists for a B-tree taking scattered inserts, which must shard until a
+     node's slice fits its RAM so the leaf page it is about to write is resident
+     again. This is not a throughput fix, it is the escape route from the
+     buffer-pool cliff below — and it is a real one, taken in production: Slack
+     shards messages by channel ID across THOUSANDS of MySQL shards, the same
+     key Discord handed to a ring of a few dozen nodes. That count — 1,342
+     pieces against 19 for the same chat workload — IS the Slack-vs-Discord
+     argument, and a single global `shardsNeeded` erased it: the page charged
+     the B-tree's split to every column and printed the ring's bill wrong by
+     ~70× (a node holds ~70× more disk than RAM). The in-memory store's split
+     is RAM-bound by definition, whatever the key looks like. */
+  const ramShardsFor = (st: Store) =>
+    st.id === 'mem' || (st.sets.writeReadsFirst && req.keyShape === 'scattered')
+      ? Math.max(1, ramHosts)
+      : 1
+  const shardsFor = (st: Store) => Math.max(storageShards, writeShardsNeeded, ramShardsFor(st))
   /* How often the split has to be redone. Storage grows with the workload, so
      the shard count doubles on the same clock the data does — no invented
      constant, just the growth rate the reader set. */
@@ -710,7 +729,9 @@ export function model(v: Vals, req: Req) {
        nothing. Sharding rarely wins it outright — a node holds ~70x more disk
        than memory, so a store sharded to fit its disk is still far past this
        line. */
-    const nodeBytes = dbStorage / Math.max(1, e.dist === 'one primary + replicas' ? 1 : shardsNeeded)
+    const ramShards = ramShardsFor(e)
+    const shards = shardsFor(e)
+    const nodeBytes = dbStorage / Math.max(1, e.dist === 'one primary + replicas' ? 1 : shards)
     const poolMisses =
       e.sets.writeReadsFirst && req.keyShape === 'scattered' && nodeBytes > ramBytes ? dbWrites : 0
     const rU = readAmp === 0 ? 0 : (colReads * readAmp + poolMisses) / diskReadCeiling
@@ -733,26 +754,35 @@ export function model(v: Vals, req: Req) {
             : ('read pressure' as const)
     const d = disqualify(e)
     return {
-      id: e.id, rawRU, colCache, colReads, poolMisses, nodeBytes, rU, bw, bwU, worst, next, worstName,
+      id: e.id, rawRU, colCache, colReads, poolMisses, nodeBytes, shards, ramShards, rU, bw, bwU, worst, next, worstName,
       dq: d ? d.why : null, dqHow: d?.how ?? null, dqCeil: d?.ceil ?? null, store: e,
     }
   })
   const alive = eCols.filter((c) => !c.dq)
-  /** lowest worst-case wins; strict < keeps the earlier (simpler) machine on ties.
-   *  STORES is ordered simplest-first for exactly this reason. */
-  /* Lowest binding ceiling wins. When two stores bind at the same ceiling —
-     which happens whenever reads dominate and they read alike — the one with
-     more headroom on the OTHER axis wins. Falling back to list order there
-     would report the order I happened to type the stores in as a finding. */
+  /* Lowest binding ceiling wins. Stores within 5% of the lowest are a TIE —
+     the arithmetic has not separated them, and inside that band throughput has
+     nothing more to say. What does is the operational bill each one carries:
+     FEWEST SHARDS first, because 1,342 hand-run primaries against 19 ring
+     nodes is the real difference between two stores whose utilisations match
+     to the third decimal (it is the Slack-vs-Discord axis, and it used to be
+     invisible here — the old tie-break handed the win to whichever store had
+     more headroom on an axis sitting at 1%, which is a coin flip wearing a
+     percentage). Then headroom on the other wall, then list order — STORES is
+     ordered simplest-first so a full tie keeps the simpler machine. */
+  const minWorst = Math.min(...alive.map((c) => c.worst))
+  const band = alive.filter((c) => c.worst <= minWorst * 1.05 + 1e-9)
+  const onThroughput = band.reduce(
+    (best, c) => (c.shards < best.shards ? c : c.shards === best.shards && c.next < best.next ? c : best),
+    band[0],
+  )
   /* NOTHING BINDS → TAKE THE SIMPLEST MACHINE.
-     Headroom is an honest tie-break when the load is real. It is not one when
-     every survivor sits at a fraction of a percent of its wall and the data
-     fits on one node: then the arithmetic has separated nothing, and picking
-     the store with more theoretical room left is picking on a difference the
-     reader will never spend. Answering "a leaderless ring" to a chat app with
-     ten thousand users is not a trade-off, it is a wrong answer with a
-     confident percentage beside it — which is exactly what this page did until
-     someone dragged the slider to the bottom.
+     The shard tie-break is an honest one when the load is real. When every
+     survivor sits at a fraction of a percent of its wall AND the simplest
+     machine in the band needs no meaningful split, the arithmetic has
+     separated nothing, and answering "a leaderless ring" to a chat app with
+     ten thousand users is a wrong answer with a confident percentage beside
+     it — which is exactly what this page did until someone dragged the slider
+     to the bottom.
 
      Gated on BOTH conditions, because either alone is misleading. Load with no
      pressure but a thousand shards is not simple — at that point who runs the
@@ -760,22 +790,12 @@ export function model(v: Vals, req: Req) {
      objection to it (Discord's move happens on the far side of this line).
      Pressure with no shards still has to be decided on throughput.
 
-     The shard threshold is the one the page already uses to say a choice "is
-     decided operationally instead"; the utilisation floor sits below the 30%
-     that forces a cache, so anything this page would already call quiet. */
-  const nothingBinds = Math.max(...alive.map((c) => c.worst)) < 0.25 && shardsNeeded <= 8
-  const onThroughput = alive.reduce((best, c) => {
-    if (c.worst < best.worst * 0.95) return c
-    if (best.worst < c.worst * 0.95) return best
-    return c.next < best.next ? c : best
-  }, alive[0])
-  /* Applied only INSIDE the tie band, and that limit is load-bearing: a first
+     Applied only INSIDE the tie band, and that limit is load-bearing: a first
      attempt overrode every store and took in-memory's wins away from it. A
      rebuildable dataset small enough to hold in RAM is the one case where the
      specialist genuinely beats the general answer on the arithmetic, not on a
-     tie — so a store that wins outright keeps its win, and only a photo-finish
-     gets decided on which machine you would rather operate at 3am. */
-  const band = alive.filter((c) => c.worst <= onThroughput.worst * 1.05 + 1e-9)
+     tie. */
+  const nothingBinds = Math.max(...alive.map((c) => c.worst)) < 0.25 && band[0].shards <= 8
   const engineWin = nothingBinds && band.length > 1 ? band[0].id : onThroughput.id
   const winner = alive.find((c) => c.id === engineWin)!
   /* Stores within a few percent of the winner are not really beaten — the
@@ -808,18 +828,21 @@ export function model(v: Vals, req: Req) {
     actionsPerDay, avgQps, peakQps, peakReads, peakWrites, writesPerDay, deliveries, readSide,
     bytesW, bytesR, storagePerDay, storageTotal, dbStorage, storageShards,
     writeCeiling, diskReadCeiling, cacheCeiling, seqWriteBps, seqReadBps, ramBytes, ramHosts, scanSeconds,
-    ramShardsNeeded,
     heldConns, egressFor, tCols, transportWin,
     writeUtil, logNeed, dbWrites, blobNeed, dbBytesW, eCols, engineWin, engineTie, cacheOnWritePath,
-    writeShardsNeeded, shardsNeeded, monthsToDouble, amdahl, cacheAbsorbs,
+    writeShardsNeeded, monthsToDouble, amdahl, cacheAbsorbs,
   }
 }
 
 export type Model = ReturnType<typeof model>
 
 /** consequences of the chosen shape — uses v's (possibly hand-tuned) synced
- *  constants plus the effective transport's holds flag */
-export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
+ *  constants plus the effective transport's holds flag.
+ *  `storeId` names the store these consequences are for — the shard bill is
+ *  per store now, so "shard the database" has to bill the store the reader
+ *  actually chose, not a global maximum. Defaults to the arithmetic's winner. */
+export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean, storeId?: string) {
+  const chosen = m.eCols.find((x) => x.id === (storeId ?? m.engineWin)) ?? m.eCols.find((x) => x.id === m.engineWin)!
   const connections = effTHolds ? m.heldConns : 0
   const connHosts = effTHolds ? Math.ceil(connections / v.connsPerHost) : 0
   const egressGbps = m.egressFor(v.overhead)
@@ -859,17 +882,18 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   const writeUtilAfter = m.dbWrites / m.writeCeiling
   /** two independent reasons to split: the write rate, or the sheer data size */
   const writeShards = m.writeShardsNeeded
-  const shardNeed = m.shardsNeeded > 1
-  const shards = m.shardsNeeded
+  const shardNeed = chosen.shards > 1
+  const shards = chosen.shards
   /* WHICH DIVISION PRODUCED THE SHARD COUNT. The page prints the count and the
      arithmetic behind it side by side, so this has to name the reason that
-     actually won `Math.max` — not a plausible-sounding one. Memory is now a
-     third reason (scattered inserts have to keep a node's slice inside its
-     RAM), and it usually dominates by an order of magnitude: a node holds
-     ~70x more disk than memory. Reporting that count as "storage" would print
-     "1,342 shards" beside a division that yields 19. */
+     actually won `Math.max` — not a plausible-sounding one. Memory is the
+     third reason, and it is per store: only a B-tree taking scattered inserts
+     (or the in-memory store, by definition) has to keep a node's slice inside
+     its RAM — and when it does, it dominates by an order of magnitude, since a
+     node holds ~70x more disk than memory. Reporting that count as "storage"
+     would print "1,342 shards" beside a division that yields 19. */
   const shardBy: 'writes' | 'storage' | 'memory' | 'both' =
-    m.ramShardsNeeded >= Math.max(m.storageShards, m.writeShardsNeeded) && m.ramShardsNeeded > 1
+    chosen.ramShards >= Math.max(m.storageShards, m.writeShardsNeeded) && chosen.ramShards > 1
       ? 'memory'
       : writeUtilAfter > 1 && m.storageShards > 1
         ? 'both'
