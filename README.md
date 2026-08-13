@@ -4,10 +4,6 @@
 
 **[Read them →](https://systemscomic.com)**
 
-Not blog posts and not a chatbot — finished books with working parts. A comic about distributed
-systems, a story book about the papers behind it, and a calculator they share. Every idea is
-drawn, then given a control you can drag until the idea breaks.
-
 ![systems comic](public/og/home.png)
 
 ## What's on the shelf
