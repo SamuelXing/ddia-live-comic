@@ -1026,8 +1026,8 @@ export default function Calculator() {
               info={KEY_SHAPE.find((o) => o.id === keyShape)!.info}
               hint={
                 m.ramHosts <= 1
-                  ? `Not live yet — ${fmt.bytes(m.dbStorage)} of rows still fits one node's ${v.ram} GB of RAM, so the leaf page is in the buffer pool whichever you pick, and this choice moves nothing below.`
-                  : `Live — ${fmt.bytes(m.dbStorage)} of rows against ${v.ram} GB per node. Ids that land anywhere need ${fmt.compact(m.ramHosts)} shards to stay in the buffer pool; ids that sort last need none.`
+                  ? `Only decides anything once one node holds more rows than it has RAM — and it does not yet: ${fmt.bytes(m.dbStorage)} of rows still fits ${v.ram} GB, so the leaf page a B-tree writes is in the buffer pool whichever id format you pick.`
+                  : `Past that line: ${fmt.bytes(m.dbStorage)} of rows against ${v.ram} GB per node, so an unpredictable insert point means a disk seek every time. Ids that land anywhere need ${fmt.compact(m.ramHosts)} shards to stay in the buffer pool; ids that sort last need none.`
               }
             >
               <Picker options={KEY_SHAPE} value={keyShape} onPick={pickReq(setKeyShape)} />
