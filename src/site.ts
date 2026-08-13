@@ -1,7 +1,7 @@
 /** One place for the handful of facts about this site that live outside the
  *  code: where the source is, and where it is published. The nav, the footer,
  *  and the social-card metadata all read from here so they cannot disagree. */
-export const REPO_URL = 'https://github.com/SamuelXing/ddia-live-comic'
+export const REPO_URL = 'https://github.com/SamuelXing/systems-comic'
 
 /** The canonical origin, used for absolute og:image / og:url.
  *

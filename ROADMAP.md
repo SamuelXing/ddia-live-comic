@@ -512,7 +512,8 @@ Spark · inference engines (vLLM) · "Inside a web server" (concurrency models +
   catch-all rewriting to a path the catch-all also matches an infinite loop. Shipped
   alongside it: route-level code splitting, a 1200×630 OG card, `_headers` (immutable
   assets, revalidated index), README + MIT licence, and the repo renamed to
-  `ddia-live-comic`.
+  `ddia-live-comic` — since renamed again to `systems-comic`, once it stopped being
+  one book.
   Two lessons worth keeping. `wrangler deploy --dry-run` does **not** exercise
   server-side validation, so a config can pass locally and fail on deploy. And route
   splitting is a cascade hazard: lazy chunks changed stylesheet *order*, which flipped

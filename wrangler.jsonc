@@ -17,6 +17,11 @@
   // the deployment explicitly rather than to chase a major Vite upgrade for
   // a feature we would not use.
   "$schema": "node_modules/wrangler/config-schema.json",
+  /* The WORKER's name, and deliberately not the repo's. The repo was renamed
+     to `systems-comic` when the site became a shelf; this stayed, because the
+     name identifies the deployed Worker that the custom domain is attached to.
+     Changing it does not rename anything — it deploys a second, empty Worker
+     and leaves systemscomic.com pointing at the old one. */
   "name": "ddia-live-comic",
   "compatibility_date": "2026-08-09",
   "assets": {
