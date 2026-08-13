@@ -744,11 +744,39 @@ export function model(v: Vals, req: Req) {
      which happens whenever reads dominate and they read alike — the one with
      more headroom on the OTHER axis wins. Falling back to list order there
      would report the order I happened to type the stores in as a finding. */
-  const engineWin = alive.reduce((best, c) => {
+  /* NOTHING BINDS → TAKE THE SIMPLEST MACHINE.
+     Headroom is an honest tie-break when the load is real. It is not one when
+     every survivor sits at a fraction of a percent of its wall and the data
+     fits on one node: then the arithmetic has separated nothing, and picking
+     the store with more theoretical room left is picking on a difference the
+     reader will never spend. Answering "a leaderless ring" to a chat app with
+     ten thousand users is not a trade-off, it is a wrong answer with a
+     confident percentage beside it — which is exactly what this page did until
+     someone dragged the slider to the bottom.
+
+     Gated on BOTH conditions, because either alone is misleading. Load with no
+     pressure but a thousand shards is not simple — at that point who runs the
+     split is the entire question, and that is the ring's argument, not an
+     objection to it (Discord's move happens on the far side of this line).
+     Pressure with no shards still has to be decided on throughput.
+
+     The shard threshold is the one the page already uses to say a choice "is
+     decided operationally instead"; the utilisation floor sits below the 30%
+     that forces a cache, so anything this page would already call quiet. */
+  const nothingBinds = Math.max(...alive.map((c) => c.worst)) < 0.25 && shardsNeeded <= 8
+  const onThroughput = alive.reduce((best, c) => {
     if (c.worst < best.worst * 0.95) return c
     if (best.worst < c.worst * 0.95) return best
     return c.next < best.next ? c : best
-  }, alive[0]).id
+  }, alive[0])
+  /* Applied only INSIDE the tie band, and that limit is load-bearing: a first
+     attempt overrode every store and took in-memory's wins away from it. A
+     rebuildable dataset small enough to hold in RAM is the one case where the
+     specialist genuinely beats the general answer on the arithmetic, not on a
+     tie — so a store that wins outright keeps its win, and only a photo-finish
+     gets decided on which machine you would rather operate at 3am. */
+  const band = alive.filter((c) => c.worst <= onThroughput.worst * 1.05 + 1e-9)
+  const engineWin = nothingBinds && band.length > 1 ? band[0].id : onThroughput.id
   const winner = alive.find((c) => c.id === engineWin)!
   /* Stores within a few percent of the winner are not really beaten — the
      arithmetic simply does not separate them, and saying "SQL wins" because it

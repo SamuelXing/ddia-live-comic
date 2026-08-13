@@ -194,6 +194,51 @@ describe('engine: each column is judged on the load that REACHES it', () => {
   })
 })
 
+describe('when nothing binds, the simplest machine wins', () => {
+  /* REGRESSION (user-reported): the chat preset recommended a wide-column ring
+     at EVERY size on the ladder, down to 10,000 daily users — where every
+     surviving store sits at 0.04% of its binding ceiling and one machine holds
+     the whole dataset. Five stores tied, and the tie-break handed it to the
+     ring on headroom nobody was going to need.
+
+     Headroom is a real tie-break when the load is real. When no ceiling is
+     under pressure and the data fits without splitting, the arithmetic has
+     separated nothing, and answering "run a Cassandra ring" to a chat app with
+     ten thousand users is not a trade-off — it is a wrong answer with a
+     confident percentage next to it. */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const at = (dau: number) => model({ ...INIT, ...chat.sets, dau }, chat.req)
+
+  it('a chat app with 10,000 users gets one Postgres', () => {
+    const m = at(1e4)
+    // every candidate at 0.04% of its wall, and the data needs one machine
+    expect(m.shardsNeeded).toBe(1)
+    expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.05)
+    expect(m.engineWin).toBe('sql')
+  })
+
+  it('and the ring still wins where Discord actually moved', () => {
+    // 20M daily users: 1,342 shards to keep scattered inserts in the buffer
+    // pool. Nothing about that is "nothing binds" — who runs the split is the
+    // whole question, and that is the ring's argument.
+    const m = at(2e7)
+    expect(m.shardsNeeded).toBeGreaterThan(8)
+    expect(m.engineWin).toBe('wide')
+  })
+
+  it('the rule is an AND: quiet ceilings do not excuse 336 shards', () => {
+    /* 5M daily users on the chat preset. Every ceiling is quiet — 21.7% is the
+       worst any survivor sees — but scattered inserts need 336 shards to stay
+       in the buffer pool. "Simple" is not the word for 336 hand-managed
+       primaries, and at that point who runs the split is the whole question.
+       So the simplicity rule stays off and the ring keeps the win. */
+    const m = at(5e6)
+    expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.25)
+    expect(m.shardsNeeded).toBe(336)
+    expect(m.engineWin).toBe('wide')
+  })
+})
+
 describe('a full scan gets a price, not just a recommendation', () => {
   /* "Someone will also analyse this" was a bare boolean: it added the columnar
      copy to the component list and named no number, while the number that
