@@ -941,8 +941,11 @@ export default function Calculator() {
               comparisons: every option is a column, disqualified columns are greyed with the
               requirement that removed them, and each survivor is judged on <em>the load that would
               reach it in the system built around it</em> — its reads become misses if it forces a
-              cache, its writes become the sustained rate behind a forced log. If reality has
-              already chosen, <b>click that column to pin it</b>, and everything downstream follows.
+              cache, its writes become the sustained rate behind a forced log — and each carries
+              its own shard count, because a B-tree taking scattered inserts and a ring cut the
+              same rows into very different numbers of pieces. When throughput ties, that count is
+              what decides. If reality has already chosen, <b>click that column to pin it</b>, and
+              everything downstream follows.
             </li>
             <li>
               <b>Read “what the numbers force,”</b> then <b>“the load, after the additions.”</b> A
@@ -959,9 +962,8 @@ export default function Calculator() {
 
           <h4>How the ceilings are computed</h4>
           <p>
-            Nothing here is a remembered rule of thumb, and none of it is computed in the page as it
-            renders: the arithmetic is a separate, unit-tested module whose expected values were
-            worked out by hand. Each ceiling is one division:
+            The arithmetic is a separate module the page only renders — how it is tested is stated
+            in “How the answer is produced” above. Each ceiling is one division:
           </p>
           <ul className="calc-formulas">
             <li><code>durable writes/s = commits per fsync ÷ fsync latency</code> — a commit is not durable until the write reaches disk, and one fsync can cover a batch of commits.</li>
@@ -1023,7 +1025,10 @@ export default function Calculator() {
             Discord and Slack store chat messages with the same access pattern — a range of
             messages inside one channel partition — and made opposite choices: Discord moved to a
             wide-column ring, Slack sharded MySQL by channel id and serves 2.3M queries a second
-            through it. Neither is wrong, and no arithmetic on this page separates them.
+            through it. The comparison table can now print the bill each of them signed — at the
+            chat preset that is 1,342 hand-run MySQL shards against a ring of 19 nodes that
+            rebalances itself — but which bill a team is equipped to pay is exactly the thing
+            those two teams decided differently, and no division answers it. Neither is wrong.
           </p>
           <p>
             That is not a one-off. Asked why they stayed on a familiar engine rather than a
