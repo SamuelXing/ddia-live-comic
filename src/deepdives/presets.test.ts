@@ -54,6 +54,7 @@ describe('the presets tour the whole table', () => {
     check('analytics', ANALYTICS)
     check('access', ACCESS)
     check('recency', RECENCY)
+    check('keyShape', KEY_SHAPE)
     expect(missing).toEqual([])
   })
 
