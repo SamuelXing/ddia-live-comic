@@ -194,6 +194,45 @@ describe('engine: each column is judged on the load that REACHES it', () => {
   })
 })
 
+describe('“must be current” puts the cache on the write path — and pays for it', () => {
+  /* The page has always SAID this: an asynchronous copy cannot answer a read
+     that must reflect the write that just happened, so the only safe cache is
+     one every write updates or invalidates. It just never charged for it —
+     `cacheNodes` was sized from reads alone, so the sentence was true and the
+     arithmetic beside it was not. */
+
+  // 500M DAU × 20/day, 50/50 split, no fan-out: 347,222/s peak, half each way.
+  // readSide = 173,611/s (no deliveries). writeUtil = 173,611 ÷ 26,667 = 6.5,
+  // so the log is forced and the store sees 173,611 ÷ 3 = 57,870/s sustained.
+  const v = vals({ dau: 5e8, readPct: 50, fanout: 0 })
+  const stale = model(v, req({ recency: 'stale' }))
+  const current = model(v, req({ recency: 'current' }))
+
+  it('a stale-tolerant cache absorbs reads only', () => {
+    close(stale.readSide, 173611.1)
+    close(stale.dbWrites, 57870.37)
+    const c = consequences(v, req({ recency: 'stale' }), stale, false)
+    // 173,611.1 ÷ 100,000 per core = 1.736 → 2 nodes
+    close(c.cacheOps, 173611.1)
+    expect(c.cacheNodes).toBe(2)
+  })
+
+  it('a current cache absorbs reads AND writes, and that costs a node', () => {
+    const c = consequences(v, req({ recency: 'current' }), current, false)
+    expect(current.cacheOnWritePath).toBe(true)
+    // (173,611.1 + 57,870.4) ÷ 100,000 = 2.315 → 3 nodes
+    close(c.cacheOps, 231481.5)
+    expect(c.cacheNodes).toBe(3)
+  })
+
+  it('the requirement is no longer inert: it moves a number, not just a sentence', () => {
+    const a = consequences(v, req({ recency: 'stale' }), stale, false)
+    const b = consequences(v, req({ recency: 'current' }), current, false)
+    expect(b.cacheOps).toBeGreaterThan(a.cacheOps)
+    expect(b.cacheNodes).toBeGreaterThan(a.cacheNodes)
+  })
+})
+
 /* THE BUFFER-POOL CLIFF.
    A B-tree writes the row where it belongs, so it must first READ the leaf page
    that position sits on. Two things have to be true for that read to cost a

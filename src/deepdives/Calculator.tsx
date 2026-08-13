@@ -544,7 +544,9 @@ export default function Calculator() {
      changes: how close this particular workload gets to each wall. Without it
      the section looked frozen, and a reader switching presets reasonably
      concluded the page was broken. */
-  const cacheUse = m.readSide / m.cacheCeiling
+  /* the tier is sized from cacheOps, so the utilisation printed beside it has
+     to come from cacheOps too — reads plus writes when reads must be current */
+  const cacheUse = c.cacheOps / m.cacheCeiling
   const ceilings: { id: Ceil; k: string; v: string; use: string; how: string }[] = [
     { id: 'writes', k: 'Durable writes', v: `${fmt.compact(m.writeCeiling)}/s`,
       use: `${fmt.compact(m.peakWrites)}/s at peak · ${pc(m.writeUtil)}`,
@@ -559,7 +561,7 @@ export default function Calculator() {
       use: effE.id === 'mem' ? 'nothing reaches disk — it is all RAM' : `${fmt.bytes(effCol.bw)}/s · ${pc(effCol.bwU)}`,
       how: 'sequential bandwidth, before any fsync' },
     { id: 'cache', k: 'Cache ops', v: `${fmt.compact(m.cacheCeiling)}/s`,
-      use: `${fmt.compact(m.readSide)}/s · ${pc(cacheUse)} → ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
+      use: `${fmt.compact(c.cacheOps)}/s${m.cacheOnWritePath ? ' (reads + writes)' : ''} · ${pc(cacheUse)} → ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
       how: `1 ÷ ${v.cacheOp} µs per op` },
     { id: 'data', k: 'Data it should hold', v: `${v.diskPerNode} TB`,
       use: `${fmt.bytes(m.dbStorage)} of rows · ${m.storageShards} shard${m.storageShards === 1 ? '' : 's'}`,
@@ -666,7 +668,9 @@ export default function Calculator() {
       key: 'cacheNodes',
       need: c.needs.cacheNodes,
       what: 'More than one cache node',
-      number: `${fmt.compact(m.readSide)}/s delivery side ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
+      number: m.cacheOnWritePath
+        ? `(${fmt.compact(m.readSide)}/s of reads + ${fmt.compact(m.dbWrites)}/s of writes) ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'} — the writes are in there because reads must be current, so every write has to update or invalidate the cache in the same breath`
+        : `${fmt.compact(m.readSide)}/s delivery side ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
       trigger: `fires above ${fmt.compact(m.cacheCeiling)}/s of delivery-side work — you are at ${fmt.compact(m.readSide)}/s`,
       because: 'a cache server is effectively single-threaded per shard, so past one core’s worth of operations you are partitioning, not scaling up',
       to: [

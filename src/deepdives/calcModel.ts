@@ -798,7 +798,16 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   const diskWriteBytes = m.peakWrites * m.bytesW * v.writeAmp
   const webInstances = Math.max(1, Math.ceil((m.peakQps * (v.lat / 1000)) / v.slots))
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
-  const cacheNodes = Math.max(1, Math.ceil(m.readSide / m.cacheCeiling))
+  /* WHAT THE CACHE HAS TO ABSORB. Reads always. Writes too, whenever the reads
+     must be current: an asynchronous copy is behind by definition, so the only
+     cache that is safe to answer from is one every write updates or
+     invalidates in the same breath. That is not free — it puts the write path
+     through the cache tier, and the tier has to be sized for it.
+     This page has said that sentence in prose since it shipped while sizing the
+     tier from reads alone, so the sentence was true and the arithmetic printed
+     next to it was not. */
+  const cacheOps = m.readSide + (m.cacheOnWritePath ? m.dbWrites : 0)
+  const cacheNodes = Math.max(1, Math.ceil(cacheOps / m.cacheCeiling))
   const readUtil = v.readAmp === 0 ? 0 : (m.readSide * v.readAmp) / m.diskReadCeiling
 
   // ---------- the chain: each forced addition transforms the load downstream ----------
@@ -850,7 +859,7 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   return {
     connections, connHosts, egressGbps, diskWriteBytes, webInstances, originHosts, cacheNodes, readUtil,
     cdnNeed, originAfter, originHostsAfter, cacheNeed, missReads, readUtilAfter,
-    writeUtilAfter, writeShards, shardNeed, shards, shardBy,
+    writeUtilAfter, writeShards, shardNeed, shards, shardBy, cacheOps,
     monthsToWall, needs,
   }
 }
