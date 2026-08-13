@@ -162,6 +162,52 @@ for (const [path, entry] of Object.entries(ROUTES)) {
   if (m) ROUTES[m[1]] = entry
 }
 
+/* ---------------------------------------------------------------------------
+   Social cards.
+
+   A legacy alias points at the SAME entry object as its /ddia twin, so identity
+   already knows which paths are one page — no second list to keep in step. One
+   card per distinct object; both scripts derive the filename from here so the
+   renderer and the emitter cannot disagree about what a page's picture is.
+   --------------------------------------------------------------------------- */
+
+/** A route's card filename, without extension. `/` is `home`. */
+export function cardName(path) {
+  return path === '/' ? 'home' : path.replace(/^\//, '').replace(/\//g, '-')
+}
+
+const CARD_OF = new Map()
+{
+  const paths = new Map()
+  for (const [path, entry] of Object.entries(ROUTES)) {
+    if (!paths.has(entry)) paths.set(entry, [])
+    paths.get(entry).push(path)
+  }
+  for (const [entry, ps] of paths) {
+    // longest path wins: `/ddia/read/x` names the file, its legacy `/read/x`
+    // twin borrows it, so moving a page does not orphan its card
+    const canonical = [...ps].sort((a, b) => b.length - a.length)[0]
+    for (const p of ps) CARD_OF.set(p, cardName(canonical))
+    void entry
+  }
+}
+
+/** The card a route shares, by entry identity. */
+export function cardFor(path) {
+  return CARD_OF.get(path)
+}
+
+/** Every distinct card, as [name, entry, canonicalPath]. */
+export function cards() {
+  const seen = new Map()
+  for (const [path, entry] of Object.entries(ROUTES)) {
+    const name = CARD_OF.get(path)
+    if (!seen.has(name)) seen.set(name, { name, entry, path })
+    else if (path.length > seen.get(name).path.length) seen.set(name, { name, entry, path })
+  }
+  return [...seen.values()]
+}
+
 /** Full document title for a route entry. */
 export function fullTitle(entry) {
   return entry?.title ? `${entry.title} · ${SITE_TITLE}` : `${SITE_TITLE} — books with working parts`

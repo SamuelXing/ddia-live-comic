@@ -10,3 +10,7 @@ export declare const SITE_TITLE: string
 export declare const SITE_DESC: string
 export declare const ROUTES: Record<string, RouteMeta>
 export declare function fullTitle(entry?: RouteMeta): string
+
+export function cardName(path: string): string
+export function cardFor(path: string): string | undefined
+export function cards(): { name: string; entry: RouteMeta; path: string }[]

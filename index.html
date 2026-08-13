@@ -13,7 +13,11 @@
       gets read at all.
 
       og:image MUST be absolute: every scraper rejects a relative path, and it
-      fails silently, so the card just quietly appears without a picture. The
+      fails silently, so the card just quietly appears without a picture.
+
+      Per-page cards live in public/og/, rendered by `npm run og` from the same
+      route table as the words. The one below is the fallback an unknown URL
+      gets; the emitter replaces it per route. The
       origin below is duplicated in src/site.ts (SITE_URL) because a static
       index.html cannot import from the app — change both together when the
       first deploy assigns a hostname or a custom domain is attached.
@@ -30,14 +34,14 @@
     <meta property="og:url" content="https://systemscomic.com/" />
     <meta property="og:title" content="systems comic — books with working parts" />
     <meta property="og:description" content="Live technical books — a comic about distributed systems, a story book about the papers behind it, more on the way. Read the idea, then push on it until it breaks." />
-    <meta property="og:image" content="https://systemscomic.com/og.png" />
+    <meta property="og:image" content="https://systemscomic.com/og/home.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="systems comic — live technical books you can push on until they break." />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="systems comic — books with working parts" />
     <meta name="twitter:description" content="Live technical books — a comic about distributed systems, a story book about the papers behind it, more on the way. Read the idea, then push on it until it breaks." />
-    <meta name="twitter:image" content="https://systemscomic.com/og.png" />
+    <meta name="twitter:image" content="https://systemscomic.com/og/home.png" />
     <meta name="theme-color" content="#f7f4ef" />
   </head>
   <body>

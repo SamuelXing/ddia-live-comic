@@ -17,9 +17,9 @@
  * for the human. Unknown paths still hit `not_found_handling`, so nothing about
  * the fallback changes.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
-import { ROUTES, fullTitle, SITE_TITLE } from './routes.mjs'
+import { ROUTES, fullTitle, SITE_TITLE, cardFor } from './routes.mjs'
 
 const DIST = 'dist'
 const SITE_URL = 'https://systemscomic.com'
@@ -51,6 +51,22 @@ for (const [path, entry] of Object.entries(ROUTES)) {
   out = meta(out, 'property', 'og:url', url)
   out = meta(out, 'name', 'twitter:title', title)
   out = meta(out, 'name', 'twitter:description', entry.desc)
+
+  /* The page's own card. Every route carried its own words since the emitter
+     shipped and every one of them sat on the same picture — the DDIA book's,
+     which meant a link to the papers book unfurled as a different book. The
+     cards are rendered by `npm run og` and committed, because the deploy build
+     has no browser; this is the check that keeps the two in step. */
+  const card = cardFor(path)
+  const cardFile = join(DIST, 'og', card + '.png')
+  if (!existsSync(cardFile))
+    throw new Error(
+      `emit-routes: ${path} has no social card (${card}.png) — run \`npm run og\` and commit it`,
+    )
+  const cardUrl = `${SITE_URL}/og/${card}.png`
+  out = meta(out, 'property', 'og:image', cardUrl)
+  out = meta(out, 'name', 'twitter:image', cardUrl)
+  out = meta(out, 'property', 'og:image:alt', `${title} — ${SITE_TITLE}`)
 
   // og:type: the homepage is a site, everything else is a document
   if (path !== '/') out = out.replace(/(<meta property="og:type" content=")[^"]*(")/, `$1article$2`)
