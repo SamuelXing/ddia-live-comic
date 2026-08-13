@@ -38,6 +38,8 @@ export interface Req {
   access: string
   /** may a read be answered from a copy that has not caught up? */
   recency: string
+  /** where a new row lands in the sort order: at the end, or anywhere */
+  keyShape: string
 }
 
 const int = (n: number) => Math.round(n).toLocaleString('en-US')
@@ -148,6 +150,10 @@ export const ACCESS: Opt[] = [
   { id: 'point', label: 'Fetch one thing', info: 'Reads name what they want — a user, an order, a message by id. This is what an index is for, and it is the pattern a column-oriented store is worst at: one row lives spread across as many files as it has columns.' },
   { id: 'range', label: 'Scan a range', info: 'Reads sweep an ordered slice — a time window, a feed, everything under one partition key. Sorted layouts win here, and the sort key becomes the most consequential schema decision you will make.' },
 ]
+export const KEY_SHAPE: Opt[] = [
+  { id: 'monotonic', label: 'New rows sort last', info: 'Ids that only ever grow — a timestamp, an auto-increment, Snowflake, UUIDv7. Every insert lands at the right-hand edge of the sort order, so a B-tree touches the same leaf page over and over and that page is always in memory. This is the free version, and it is a choice you make once when you pick an id format.' },
+  { id: 'scattered', label: 'New rows land anywhere', info: 'Random UUIDs, hashes, natural keys like an email — the insert point is unpredictable. A B-tree has to fetch the leaf page it is about to write, and once the data outgrows RAM that fetch is a disk seek on every single insert. An LSM does not care: it appends to a sorted buffer and puts the row in place later, during compaction. This is the field that decides whether write-heavy means "buy a bigger box" or "change engines".' },
+]
 export const RECENCY: Opt[] = [
   { id: 'stale', label: 'Slightly stale is fine', info: 'A feed a few seconds behind, a count that lags, a profile that updates eventually. This is what makes caches and read replicas legal — you can answer from a copy that has not caught up yet, which is the cheapest scaling move in this entire tool.' },
   { id: 'current', label: 'Must be current', info: 'An account balance, remaining stock at checkout, a permission check. The read must reflect the write that just happened. Asynchronous replicas cannot serve it — they are behind by definition — and a cache is only safe if writes update or invalidate it in the same breath, which puts the cache on the write path too.' },
@@ -215,7 +221,12 @@ export interface Store {
      pass. Charging an LSM its point-lookup penalty on a range scan penalised
      Cassandra for the exact workload it is built for — which is why this tool
      used to pick single-primary SQL for a Discord-shaped chat at every scale. */
-  sets: { writeAmp: number; readAmp: { point: number; range: number } }
+  /** does one INSERT have to READ a page before it can write it? True for
+   *  every B-tree — the row goes where it belongs, so the leaf page has to be
+   *  in hand first. False for LSM-family engines, which append to a sorted
+   *  buffer in memory and place the row later, in compaction. Only costs
+   *  anything when the insert point is unpredictable AND the node is past RAM. */
+  sets: { writeAmp: number; readAmp: { point: number; range: number }; writeReadsFirst: boolean }
   perWrite: string
   scale: string
   info: string
@@ -244,7 +255,7 @@ export const STORES: Store[] = [
     id: 'sql', label: 'Single-primary SQL', short: 'Single-primary SQL',
     model: 'relational', engine: 'B-tree', dist: 'one primary + replicas', txnScope: 'anything, one transaction',
     multiKey: 'yes', durable: true, pointFast: true,
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — WAL, page, indexes',
     scale: 'You shard by hand when the time comes: choose a partition key, route to it, rebalance later — and the key is nearly impossible to change once data exists.',
     chooseFor:
@@ -258,7 +269,7 @@ export const STORES: Store[] = [
     id: 'sqlShard', label: 'Sharded SQL', short: 'Sharded SQL',
     model: 'relational', engine: 'B-tree', dist: 'sharded primaries', txnScope: 'within one shard',
     multiKey: 'shard', durable: true, pointFast: true,
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — same, per shard',
     scale: 'Already sharded — the work is routing, rebalancing, and living with a partition key you chose early. Cross-shard transactions need two-phase commit, which is slower and fails in more ways.',
     chooseFor:
@@ -284,7 +295,7 @@ export const STORES: Store[] = [
     // B-tree, and journal + document + indexes is the same three writes. Giving
     // it a cheaper constant made it beat single-primary SQL on a number I had
     // invented, when the real reason to choose it is the data model.
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — journal, doc, indexes',
     scale: 'Sharding is built in; the partition key is still yours to pick and still hard to change.',
     chooseFor:
@@ -300,7 +311,7 @@ export const STORES: Store[] = [
     multiKey: 'no', durable: true, pointFast: true,
     // point: bloom-filter probes across several sorted runs. range: one sweep of
     // sorted contiguous rows inside the partition — the case it is designed for.
-    sets: { writeAmp: 1, readAmp: { point: 2, range: 1 } },
+    sets: { writeAmp: 1, readAmp: { point: 2, range: 1 }, writeReadsFirst: false },
     perWrite: '×1 — compaction repays it later',
     scale: 'The ring does it for you — add nodes and partitions move. You pay in compaction load and in giving up anything cross-partition.',
     chooseFor:
@@ -327,7 +338,7 @@ export const STORES: Store[] = [
     multiKey: 'no', durable: true, pointFast: false,
     // point: reassembling one row means touching every column file. range: it
     // reads only the columns the query names, which is the whole idea.
-    sets: { writeAmp: 1, readAmp: { point: 3, range: 1 } },
+    sets: { writeAmp: 1, readAmp: { point: 3, range: 1 }, writeReadsFirst: false },
     perWrite: '×1 — batched writes only',
     scale: 'Add shards and replicas; the real lever is that columns compress severalfold, so a scan reads far less than the logical size.',
     chooseFor:
@@ -341,7 +352,7 @@ export const STORES: Store[] = [
     id: 'mem', label: 'In-memory key-value', short: 'In-memory',
     model: 'key-value', engine: 'in-memory', dist: 'sharded, single-threaded', txnScope: 'one key',
     multiKey: 'no', durable: false, pointFast: true,
-    sets: { writeAmp: 1, readAmp: { point: 0, range: 0 } },
+    sets: { writeAmp: 1, readAmp: { point: 0, range: 0 }, writeReadsFirst: false },
     perWrite: 'none — RAM',
     scale: 'Add shards, each single-threaded — but check the data still fits in RAM, which is usually the real limit.',
     chooseFor:
@@ -381,7 +392,7 @@ export const PRESETS: Preset[] = [
   {
     id: 'app', label: 'Internal / B2B app',
     info: '50k daily users on an ordinary transactional app — the case where the answer is still one database, and the page says so.',
-    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'no', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'no', access: 'point', recency: 'current', keyShape: 'monotonic' },
     sets: { dau: 5e4, actions: 50, peak: 3, readPct: 85, fanout: 1, online: 10, writeSize: 2, readSize: 50, lat: 100, retention: 36, growth: 5, derived: 1 },
   },
   {
@@ -395,37 +406,37 @@ export const PRESETS: Preset[] = [
        reader who takes the single answer as "a feed is one database" has
        learned the opposite of the lesson. */
     info: '50M readers, a post fans out to ~100 followers — the write is cheap, the deliveries are not. The store below is where posts LIVE; the timeline every reader sees is a derived copy, which is why this preset counts 2 derived systems.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 5e7, actions: 50, peak: 3, readPct: 90, fanout: 100, online: 10, writeSize: 1, readSize: 50, lat: 100, retention: 12, growth: 10, derived: 2 },
   },
   {
     id: 'chat', label: 'Chat / messaging',
     info: 'Messages must appear the moment they are sent — held connections, small payloads, half the traffic is writes.',
-    req: { fresh: 'push', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale' },
+    req: { fresh: 'push', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 2e7, actions: 50, peak: 2, readPct: 50, fanout: 5, online: 20, writeSize: 1, readSize: 2, lat: 50, retention: 12, growth: 10, derived: 1 },
   },
   {
     id: 'ingest', label: 'Metrics / event ingest',
     info: '50M devices reporting 200 times a day, almost never read back — and analyzed in bulk later.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'yes', access: 'range', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'yes', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 5e7, actions: 200, peak: 2, readPct: 10, fanout: 0, online: 1, writeSize: 2, readSize: 10, lat: 20, retention: 6, growth: 20, derived: 2 },
   },
   {
     id: 'ledger', label: 'Payments / ledger',
     info: 'Money moves between accounts — cross-key transactions disqualify half the table before any arithmetic runs.',
-    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'yes', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'yes', access: 'point', recency: 'current', keyShape: 'monotonic' },
     sets: { dau: 1e7, actions: 5, peak: 5, readPct: 60, fanout: 1, online: 2, writeSize: 2, readSize: 5, lat: 200, retention: 60, growth: 5, derived: 2 },
   },
   {
     id: 'media', label: 'Media sharing',
     info: '5 MB uploads and 2 MB views at 100M users — the problem is bandwidth and blobs, not request rate.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 1e8, actions: 20, peak: 3, readPct: 95, fanout: 1, online: 5, writeSize: 5000, readSize: 2000, lat: 100, retention: 60, growth: 10, derived: 1 },
   },
   {
     id: 'sessions', label: 'Sessions / rate limits',
     info: 'Every request checks it, nothing is delivered, and losing a node costs a re-login — the one workload where durability stops being a filter.',
-    req: { fresh: 'pull', txn: 'single', loss: 'rebuild', analytics: 'no', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'single', loss: 'rebuild', analytics: 'no', access: 'point', recency: 'current', keyShape: 'scattered' },
     sets: { dau: 2e6, actions: 100, peak: 3, readPct: 95, fanout: 1, online: 20, writeSize: 1, readSize: 1, lat: 5, retention: 1, growth: 10, derived: 0 },
   },
 ]
@@ -465,7 +476,14 @@ export interface EngineCol {
   worst: number
   /** utilisation of the ceiling that is not binding — headroom on the other axis */
   next: number
-  worstName: 'the write stream' | 'read pressure' | 'ops on one core'
+  /** random reads this store's own INSERTS cost: a B-tree fetching the leaf
+   *  page it is about to write, once that page stopped being resident. 0 for
+   *  LSM engines at any size, and 0 for anything while the page is in RAM. */
+  poolMisses: number
+  /** the bytes ONE node holds — dbStorage split across the shards it needs.
+   *  The cliff is a per-node fact, so it has to be measured after sharding. */
+  nodeBytes: number
+  worstName: 'the write stream' | 'read pressure' | 'the buffer-pool cliff' | 'ops on one core'
   dq: string | null
   /** the arithmetic behind the disqualification, so a claim like "needs 19
    *  shards" can be traced to the division that produced 19 */
@@ -571,7 +589,18 @@ export function model(v: Vals, req: Req) {
      it: recommending "single-primary SQL" while simultaneously reporting 185
      shards is not a trade-off, it is a contradiction. */
   const writeShardsNeeded = Math.max(1, Math.ceil(dbWrites / writeCeiling))
-  const shardsNeeded = Math.max(storageShards, writeShardsNeeded)
+  /* A THIRD reason to split, and it only exists for a B-tree taking scattered
+     inserts: shard until a node's slice fits its RAM, and the leaf page you are
+     about to write is resident again. This is not a throughput fix, it is the
+     escape route from the buffer-pool cliff below — and it is a real one, taken
+     in production: Slack shards messages by channel ID across THOUSANDS of
+     MySQL shards, the same key Discord handed to a ring. That is the actual
+     Discord-vs-Slack argument, and it is about who runs the split, not about
+     which engine is faster. Charging the seek penalty while ignoring this
+     route would have told the reader sharded MySQL cannot store chat, which is
+     false and which Slack's numbers refute. */
+  const ramShardsNeeded = req.keyShape === 'scattered' ? Math.max(1, ramHosts) : 1
+  const shardsNeeded = Math.max(storageShards, writeShardsNeeded, ramShardsNeeded)
   /* How often the split has to be redone. Storage grows with the workload, so
      the shard count doubles on the same clock the data does — no invented
      constant, just the growth rate the reader set. */
@@ -605,17 +634,58 @@ export function model(v: Vals, req: Req) {
     const rawRU = readAmp === 0 ? 0 : (readSide * readAmp) / diskReadCeiling
     const colCache = readAmp !== 0 && cacheAbsorbs
     const colReads = colCache ? readSide * (1 - v.cacheHit / 100) : readSide
-    const rU = readAmp === 0 ? 0 : (colReads * readAmp) / diskReadCeiling
+    /* THE BUFFER-POOL CLIFF — the only place this model knows the difference
+       between the two engines' WRITE paths, rather than just their byte counts.
+
+       A B-tree puts a new row where it belongs, so before it can write it must
+       READ the leaf page that position sits on. That read is free while the
+       page is resident, and it is a disk seek when it is not. TWO conditions
+       have to hold for it to cost anything:
+
+         · the insert point is unpredictable (`keyShape: scattered`) — an
+           ordered id lands at the right-hand edge every time, and that one leaf
+           page is always in memory however large the table gets; and
+         · a node's slice has outgrown that node's RAM.
+
+       Both matter. Charging the penalty on size alone makes this page answer
+       "LSM" to every workload above 128 GB, which is not true and was the first
+       attempt at this.
+
+       An LSM pays it at no size: it appends to a sorted buffer in memory and
+       puts the row where it belongs later, during compaction, sequentially.
+       THIS is why write-heavy stores end up on LSMs — the amplification
+       constants (×3 vs ×1) flatter the B-tree, because they price the bytes
+       written and not the seek that has to happen first.
+
+       Measured PER NODE, after sharding, so the model states the real choice:
+       shard until a node's slice fits RAM, or run an engine whose writes read
+       nothing. Sharding rarely wins it outright — a node holds ~70x more disk
+       than memory, so a store sharded to fit its disk is still far past this
+       line. */
+    const nodeBytes = dbStorage / Math.max(1, e.dist === 'one primary + replicas' ? 1 : shardsNeeded)
+    const poolMisses =
+      e.sets.writeReadsFirst && req.keyShape === 'scattered' && nodeBytes > ramBytes ? dbWrites : 0
+    const rU = readAmp === 0 ? 0 : (colReads * readAmp + poolMisses) / diskReadCeiling
     const bw = dbWrites * dbBytesW * e.sets.writeAmp
     const bwU = e.id === 'mem' ? 0 : bw / seqWriteBps
     /** in-memory pays CPU per op instead of disk: all ops against one core */
     const worst = e.id === 'mem' ? (readSide + dbWrites) / cacheCeiling : Math.max(bwU, rU)
     /** the ceiling that is NOT binding — headroom, and the tie-break */
     const next = e.id === 'mem' ? 0 : Math.min(bwU, rU)
-    const worstName = e.id === 'mem' ? ('ops on one core' as const) : bwU >= rU ? ('the write stream' as const) : ('read pressure' as const)
+    /* Naming this wall honestly matters more than usual: "read pressure" on a
+       store whose reads are fine and whose INSERTS are doing the seeking sends
+       the reader off to add a cache, which does nothing at all for writes. */
+    const worstName =
+      e.id === 'mem'
+        ? ('ops on one core' as const)
+        : bwU >= rU
+          ? ('the write stream' as const)
+          : poolMisses > colReads * readAmp
+            ? ('the buffer-pool cliff' as const)
+            : ('read pressure' as const)
     const d = disqualify(e)
     return {
-      id: e.id, rawRU, colCache, colReads, rU, bw, bwU, worst, next, worstName,
+      id: e.id, rawRU, colCache, colReads, poolMisses, nodeBytes, rU, bw, bwU, worst, next, worstName,
       dq: d ? d.why : null, dqHow: d?.how ?? null, dqCeil: d?.ceil ?? null, store: e,
     }
   })

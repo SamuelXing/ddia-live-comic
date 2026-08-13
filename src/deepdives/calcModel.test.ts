@@ -10,7 +10,7 @@ import {
    right, the model is wrong. This tool recommends real infrastructure — a
    silently wrong number here is the most expensive kind of bug we can ship. */
 
-const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' }
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'monotonic' }
 const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
 const req = (over: Partial<Req> = {}): Req => ({ ...REQ, ...over })
 
@@ -191,6 +191,104 @@ describe('engine: each column is judged on the load that REACHES it', () => {
     // 5.5296e13 ÷ 1.37439e11 = 402.3 → 403 RAM hosts; ÷ 1e13 = 5.53 → 6 shards
     expect(m.ramHosts).toBe(403)
     expect(m.storageShards).toBe(6)
+  })
+})
+
+/* THE BUFFER-POOL CLIFF.
+   A B-tree writes the row where it belongs, so it must first READ the leaf page
+   that position sits on. Two things have to be true for that read to cost a
+   disk seek: the insert point has to be somewhere unpredictable (a random id,
+   a hash), AND a node's slice of the data has to have outgrown its RAM. Miss
+   either and the page is already in the buffer pool and the read is free —
+   which is why a B-tree feels fine for years and then does not.
+
+   Both conditions are load-bearing, and the second test below is the one that
+   keeps the model honest: without the key-shape condition every dataset larger
+   than RAM would charge the penalty, and this page would answer "LSM" to
+   everything — which it did, in a first attempt at this. */
+describe('the buffer-pool cliff: when an insert has to seek before it can write', () => {
+  /* 50M DAU × 20/day, 10% reads, no fan-out, 5 KB writes — the same workload as
+     "moderate ingest" above, which stays on sharded SQL with an ordered key. */
+  const heavy = (over: Partial<Req> = {}) =>
+    model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req({ keyShape: 'scattered', ...over }))
+
+  it('a scattered key past RAM does not change the engine — it explodes the shard count', () => {
+    const m = heavy()
+    // 9e8 writes/day × 5,120 B × 30 × 12 = 1.65888e15 B; ÷ 10 TB = 166 shards
+    // is all the DISK asks for. RAM asks for far more: ÷ 1.37439e11 = 12,069.94
+    close(m.dbStorage, 1.65888e15)
+    expect(m.storageShards).toBe(166)
+    expect(m.ramHosts).toBe(12070)
+    expect(m.shardsNeeded).toBe(12070)
+    // behind the forced log: 31,250 ÷ 3 = 10,416.7 writes/s sustained
+    close(m.dbWrites, 10416.667)
+
+    /* THE ACTUAL BILL. A B-tree can keep scattered inserts cheap — by splitting
+       until a node's slice is back inside its RAM. That is 73x more shards than
+       the disk alone needed, and it is a real operational choice, not a
+       theoretical one: it is what Slack runs. The tool's job is to print the
+       number, not to hide it inside a utilisation percentage. */
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    close(bt.nodeBytes, 1.3743828e11)
+    expect(bt.nodeBytes).toBeLessThanOrEqual(m.ramBytes)
+    expect(bt.poolMisses).toBe(0)
+    // so per node it is the same machine as before: reads 3,472.2 ÷ 80,000 = 4.34%,
+    // write stream 10,416.7 × 5,120 × 3 ÷ 3.2212e9 = 4.97%
+    close(bt.rU, 0.043403)
+    close(bt.bwU, 0.049671)
+    expect(m.engineWin).toBe('sqlShard')
+
+    /* The store that CANNOT split is the one that eats the seek. Single-primary
+       SQL is already disqualified here for needing shards at all — but the
+       column still has to report an honest number beside the disqualification,
+       and "one random read per insert" is that number. */
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    expect(one.dq).not.toBeNull()
+    close(one.poolMisses, 10416.667)
+    // (3,472.2 × 1 + 10,416.7) ÷ 80,000 = 17.36%, and the seeks outweigh the reads
+    close(one.rU, 0.173611)
+    expect(one.worstName).toBe('the buffer-pool cliff')
+
+    // the LSM is charged nothing at any size: it appends to a sorted buffer and
+    // places the row later, in compaction
+    expect(m.eCols.find((c) => c.id === 'wide')!.poolMisses).toBe(0)
+  })
+
+  it('the SAME workload with an ordered key never leaves the buffer pool', () => {
+    // Time-ordered ids (UUIDv7, Snowflake, an auto-increment) insert at the
+    // right-hand edge of the tree. That leaf page is the one page guaranteed to
+    // be resident, so the read costs nothing however large the dataset gets.
+    const m = model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req({ keyShape: 'monotonic' }))
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    expect(bt.poolMisses).toBe(0)
+    // back to reads alone: 3,472.2 ÷ 80,000 = 4.34%, under the 4.97% write stream
+    close(bt.rU, 0.043403)
+    expect(bt.worstName).toBe('the write stream')
+    expect(m.engineWin).toBe('sqlShard')
+  })
+
+  it('a scattered key under RAM is free too — this is what retention buys you', () => {
+    // 100k DAU × 20/day, 1 KB writes, 1 month kept: 1.8e6 writes/day × 1,024 B
+    // × 30 = 5.5296e10 B, inside one node's 1.37439e11 B of RAM.
+    // A workflow store that garbage-collects finished runs lives here, which is
+    // why random UUID keys cost it nothing.
+    const m = model(
+      vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 }),
+      req({ keyShape: 'scattered' }),
+    )
+    close(m.dbStorage, 5.5296e10)
+    expect(m.storageShards).toBe(1)
+    const bt = m.eCols.find((c) => c.id === 'sql')!
+    close(bt.nodeBytes, 5.5296e10)
+    expect(bt.poolMisses).toBe(0)
+    expect(m.engineWin).toBe('sql')
+  })
+
+  it('every preset states a key shape, and the ordered default keeps old answers', () => {
+    /* The dimension is new; the presets are the record of what this page used
+       to answer. Any preset that flips has to flip because someone decided its
+       ids are scattered — never because the field defaulted to something. */
+    for (const p of PRESETS) expect(p.req.keyShape, `${p.id} has no keyShape`).toBeTruthy()
   })
 })
 
@@ -473,7 +571,7 @@ describe('a column is a thing you could install', () => {
    It cannot happen today. The reason is worth writing down, because it is an
    accident rather than a design: NO filter is written to keep a store alive,
    and sharded SQL survives all of them only as a side effect of its own
-   capabilities. Six requirements, two options each, so 64 combinations —
+   capabilities. Seven requirements, two options each, so 128 combinations —
    small enough to simply try all of them rather than argue about it. */
 describe('the candidate list can never empty', () => {
   const OPTS = {
@@ -483,6 +581,7 @@ describe('the candidate list can never empty', () => {
     analytics: ['no', 'yes'],
     access: ['point', 'range'],
     recency: ['stale', 'current'],
+    keyShape: ['monotonic', 'scattered'],
   }
 
   const COMBOS: Req[] = []
@@ -492,7 +591,8 @@ describe('the candidate list can never empty', () => {
         for (const analytics of OPTS.analytics)
           for (const access of OPTS.access)
             for (const recency of OPTS.recency)
-              COMBOS.push({ fresh, txn, loss, analytics, access, recency })
+              for (const keyShape of OPTS.keyShape)
+                COMBOS.push({ fresh, txn, loss, analytics, access, recency, keyShape })
 
   /* Two of the five disqualifications are load-dependent, not requirement-
      dependent — the in-memory RAM check and the single-primary shard check —
@@ -505,7 +605,7 @@ describe('the candidate list can never empty', () => {
   ]
 
   it('every requirement combination, at every scale, leaves a store standing', () => {
-    expect(COMBOS.length).toBe(64)
+    expect(COMBOS.length).toBe(128)
     SCALES.forEach((s) =>
       COMBOS.forEach((r) => {
         const m = model(s.v, r)

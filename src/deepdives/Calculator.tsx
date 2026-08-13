@@ -14,6 +14,7 @@ import {
   ANALYTICS,
   ACCESS,
   RECENCY,
+  KEY_SHAPE,
   PROTOCOLS,
   STORES,
   PRESETS,
@@ -150,6 +151,7 @@ const REQ_PICKS = [
   { key: 'analytics', options: ANALYTICS },
   { key: 'access', options: ACCESS },
   { key: 'recency', options: RECENCY },
+  { key: 'keyShape', options: KEY_SHAPE },
 ]
 
 export default function Calculator() {
@@ -167,10 +169,11 @@ export default function Calculator() {
   const [analytics, setAnalytics] = useState(shared.picks.analytics ?? 'no')
   const [access, setAccess] = useState(shared.picks.access ?? 'point')
   const [recency, setRecency] = useState(shared.picks.recency ?? 'stale')
+  const [keyShape, setKeyShape] = useState(shared.picks.keyShape ?? 'monotonic')
   const [pinT, setPinT] = useState<string | null>(null)
   const [pinE, setPinE] = useState<string | null>(null)
   const [preset, setPreset] = useState<string | null>(null)
-  const req: Req = { fresh, txn, loss, analytics, access, recency }
+  const req: Req = { fresh, txn, loss, analytics, access, recency, keyShape }
 
   /* The address bar always describes what is on screen, so "copy the URL"
      works without a button and a shared link is never stale. replaceState, so
@@ -966,6 +969,9 @@ export default function Calculator() {
             </Ctl>
             <Ctl label="How fresh reads must be" info={RECENCY.find((o) => o.id === recency)!.info} hint={RECENCY.find((o) => o.id === recency)!.info.split('.')[0] + '.'}>
               <Picker options={RECENCY} value={recency} onPick={pickReq(setRecency)} />
+            </Ctl>
+            <Ctl label="Where a new row sorts" info={KEY_SHAPE.find((o) => o.id === keyShape)!.info} hint={KEY_SHAPE.find((o) => o.id === keyShape)!.info.split('.')[0] + '.'}>
+              <Picker options={KEY_SHAPE} value={keyShape} onPick={pickReq(setKeyShape)} />
             </Ctl>
             <Ctl label="Writes that span keys" info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
               <Picker options={TXN} value={txn} onPick={pickReq(setTxn)} />
