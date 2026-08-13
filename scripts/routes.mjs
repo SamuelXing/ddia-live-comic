@@ -31,7 +31,7 @@ export const ROUTES = {
 
   '/ddia/read': {
     title: 'Read the ideas',
-    desc: 'Eleven ideas from Designing Data-Intensive Applications, each drawn as a six-panel comic built around one misconception it exists to kill.',
+    desc: 'The arcane ideas of distributed systems, each drawn as a short comic built around one misconception it exists to kill.',
   },
   '/ddia/read/tail-latency': {
     title: 'Tail Latency',
