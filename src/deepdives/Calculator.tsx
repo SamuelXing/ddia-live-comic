@@ -960,71 +960,153 @@ export default function Calculator() {
             </li>
           </ol>
 
-          {/* The store decision as a flow chart, because the prose version of it
-              is four paragraphs and the reader has to hold all four at once to
-              see that the last question only gets asked when the first three
-              did not settle it. Drawn in ASCII rather than SVG: the page is
-              already monospace where it is being precise, and a box you can
-              select and paste into a terminal is the right register for a tool
-              whose whole claim is that you could do this on paper. */}
+          {/* THE DECISION, AS A LADDER OF GATES.
+
+              The prose version of this is four paragraphs, and a reader has to
+              hold all four at once to see the thing that matters: each gate is
+              only reached because the one above it did NOT settle the answer.
+              That ordering is the argument — by the time the split decides, the
+              arithmetic has already failed to separate anything.
+
+              Deliberately general: no preset's numbers appear here. A worked
+              example belongs beside the workload that produced it, and a
+              procedure that only makes sense with one workload's figures in it
+              is not a procedure. Built from the page's own vocabulary — inked
+              boxes, hard shadows, the two accents carrying their usual meaning
+              (terra = what falls out, denim = an answer) — rather than an ASCII
+              figure, which reads as borrowed from another book. */}
           <h4>How the store gets picked</h4>
           <p>
-            Five questions, asked in this order. Each one only gets asked because the one above it
-            did not settle the answer — which is why <b>the shard count decides so many real
-            workloads</b>: by the time you reach it, throughput has already failed to separate
-            anything.
+            Six gates, in this order. A store has to pass each one to reach the next, and{' '}
+            <b>every gate below the first is only reached because the one above it did not settle
+            the answer</b>. That is why the last two decide so many real workloads: by then the
+            throughput arithmetic has already tied.
           </p>
-          <pre className="calc-tree">
-{`  +--------------------------------+
-  |     THE PROMISES, THE LOAD     |
-  +--------------------------------+
-                  |
-                  v
-  +--------------------------------+           `}<b className="t-out">RULED OUT</b>{`
-  |  CAN THIS STORE KEEP THE       | -- NO --> and no throughput
-  |  PROMISE IT IS ASKED TO KEEP?  |           number un-rules it
-  +--------------------------------+
-                  | YES
-                  v
-  +--------------------------------+           misses, not reads.
-  |  WHAT LOAD ACTUALLY REACHES    |           sustained, not peak.
-  |  IT, IN THE SYSTEM AROUND IT?  |           pointers, not blobs.
-  +--------------------------------+
-                  |
-                  v
-  +--------------------------------+           the largest share
-  |  DIVIDE IT BY EVERY CEILING.   |           is this store's
-  |  WHICH WALL COMES FIRST?       |           first wall
-  +--------------------------------+
-                  |
-                  v
-  +--------------------------------+           `}<b className="t-win">IT WINS</b>{`
-  |  IS ONE STORE'S WALL MORE      | -- YES -> the arithmetic
-  |  THAN 5% BELOW THE REST?       |           separated them
-  +--------------------------------+
-                  | NO  <- they tie
-                  v
-  +--------------------------------+           `}<b className="t-win">ONE POSTGRES</b>{`
-  |  IS EVERY WALL UNDER 25%, AND  | -- YES -> the simplest machine
-  |  THE SIMPLEST TIE <= 8 SHARDS? |           in the tie band
-  +--------------------------------+
-                  | NO
-                  v
-  +----------------------------------------------------------+
-  |  `}<b className="t-win">FEWEST SHARDS WINS -- 19 BEATS 1,342</b>{`                    |
-  |  The question stops being which engine is faster.        |
-  |  It is now who runs the split: a ring that rebalances    |
-  |  itself, or a thousand primaries that you do.            |
-  +----------------------------------------------------------+`}
-          </pre>
-          <p>
-            The last box is the one this page argues hardest for. Two stores can bind on the same
-            wall at the same percentage and still cut the same rows into <b>19 pieces or 1,342</b> —
-            a B-tree taking random ids has to shard until each node’s slice fits its RAM, and an
-            LSM never does. Slack pays the first bill, Discord the second, for the same chat
-            workload. Nothing about that gap is visible in a utilisation percentage, which is why
-            it is the tie-break rather than a footnote.
-          </p>
+          <ol className="dtree">
+            <li className="dt-gate">
+              <span className="dt-n">01</span>
+              <div className="dt-main">
+                <h5>Can it keep the promise?</h5>
+                <p>
+                  Requirements are facts about the product, and they <em>filter</em> — a store that
+                  cannot make the promise is gone, whatever its numbers say.
+                </p>
+                <ul className="dt-crit">
+                  <li>Several keys must change together — drops every store whose atomicity stops at one key, one document or one partition.</li>
+                  <li>An acknowledged write must survive a node death — drops stores where durability is optional.</li>
+                  <li>Reads fetch one whole record — drops the column-oriented store, where one row lives spread across every column file.</li>
+                  <li>The data already needs more than one machine — drops the single primary, whatever its throughput.</li>
+                </ul>
+              </div>
+              <div className="dt-exit out">
+                <span className="dt-exit-h">Falls out here</span>
+                <b>Ruled out</b>
+                <p>and no throughput number un-rules it. A promise is not a score.</p>
+              </div>
+            </li>
+
+            <li className="dt-gate">
+              <span className="dt-n">02</span>
+              <div className="dt-main">
+                <h5>What load actually reaches it?</h5>
+                <p>
+                  Not the raw workload — the load that survives the system built around the store.
+                  Judging a store on traffic that never arrives taxes it for work it never does.
+                </p>
+                <ul className="dt-crit">
+                  <li>Reads the cache absorbs never arrive — the store sees misses.</li>
+                  <li>Peaks a log absorbs never arrive — the store sees the sustained rate.</li>
+                  <li>Blobs that moved to object storage never arrive — the store sees pointer rows.</li>
+                </ul>
+              </div>
+              <div className="dt-exit">
+                <span className="dt-exit-h">Nothing falls out</span>
+                <b>The number changes</b>
+                <p>and every survivor is now judged on the same, smaller load.</p>
+              </div>
+            </li>
+
+            <li className="dt-gate">
+              <span className="dt-n">03</span>
+              <div className="dt-main">
+                <h5>Which wall does it hit first?</h5>
+                <p>
+                  Divide that load by every ceiling one machine has. The largest share is this
+                  store’s first wall — and each store meets a different one first, because the
+                  amplification constants differ.
+                </p>
+                <ul className="dt-crit">
+                  <li><code>read pressure = reads × its read amplification ÷ the random-read ceiling</code></li>
+                  <li><code>write stream = writes × bytes × its write amplification ÷ sequential-write bandwidth</code></li>
+                  <li><code>insert seeks</code> — one random read per insert, charged only to an engine that reads a page before it can write it, and only when ids land anywhere and a node holds more rows than it has RAM.</li>
+                </ul>
+              </div>
+              <div className="dt-exit">
+                <span className="dt-exit-h">Nothing falls out</span>
+                <b>Each store gets one number</b>
+                <p>its worst share of any single ceiling.</p>
+              </div>
+            </li>
+
+            <li className="dt-gate">
+              <span className="dt-n">04</span>
+              <div className="dt-main">
+                <h5>Is one store’s wall clearly the lowest?</h5>
+                <p>
+                  Clearly means <b>more than 5% below every other survivor</b>. Anything inside that
+                  band is a tie: the arithmetic has not separated them, and calling a 2% gap a
+                  result would be dressing rounding up as a finding.
+                </p>
+              </div>
+              <div className="dt-exit win">
+                <span className="dt-exit-h">Answer</span>
+                <b>It wins</b>
+                <p>throughput separated them, and the verdict says which ceiling did it.</p>
+              </div>
+            </li>
+
+            <li className="dt-gate">
+              <span className="dt-n">05</span>
+              <div className="dt-main">
+                <h5>Then how many pieces does each one need?</h5>
+                <p>
+                  When the walls tie, what still differs is <b>how many machines the data has to be
+                  cut across</b> — and that is per store, because the reasons are not shared.
+                </p>
+                <ul className="dt-crit">
+                  <li>Every store splits for <b>data size</b> (rows ÷ disk per node) and for <b>write rate</b> (writes ÷ one primary’s ceiling).</li>
+                  <li>Only an engine that reads a page before writing it also splits to keep each node’s slice <b>inside its RAM</b> — and since a node holds far more disk than memory, that term can be tens of times larger than the other two.</li>
+                </ul>
+              </div>
+              <div className="dt-exit win">
+                <span className="dt-exit-h">Answer</span>
+                <b>Fewest pieces wins</b>
+                <p>
+                  and the question stops being which engine is faster. It is who runs the split: a
+                  ring that rebalances itself, or primaries you rebalance.
+                </p>
+              </div>
+            </li>
+
+            <li className="dt-gate dt-override">
+              <span className="dt-n">06</span>
+              <div className="dt-main">
+                <h5>Unless nothing binds at all</h5>
+                <p>
+                  If every survivor sits at a fraction of its first wall <em>and</em> the simplest
+                  store in the tie needs no real split, the arithmetic has separated nothing, and
+                  the tie-break above would be deciding on a difference nobody will ever spend.
+                  Both conditions, because either alone misleads: quiet ceilings with a thousand
+                  shards is not simple, and pressure with no shards still has to be ranked.
+                </p>
+              </div>
+              <div className="dt-exit win">
+                <span className="dt-exit-h">Answer</span>
+                <b>The simplest machine</b>
+                <p>a leaderless ring is the wrong answer to a workload one primary would swallow.</p>
+              </div>
+            </li>
+          </ol>
 
           <h4>How the ceilings are computed</h4>
           <p>
