@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
-  type Req, type Vals,
+  TUNING, THRESHOLDS, L,
+  type Req, type Vals, type Tuning,
 } from './calcModel'
 
 /* Every expected value in this file is computed BY HAND in the comment above
@@ -700,10 +701,20 @@ describe('sensitivity: which assumption is load-bearing', () => {
     const before = JSON.stringify(outcome(v, req()))
     const flips = sensitivity(v, req())
     expect(flips.length).toBeGreaterThan(0)
+    /* Two kinds of constant now get swept — the hardware sliders the reader
+       can see, and the thresholds the model used to hide. Both have to be
+       re-derivable from the flip alone, because a reported flip that does not
+       reproduce is worse than no sweep at all. */
     for (const f of flips) {
-      const h = HW.find((x) => x.id === f.id)!
-      const i = h.steps.indexOf(v[f.id])
-      const after = outcome({ ...v, [f.id]: h.steps[f.dir === 'up' ? i + 1 : i - 1] }, req())
+      const h = HW.find((x) => x.id === f.id)
+      const t = THRESHOLDS.find((x) => x.k === f.id)
+      expect(h || t, `${f.id} is reported but belongs to neither table`).toBeTruthy()
+      const after = h
+        ? outcome({ ...v, [f.id]: h.steps[h.steps.indexOf(v[f.id]) + (f.dir === 'up' ? 1 : -1)] }, req())
+        : outcome(v, req(), {
+            ...TUNING,
+            [t!.k]: t!.steps[t!.steps.indexOf(TUNING[t!.k]) + (f.dir === 'up' ? 1 : -1)],
+          })
       expect(JSON.stringify(after), `${f.label} ${f.dir}`).not.toBe(before)
     }
   })
@@ -887,5 +898,105 @@ describe('the shard bill is per store — the actual Slack-vs-Discord number', (
     const one = m.eCols.find((c) => c.id === 'sql')!
     expect(one.dq).toContain('1,342')
     expect(one.dqHow).toContain('RAM')
+  })
+})
+
+describe('the thresholds are constants too, and now they are visible ones', () => {
+  /* USER-REPORTED, and a fair hit: the decision figure prints "5%", "25%" and
+     "8 shards", and a reader asked where those came from. They came from us.
+     They sat inline in model() as bare numbers while the page ran a panel
+     arguing that a reader is entitled to see the constants that picked their
+     database — and two of the three were added the same week that panel
+     shipped. These tests hold the fix in place: every threshold is named,
+     swept, and carries a measured claim about how much it is worth. */
+
+  it('every knob in TUNING is described in THRESHOLDS — no invisible constants', () => {
+    /* The guard that matters. Adding a bare number to model() is easy; adding
+       one that never reaches the reader is the failure this whole exercise is
+       about, so the type-level key set has to match the display table. */
+    expect(THRESHOLDS.map((t) => t.k).sort()).toEqual((Object.keys(TUNING) as (keyof Tuning)[]).sort())
+    for (const t of THRESHOLDS) {
+      expect(t.steps, `${t.k} steps must contain its shipped value`).toContain(TUNING[t.k])
+      expect(t.note.length, `${t.k} needs a note worth reading`).toBeGreaterThan(80)
+      expect(t.decides.length, `${t.k} must say what it decides`).toBeGreaterThan(20)
+    }
+  })
+
+  it('the shipped defaults are exactly what the figure and the copy claim', () => {
+    // the decision tree prints these three; if one moves, the drawing lies
+    expect(TUNING.tieBand).toBe(0.05)
+    expect(TUNING.quietFloor).toBe(0.25)
+    expect(TUNING.simpleShards).toBe(8)
+  })
+
+  /* One sweep, reused by the three claims below. 7 presets x 15 DAU rungs x
+     3 activity levels x 3 retentions — wide enough that a threshold moving
+     nothing across it is a real finding rather than a lucky sample. */
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const flipsWhen = (over: Partial<Tuning>) =>
+    CASES.filter((c) => model(c.v, c.req).engineWin !== model(c.v, c.req, { ...TUNING, ...over }).engineWin).length
+
+  it('the tie band decides nothing anywhere between 0% and 10%', () => {
+    /* Structural, not lucky: the stores that tie share their amplification
+       constants exactly — sharded SQL and the document store are both ×3/×1,
+       and on a range read the ring and the columnar store are both ×1 — so
+       the gap between tied stores is either zero or large. There is nothing
+       in the 0–10% range for this number to land in. */
+    expect(CASES.length).toBe(945)
+    for (const tieBand of [0, 0.01, 0.02, 0.1]) expect(flipsWhen({ tieBand }), `tieBand ${tieBand}`).toBe(0)
+    // and it does start mattering eventually, so it is inert rather than dead
+    expect(flipsWhen({ tieBand: 0.2 })).toBeGreaterThan(0)
+  })
+
+  it('the quiet floor has been all but absorbed by the shard floor', () => {
+    // raising it, or removing it entirely, changes not one answer
+    for (const quietFloor of [0.5, 1]) expect(flipsWhen({ quietFloor }), `quietFloor ${quietFloor}`).toBe(0)
+    // lowering it does a little, which is the only reason it still exists
+    expect(flipsWhen({ quietFloor: 0.1 })).toBeGreaterThan(0)
+    expect(flipsWhen({ quietFloor: 0.1 })).toBeLessThan(CASES.length * 0.02)
+  })
+
+  it('the shard floor is the load-bearing half of that rule', () => {
+    // remove it and an eighth of the answers change — this is the number that
+    // actually says "one primary, not a ring"
+    const gone = flipsWhen({ simpleShards: Number.MAX_SAFE_INTEGER })
+    expect(gone).toBeGreaterThan(CASES.length * 0.1)
+    // and it is worth more than either of its companions by a wide margin
+    expect(gone).toBeGreaterThan(flipsWhen({ quietFloor: 0.1 }) * 5)
+  })
+
+  it('the sensitivity sweep now reports a threshold when one is load-bearing', () => {
+    /* The whole point: a reader who nudges nothing should still be told which
+       assumed number their answer is resting on. Before this, the sweep could
+       only see the hardware sliders. */
+    const swept = new Set(
+      PRESETS.flatMap((p) => sensitivity({ ...INIT, ...p.sets }, p.req)).map((f) => f.id),
+    )
+    const names = THRESHOLDS.map((t) => t.k)
+    expect(names.some((n) => swept.has(n)), 'no threshold ever surfaces — the sweep is not wired up').toBe(true)
+    // and every flip a threshold produces must be labelled an assumption
+    for (const p of PRESETS)
+      for (const f of sensitivity({ ...INIT, ...p.sets }, p.req))
+        if ((names as string[]).includes(f.id)) expect(f.src).toBe('assume')
+  })
+
+  it('default tuning reproduces the answers the presets have always given', () => {
+    // the refactor must be a refactor: passing TUNING explicitly and passing
+    // nothing at all have to be the same run
+    for (const p of PRESETS) {
+      const v = { ...INIT, ...p.sets }
+      const a = model(v, p.req)
+      const b = model(v, p.req, TUNING)
+      expect(a.engineWin, p.id).toBe(b.engineWin)
+      expect(a.eCols.map((c) => c.shards), p.id).toEqual(b.eCols.map((c) => c.shards))
+      expect(a.logNeed, p.id).toBe(b.logNeed)
+      expect(a.cacheAbsorbs, p.id).toBe(b.cacheAbsorbs)
+    }
   })
 })

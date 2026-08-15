@@ -501,6 +501,95 @@ export const ENGINE_CONSTANTS: {
   },
 ]
 
+/**
+ * THE THRESHOLDS THIS PAGE CHOSE.
+ *
+ * The constants above at least looked like constants. These did not: they sat
+ * inline in `model()` as bare numbers — `> 0.3`, `< 0.25`, `<= 8` — deciding
+ * whether you get a cache, a log, or a leaderless ring, while the page made a
+ * virtue of showing its arithmetic. Two of them were added in the same week
+ * the engine-constants panel shipped, which is the more embarrassing half.
+ *
+ * None of them are measured. They are editorial: the point at which this page
+ * is willing to say "that is close enough to call a tie", "that is quiet", or
+ * "that is more machines than anyone would call simple". So each one below
+ * carries what a 945-workload sweep says it is actually worth — because an
+ * assumed number that moves no answer and an assumed number that moves an
+ * eighth of them deserve very different amounts of the reader's suspicion.
+ */
+export interface Tuning {
+  cacheAt: number
+  logAt: number
+  blobAt: number
+  memNodes: number
+  tieBand: number
+  quietFloor: number
+  simpleShards: number
+}
+
+export const TUNING: Tuning = {
+  cacheAt: 0.3,
+  logAt: 0.5,
+  blobAt: 500,
+  memNodes: 8,
+  tieBand: 0.05,
+  quietFloor: 0.25,
+  simpleShards: 8,
+}
+
+export const THRESHOLDS: {
+  k: keyof Tuning
+  label: string
+  fmt: (n: number) => string
+  /** the rungs `sensitivity()` nudges it between */
+  steps: number[]
+  decides: string
+  note: string
+}[] = [
+  {
+    k: 'cacheAt', label: 'Read pressure that forces a cache', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.1, 0.2, 0.3, 0.5, 0.75],
+    decides: 'whether a cache appears — and therefore whether every store is judged on misses instead of reads',
+    note: 'Below it a database answers its own reads. There is no measurement behind 30%; it is the level at which one node has spent enough of its read budget that a bad minute has nowhere to go.',
+  },
+  {
+    k: 'logAt', label: 'Write pressure that forces a log', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.25, 0.4, 0.5, 0.7, 0.9],
+    decides: 'whether the store consumes the peak or the daily average',
+    note: 'Paired with a peak factor of 2 or more, because a flat workload has no spike for a log to absorb. Half a ceiling as the trigger is a judgement about how much headroom a primary should keep, not a fact about disks.',
+  },
+  {
+    k: 'blobAt', label: 'Object size that leaves the database', fmt: (n) => n >= 1000 ? n / 1000 + ' MB' : n + ' KB',
+    steps: [100, 200, 500, 1000, 2000],
+    decides: 'whether the store holds the bytes or a pointer row',
+    note: 'Rows this large stop behaving like rows: they blow out the page cache and make every backup a bandwidth problem. Where exactly that starts is a matter of taste, and 500 KB is ours.',
+  },
+  {
+    k: 'memNodes', label: 'Nodes of pure RAM before in-memory is off the table', fmt: (n) => String(n),
+    steps: [2, 4, 8, 16, 32],
+    decides: 'whether the in-memory store stays a candidate',
+    note: 'Not a hard limit — Facebook ran far more — but past a handful of machines holding nothing but RAM, the interesting question has stopped being throughput and become what happens when one of them restarts.',
+  },
+  {
+    k: 'tieBand', label: 'How close counts as a tie', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.02, 0.05, 0.1, 0.2, 0.5],
+    decides: 'which stores reach the split tie-break instead of losing on throughput',
+    note: 'INERT, and the sweep is emphatic about it: every value from 0% to 10% gives the identical answer on all 945 workloads. It only starts moving answers past 20%. The reason is structural — stores that tie share their amplification constants exactly, so the gap between them is either zero or large, with nothing in between for this number to land in.',
+  },
+  {
+    k: 'quietFloor', label: 'Utilisation below which nothing is straining', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.05, 0.1, 0.25, 0.5, 1],
+    decides: 'when the page is allowed to ignore the ranking and hand you the simplest machine',
+    note: 'NEARLY REDUNDANT. Raising it to 50%, or removing it altogether, changes not one answer in 945 — the shard floor below has quietly absorbed its job. Lowering it does a little: 10% changes 9 answers. A candidate for deletion rather than tuning.',
+  },
+  {
+    k: 'simpleShards', label: 'Shards past which nothing is simple', fmt: (n) => String(n),
+    steps: [2, 4, 8, 16, 32],
+    decides: 'the same rule, and it is this half that actually decides it',
+    note: 'THE LOAD-BEARING ONE. Removing it changes 126 of 945 answers; halving it to 4 changes 17, doubling it to 16 changes 16. When this page recommends one primary instead of a ring, this number — not the two above — is what said so. It is also pure judgement: eight hand-managed shards is where we stopped being willing to call an architecture simple.',
+  },
+]
+
 /** the visible constants a store implies, resolved for this access pattern */
 export function storeConstants(st: Store, access: string) {
   return { writeAmp: st.sets.writeAmp, readAmp: access === 'range' ? st.sets.readAmp.range : st.sets.readAmp.point }
@@ -553,7 +642,7 @@ export interface EngineCol {
 /** which row of "what one machine can do" a utilisation was measured against */
 export type Ceil = 'writes' | 'reads' | 'stream' | 'cache' | 'data' | 'egress' | 'conns' | 'scan'
 
-export function model(v: Vals, req: Req) {
+export function model(v: Vals, req: Req, tune: Tuning = TUNING) {
   // ---------- workload ----------
   const actionsPerDay = v.dau * v.actions
   const avgQps = actionsPerDay / 86400
@@ -582,7 +671,7 @@ export function model(v: Vals, req: Req) {
   const ramBytes = v.ram * 2 ** 30
 
   /** blobs leave the database: what the engine stores and scans is a pointer row */
-  const blobNeed = v.writeSize >= 500
+  const blobNeed = v.writeSize >= tune.blobAt
   const dbBytesW = blobNeed ? POINTER_BYTES : bytesW
   /** the bytes that actually live in the database — rows, not blobs */
   const dbStorage = blobNeed ? writesPerDay * dbBytesW * 30 * v.retention : storageTotal
@@ -615,7 +704,7 @@ export function model(v: Vals, req: Req) {
       return { why: 'this data must survive a node death, and durability is off by default' }
     if (req.access === 'point' && !st.pointFast)
       return { why: 'reads fetch one record, and a row here is spread across every column file' }
-    if (st.id === 'mem' && ramHosts > 8)
+    if (st.id === 'mem' && ramHosts > tune.memNodes)
       return {
         why: `the dataset is ${int(ramHosts)} nodes of pure RAM`,
         how: `${bytes(dbStorage)} of rows ÷ ${v.ram} GB per node`,
@@ -643,7 +732,7 @@ export function model(v: Vals, req: Req) {
   }
   /** the log is store-independent: if peaks force one, every store consumes sustained */
   const writeUtil = peakWrites / writeCeiling
-  const logNeed = writeUtil > 0.5 && v.peak >= 2
+  const logNeed = writeUtil > tune.logAt && v.peak >= 2
   /** behind a log the database consumes at the daily average, not the worst minute */
   const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
   /* Two independent reasons to split, and the larger wins. This lives in the
@@ -689,7 +778,7 @@ export function model(v: Vals, req: Req) {
      pays its own amplification, but on the same surviving reads as everyone
      else. What each store then forces on its own is a RECOMMENDATION, computed
      downstream in consequences() from the store you actually chose. */
-  const cacheAbsorbs = readSide / diskReadCeiling > 0.3
+  const cacheAbsorbs = readSide / diskReadCeiling > tune.cacheAt
   /** Each store is judged on the load that would REACH it in the system built
    *  around it: if its own read pressure forces a cache, its reads become the
    *  misses; if the peak forces a log, its writes become the sustained rate;
@@ -770,7 +859,7 @@ export function model(v: Vals, req: Req) {
      percentage). Then headroom on the other wall, then list order — STORES is
      ordered simplest-first so a full tie keeps the simpler machine. */
   const minWorst = Math.min(...alive.map((c) => c.worst))
-  const band = alive.filter((c) => c.worst <= minWorst * 1.05 + 1e-9)
+  const band = alive.filter((c) => c.worst <= minWorst * (1 + tune.tieBand) + 1e-9)
   const onThroughput = band.reduce(
     (best, c) => (c.shards < best.shards ? c : c.shards === best.shards && c.next < best.next ? c : best),
     band[0],
@@ -795,7 +884,8 @@ export function model(v: Vals, req: Req) {
      rebuildable dataset small enough to hold in RAM is the one case where the
      specialist genuinely beats the general answer on the arithmetic, not on a
      tie. */
-  const nothingBinds = Math.max(...alive.map((c) => c.worst)) < 0.25 && band[0].shards <= 8
+  const nothingBinds =
+    Math.max(...alive.map((c) => c.worst)) < tune.quietFloor && band[0].shards <= tune.simpleShards
   const engineWin = nothingBinds && band.length > 1 ? band[0].id : onThroughput.id
   const winner = alive.find((c) => c.id === engineWin)!
   /* Stores within a few percent of the winner are not really beaten — the
@@ -805,7 +895,7 @@ export function model(v: Vals, req: Req) {
      points at what actually decides: at a high shard count, who does the
      sharding costs more than per-node efficiency. */
   const engineTie = alive
-    .filter((c) => c.worst <= winner.worst * 1.05 + 1e-9)
+    .filter((c) => c.worst <= winner.worst * (1 + tune.tieBand) + 1e-9)
     .map((c) => c.id)
 
   /* AMDAHL'S LAW, applied to ceilings. Hennessy & Patterson's oldest rule is
@@ -830,7 +920,7 @@ export function model(v: Vals, req: Req) {
     writeCeiling, diskReadCeiling, cacheCeiling, seqWriteBps, seqReadBps, ramBytes, ramHosts, scanSeconds,
     heldConns, egressFor, tCols, transportWin,
     writeUtil, logNeed, dbWrites, blobNeed, dbBytesW, eCols, engineWin, engineTie, cacheOnWritePath,
-    writeShardsNeeded, monthsToDouble, amdahl, cacheAbsorbs,
+    writeShardsNeeded, monthsToDouble, amdahl, cacheAbsorbs, tune,
   }
 }
 
@@ -876,7 +966,7 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean, st
   const cdnNeed = originHosts > 1
   const originAfter = cdnNeed ? egressGbps * (1 - v.cdnHit / 100) : egressGbps
   const originHostsAfter = Math.max(1, Math.ceil(originAfter / v.nic))
-  const cacheNeed = readUtil > 0.3
+  const cacheNeed = readUtil > m.tune.cacheAt
   const missReads = cacheNeed ? m.readSide * (1 - v.cacheHit / 100) : m.readSide
   const readUtilAfter = v.readAmp === 0 ? 0 : (missReads * v.readAmp) / m.diskReadCeiling
   const writeUtilAfter = m.dbWrites / m.writeCeiling
@@ -968,8 +1058,8 @@ export const NEED_LABEL: Record<keyof Consequences['needs'], string> = {
 /** run the whole page for one set of constants, resolved self-consistently:
  *  the store the arithmetic picks writes its own amplification back in before
  *  the consequences are computed, exactly as the UI does. */
-export function outcome(v: Vals, req: Req): Outcome {
-  const m = model(v, req)
+export function outcome(v: Vals, req: Req, tune: Tuning = TUNING): Outcome {
+  const m = model(v, req, tune)
   const win = STORES.find((s) => s.id === m.engineWin)!
   const t = PROTOCOLS.find((p) => p.id === m.transportWin)!
   const c = consequences({ ...v, ...t.sets, ...storeConstants(win, req.access) }, req, m, t.holds)
@@ -1075,6 +1165,25 @@ export function sensitivity(v: Vals, req: Req): Flip[] {
       const changes = diffOutcome(base, outcome({ ...v, [h.id]: h.steps[j] }, req))
       if (changes.length)
         flips.push({ id: h.id, label: h.label, src: h.src, from: h.fmt(v[h.id]), to: h.fmt(h.steps[j]), dir, changes })
+    }
+  }
+  /* THE THRESHOLDS GET SWEPT TOO. They were exempt for no better reason than
+     that they lived as bare numbers inside the function rather than as sliders
+     beside it — which is the worst possible reason, because it is precisely
+     the constants nobody can see that nobody challenges. A page that reports
+     "the answer rests on this assumption" while three assumptions sit outside
+     the report is reporting on the wrong set. */
+  for (const t of THRESHOLDS) {
+    const i = t.steps.indexOf(TUNING[t.k])
+    if (i < 0) continue
+    for (const [j, dir] of [[i - 1, 'down'], [i + 1, 'up']] as const) {
+      if (j < 0 || j >= t.steps.length) continue
+      const changes = diffOutcome(base, outcome(v, req, { ...TUNING, [t.k]: t.steps[j] }))
+      if (changes.length)
+        flips.push({
+          id: t.k, label: t.label, src: 'assume',
+          from: t.fmt(TUNING[t.k]), to: t.fmt(t.steps[j]), dir, changes,
+        })
     }
   }
   /* Assumptions first: a measured constant being load-bearing is a fact about

@@ -23,6 +23,8 @@ import {
   storeConstants,
   inertRequirements,
   ENGINE_CONSTANTS,
+  THRESHOLDS,
+  TUNING,
   model,
   consequences,
   sensitivity,
@@ -1276,6 +1278,35 @@ export default function Calculator() {
                     <div className="ctl-hint">{c.note}</div>
                   </div>
                 ))}
+                {/* The thresholds live in the SAME panel as the engine constants,
+                    because they are the same species and separating them would
+                    imply otherwise: numbers this page chose, that pick your
+                    architecture, that nobody measured. They were the harder ones
+                    to admit to — the engine constants at least sat in a table,
+                    while these were bare comparisons inside a function. */}
+                <div className="thresh">
+                  <span className="thresh-h">And seven thresholds, which are judgements</span>
+                  <p className="hw-note">
+                    A ceiling is a fact about a machine. A <em>threshold</em> is us deciding when a
+                    number has got big enough to mean something — when reads are heavy enough to
+                    deserve a cache, when two stores are close enough to call a tie, when a shard
+                    count stops being simple. Each one below says what it decides and{' '}
+                    <b>what a 945-workload sweep says it is actually worth</b>, because an assumed
+                    number that moves no answer and one that moves an eighth of them deserve very
+                    different amounts of your suspicion. All seven are swept in “which assumption is
+                    load-bearing” below.
+                  </p>
+                  {THRESHOLDS.map((t) => (
+                    <div className="thresh-row" key={t.k}>
+                      <div className="thresh-top">
+                        <span className="thresh-k">{t.label}</span>
+                        <span className="thresh-v">{t.fmt(TUNING[t.k])}</span>
+                      </div>
+                      <div className="thresh-d">decides {t.decides}</div>
+                      <div className="ctl-hint">{t.note}</div>
+                    </div>
+                  ))}
+                </div>
                 <p className="hw-note">
                   One of these carries far more weight than the rest. Sweeping 1,008 workloads and
                   flipping one input at a time, the <b>read shape</b> changes the recommended engine
