@@ -267,13 +267,16 @@
    from being squeezed illegible: below ~660px it scrolls inside its own box
    rather than shrinking 13px display type into nothing. */
 .dd-page[class] .dt-fig {
-  margin: 14px 0 10px; padding: 14px 14px 10px; background: var(--panel-2);
+  margin: 13px 0 10px; padding: 12px 12px 9px; background: var(--panel-2);
   border: 2px solid #1a1a1a; box-shadow: 3px 3px 0 #1a1a1a; overflow-x: auto;
 }
-.dd-page[class] .dt-fig > svg { display: block; min-width: 620px; }
+/* width 100% would render the 672-unit viewBox at 1044px inside this column
+   — a 1.55x blow-up that turned a reference figure into a poster. Capped
+   near natural size and centred; the min-width is the scroll floor. */
+.dd-page[class] .dt-fig > svg { display: block; min-width: 600px; max-width: 720px; margin: 0 auto; }
 .dd-page[class] .dt-fig figcaption {
   font-family: var(--gnf-mono); font-size: 10px; line-height: 1.7; color: var(--muted);
-  margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); min-width: 620px;
+  margin-top: 9px; padding-top: 8px; border-top: 1px dashed var(--line); min-width: 600px;
 }
 /* the legend keys read as the thing they name, so the caption does not have to
    say "the terracotta one" in words */

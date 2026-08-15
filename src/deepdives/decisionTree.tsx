@@ -52,13 +52,13 @@ function N({
       {c.shadow && <rect x={x + 3} y={y + 3} width={w} height={h} fill={INK} />}
       <rect x={x} y={y} width={w} height={h} fill={c.f} stroke={c.s} strokeWidth={c.w} />
       <text
-        x={cx} y={sub ? y + h / 2 - 3 : y + h / 2 + 4} textAnchor="middle"
-        fontFamily={DISPLAY} fontSize={13} fill={c.t}
+        x={cx} y={sub ? y + h / 2 - 2 : y + h / 2 + 4} textAnchor="middle"
+        fontFamily={DISPLAY} fontSize={12.5} fill={c.t}
       >
         {label}
       </text>
       {sub && (
-        <text x={cx} y={y + h / 2 + 13} textAnchor="middle" fontFamily={MONO} fontSize={8.5} fill={MUTED}>
+        <text x={cx} y={y + h / 2 + 11} textAnchor="middle" fontFamily={MONO} fontSize={8.5} fill={MUTED}>
           {sub}
         </text>
       )}
@@ -98,48 +98,48 @@ function E({
 
 export function StoreDecisionTree(): ReactElement {
   return (
-    <svg viewBox="0 0 672 512" width="100%" role="img" aria-label="How the calculator picks a store, as a decision tree">
+    <svg viewBox="0 0 672 424" width="100%" role="img" aria-label="How the calculator picks a store, as a decision tree">
       <title>How the store gets picked</title>
 
-      <N x={186} y={6} w={300} h={28} tone="flow" label="Every store on the table" />
-      <E x1={336} y1={34} x2={336} y2={62} />
+      <N x={186} y={4} w={300} h={24} tone="flow" label="Every store on the table" />
+      <E x1={336} y1={28} x2={336} y2={54} />
 
       {/* 1 — the promise filter. The only gate a requirement can shut. */}
-      <N x={186} y={62} w={300} h={44} tone="ask"
+      <N x={186} y={54} w={300} h={38} tone="ask"
          label="Can it keep the promise?"
          sub="atomicity · durability · read shape · fits one machine" />
-      <N x={6} y={64} w={150} h={40} tone="out" label="Ruled out" sub="no number un-rules it" />
-      <E x1={186} y1={84} x2={156} y2={84} label="NO" />
-      <E x1={336} y1={106} x2={336} y2={140} label="YES" at="right" />
+      <N x={6} y={55} w={150} h={36} tone="out" label="Ruled out" sub="no number un-rules it" />
+      <E x1={186} y1={73} x2={156} y2={73} label="NO" />
+      <E x1={336} y1={92} x2={336} y2={118} label="YES" at="right" />
 
       {/* 2, 3 — nothing leaves; the number everyone is judged on changes. */}
-      <N x={186} y={140} w={300} h={44} tone="flow"
+      <N x={186} y={118} w={300} h={38} tone="flow"
          label="What load actually reaches it"
          sub="misses, not reads · sustained, not peak · pointer rows" />
-      <E x1={336} y1={184} x2={336} y2={218} />
+      <E x1={336} y1={156} x2={336} y2={182} />
 
-      <N x={186} y={218} w={300} h={44} tone="flow"
+      <N x={186} y={182} w={300} h={38} tone="flow"
          label="Which wall does it hit first"
          sub="read pressure · write stream · insert seeks" />
-      <E x1={336} y1={262} x2={336} y2={296} />
+      <E x1={336} y1={220} x2={336} y2={246} />
 
       {/* 4 — the only place throughput is allowed to decide. */}
-      <N x={186} y={296} w={300} h={44} tone="ask"
+      <N x={186} y={246} w={300} h={38} tone="ask"
          label="Is one wall clearly the lowest?"
          sub="more than 5% below every other survivor" />
-      <N x={516} y={298} w={150} h={40} tone="win" label="It wins" sub="throughput decided it" />
-      <E x1={486} y1={318} x2={516} y2={318} label="YES" />
-      <E x1={336} y1={340} x2={336} y2={376} label="NO — a tie" at="right" />
+      <N x={516} y={247} w={150} h={36} tone="win" label="It wins" sub="throughput decided it" />
+      <E x1={486} y1={265} x2={516} y2={265} label="YES" />
+      <E x1={336} y1={284} x2={336} y2={310} label="NO — a tie" at="right" />
 
       {/* 5 — and when it has not decided, this is what is left. */}
-      <N x={186} y={376} w={300} h={44} tone="ask"
+      <N x={186} y={310} w={300} h={38} tone="ask"
          label="Is anything actually straining?"
          sub="a wall past 25%, or the simplest tie past 8 shards" />
-      <N x={6} y={378} w={150} h={40} tone="win" label="The simplest machine" sub="one primary, not a ring" />
-      <E x1={186} y1={398} x2={156} y2={398} label="NO" />
-      <E x1={336} y1={420} x2={336} y2={456} label="YES" at="right" />
+      <N x={6} y={311} w={150} h={36} tone="win" label="The simplest machine" sub="one primary, not a ring" />
+      <E x1={186} y1={329} x2={156} y2={329} label="NO" />
+      <E x1={336} y1={348} x2={336} y2={374} label="YES" at="right" />
 
-      <N x={186} y={456} w={300} h={44} tone="win"
+      <N x={186} y={374} w={300} h={38} tone="win"
          label="Fewest pieces wins"
          sub="who runs the split, not which engine is faster" />
     </svg>
