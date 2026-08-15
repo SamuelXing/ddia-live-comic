@@ -262,6 +262,19 @@
 .dd-page[class] .calc-formulas code {
   font-family: var(--gnf-mono); font-size: 11.5px; background: var(--panel-2); padding: 1px 5px;
 }
+/* the four operations. Numbered by the ol, but each carries a mono kicker
+   naming the verb, because "sort" is the word that makes the fourth one
+   click and it should be readable without the sentence around it. */
+.dd-page[class] ol.calc-ops { list-style: none; padding: 0; margin: 10px 0 12px; counter-reset: op; }
+.dd-page[class] ol.calc-ops li {
+  counter-increment: op; position: relative; padding: 2px 0 2px 14px; margin: 0 0 11px;
+  border-left: 2px solid var(--line); font-size: 13.5px; line-height: 1.55; color: var(--ink-2);
+}
+.dd-page[class] ol.calc-ops .op-k {
+  display: block; font-family: var(--gnf-mono); font-size: 10.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--ink); margin-bottom: 2px;
+}
+.dd-page[class] ol.calc-ops .op-k::before { content: counter(op) ' · '; color: var(--muted); }
 /* THE DECISION TREE figure. The SVG carries its own ink borders and hard
    shadows, so the frame here only has to give it paper to sit on and keep it
    from being squeezed illegible: below ~660px it scrolls inside its own box

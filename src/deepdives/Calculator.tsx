@@ -929,62 +929,60 @@ export default function Calculator() {
           <span className="chev">▸</span> How to use this, and how it works
         </summary>
         <div className="calc-help-b">
-          <h4>Using it</h4>
-          <ol>
+          {/* WHAT IT DOES, BEFORE HOW TO DRIVE IT.
+
+              This section used to open with six numbered instructions, which is
+              the wrong end: a reader who does not know what the page is doing
+              cannot tell a slider that matters from one that does not, and the
+              instructions have to keep explaining the model in passing. The
+              model is four operations, and the fourth is a sort — a reader
+              worked that out from the code and said so, which is a fair sign
+              the page should have said it first. */}
+          <h4>What it does — four operations, in this order</h4>
+          <p>
+            Everything on this page is one of these four, and knowing which is which tells you what
+            a control can and cannot change. <b>Only the last one is a comparison</b>; the three
+            above it are there to make sure the comparison is between things that are actually
+            comparable.
+          </p>
+          <ol className="calc-ops">
             <li>
-              <b>Start from a typical system, or from scratch.</b> The presets are one honest hand
-              moving every visible slider and requirement at once — inspect what they set, then
-              adjust. Nothing about a preset is hidden state.
+              <span className="op-k">Filter</span>
+              <b>A promise the store cannot keep removes it.</b> Cross-key transactions, surviving a
+              node death, fetching one whole record, holding more data than one machine. These come
+              from the product, not from the technology, and no throughput number puts a store back.
             </li>
             <li>
-              <b>State the requirements</b> — must data appear on its own, do writes span keys, can
-              the data be rebuilt, will anyone run analytics across all of it. These are facts about
-              the product, not technology choices — and they act as <em>filters</em>: a requirement
-              can disqualify a column outright, and no throughput number un-disqualifies it.
+              <span className="op-k">Transform</span>
+              <b>The load each survivor sees is not the load you typed in.</b> A cache absorbs the
+              reads, a log flattens the peak, blobs move to object storage and leave a pointer row
+              behind. Judging a store on traffic that never arrives taxes it for work it never does,
+              so the transform happens first and everybody is judged on the same, smaller number.
             </li>
             <li>
-              <b>Describe the workload</b> — how many people, how often each one acts, how much
-              bigger the busiest moment is, how large one written object and one read response are.
-              Every input snaps to a round step (10k, 20k, 50k…) because at this level of modelling
-              the <em>scale</em> is the answer; “16k users” implies a precision nobody has.
+              <span className="op-k">Measure</span>
+              <b>Divide that by every ceiling one machine has.</b> The biggest share is that store’s
+              first wall — and stores meet different walls first, because their amplification
+              constants differ. One number per survivor comes out of this step, and it is the only
+              number the next step is allowed to look at.
             </li>
             <li>
-              <b>Read “the choices the numbers make.”</b> Transport and storage engine are computed
-              comparisons: every option is a column, disqualified columns are greyed with the
-              requirement that removed them, and each survivor is judged on <em>the load that would
-              reach it in the system built around it</em> — its reads become misses if it forces a
-              cache, its writes become the sustained rate behind a forced log — and each carries
-              its own shard count, because a B-tree taking scattered inserts and a ring cut the
-              same rows into very different numbers of pieces. When throughput ties, that count is
-              what decides. If reality has already chosen, <b>click that column to pin it</b>, and
-              everything downstream follows.
-            </li>
-            <li>
-              <b>Read “what the numbers force,”</b> then <b>“the load, after the additions.”</b> A
-              component appears only when a computed ceiling is crossed, and each addition
-              transforms the load downstream — which is why adding a log can make sharding
-              unnecessary.
-            </li>
-            <li>
-              <b>Open “the hardware underneath”</b> and change a constant to see how sensitive the
-              conclusion is. If a decision flips when you nudge an assumption, that decision was
-              never solid.
+              <span className="op-k">Sort</span>
+              <b>Two orders, and a rule that picks which one applies.</b> When one store’s wall sits
+              clearly below the rest, that settles it. When several tie — which happens more often
+              than the arithmetic suggests — the tie is broken on{' '}
+              <em>what each one costs to operate</em>: fewest shards first, then headroom on the
+              wall that is not binding, then simplicity. Unless nothing is straining at all, in
+              which case the ranking is skipped and the simplest machine in the tie wins outright.
             </li>
           </ol>
-
-          {/* THE DECISION, AS A TREE. The prose version is four paragraphs and
-              a reader has to hold all four at once to see the thing that
-              matters: the trunk only continues because the node above it did
-              NOT settle the answer. A picture says that in one glance, and a
-              list — which is what this was first — cannot say it at all.
-              Kept general on purpose; the worked numbers belong beside the
-              workload that produced them, which is the table above. */}
-          <h4>How the store gets picked</h4>
           <p>
-            Four questions and two transforms, on one trunk.{' '}
-            <b>Every fork below the first is only reached because the one above it did not settle
-            the answer</b> — which is why the bottom of the tree decides so many real workloads: by
-            the time you get there, throughput has already tied.
+            Those two orders are worth naming, because the whole storage argument on this page is
+            the difference between them. One is <b>which machine you would rather be woken up by</b>
+            {' '}— the columns are listed in that order, one primary first, a leaderless ring last.
+            The other is <b>what the thing costs to run</b>, and its first term is how many pieces
+            the data has to be cut into. The tree below is those four operations drawn out; every
+            fork in it belongs to step one or step four.
           </p>
           <figure className="dt-fig">
             <StoreDecisionTree />
@@ -1028,6 +1026,36 @@ export default function Calculator() {
               a utilisation percentage, which is why it is the tie-break and not a footnote.
             </li>
           </ul>
+
+          <h4>Driving it</h4>
+          <ol>
+            <li>
+              <b>Start from a typical system, or from scratch.</b> A preset is one honest hand
+              moving every visible slider and requirement at once — inspect what it set, then
+              adjust. Nothing about a preset is hidden state.
+            </li>
+            <li>
+              <b>Answer the requirements truthfully</b>, because they run step one and step one is
+              absolute. Getting “writes span keys” wrong does not make the answer slightly off; it
+              makes the page compare a set of stores you cannot use.
+            </li>
+            <li>
+              <b>Describe the workload.</b> Every input snaps to a round step — 10k, 20k, 50k —
+              because at this level of modelling the <em>scale</em> is the answer, and “16k users”
+              implies a precision nobody has.
+            </li>
+            <li>
+              <b>Read the comparison table as the output of step four.</b> Disqualified columns are
+              greyed with the requirement that removed them; each survivor carries its own first
+              wall and its own shard count. If reality has already chosen for you,{' '}
+              <b>click that column to pin it</b> and everything downstream re-derives.
+            </li>
+            <li>
+              <b>Open “the hardware underneath” and break something on purpose.</b> Move a constant
+              one rung. If a decision flips, that decision was resting on a number nobody measured,
+              and the sweep at the bottom of the page will tell you which one.
+            </li>
+          </ol>
 
           <h4>How the ceilings are computed</h4>
           <p>
