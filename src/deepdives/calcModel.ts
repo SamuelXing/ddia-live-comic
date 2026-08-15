@@ -884,22 +884,34 @@ export function model(v: Vals, req: Req, tune: Tuning = TUNING) {
     }
   })
   const alive = eCols.filter((c) => !c.dq)
-  /* Lowest binding ceiling wins. Stores within 5% of the lowest are a TIE —
-     the arithmetic has not separated them, and inside that band throughput has
-     nothing more to say. What does is the operational bill each one carries:
-     FEWEST SHARDS first, because 1,342 hand-run primaries against 19 ring
-     nodes is the real difference between two stores whose utilisations match
-     to the third decimal (it is the Slack-vs-Discord axis, and it used to be
-     invisible here — the old tie-break handed the win to whichever store had
-     more headroom on an axis sitting at 1%, which is a coin flip wearing a
-     percentage). Then headroom on the other wall, then list order — STORES is
-     ordered simplest-first so a full tie keeps the simpler machine. */
+  /* TWO FILTERS, THEN ONE OF TWO SORTS.
+     Said plainly because the code used to hide it: `band[0]` meant "the
+     simplest survivor" only if you already knew STORES was declared
+     simplest-first AND that filter preserves order, and the winner came out of
+     a reduce, which is a min-by wearing a fold's clothes. A reader asked what
+     band[0] was and then said it felt like a sort. It is; now it says so. */
+
+  /** Which machine you would rather be woken up by. STORES is declared in this
+   *  order for this reason, and it is the last tiebreak in the other sort too,
+   *  so simplicity never quite leaves the argument. */
+  const simplerToRun = (a: EngineCol, b: EngineCol) => STORES.indexOf(a.store) - STORES.indexOf(b.store)
+
+  /* What a tie actually costs to operate. FEWEST SHARDS first, because 1,342
+     hand-run primaries against 19 ring nodes is the real difference between two
+     stores whose utilisations match to the third decimal — the Slack-vs-Discord
+     axis, and it used to be invisible here: the old tiebreak handed the win to
+     whichever store had more headroom on an axis sitting at 1%, which is a coin
+     flip wearing a percentage. Then headroom on the wall that is not binding,
+     then simplicity. */
+  const cheaperToOperate = (a: EngineCol, b: EngineCol) =>
+    a.shards - b.shards || a.next - b.next || simplerToRun(a, b)
+
+  /** Stores whose first wall is within a whisker of the lowest. Inside this
+   *  band throughput has said everything it has to say. */
   const minWorst = Math.min(...alive.map((c) => c.worst))
   const band = alive.filter((c) => c.worst <= minWorst * (1 + tune.tieBand) + 1e-9)
-  const onThroughput = band.reduce(
-    (best, c) => (c.shards < best.shards ? c : c.shards === best.shards && c.next < best.next ? c : best),
-    band[0],
-  )
+  const simplest = [...band].sort(simplerToRun)[0]
+  const onThroughput = [...band].sort(cheaperToOperate)[0]
   /* NOTHING BINDS → TAKE THE SIMPLEST MACHINE.
      The shard tie-break is an honest one when the load is real. When every
      survivor sits at a fraction of a percent of its wall AND the simplest
@@ -921,8 +933,8 @@ export function model(v: Vals, req: Req, tune: Tuning = TUNING) {
      specialist genuinely beats the general answer on the arithmetic, not on a
      tie. */
   const nothingBinds =
-    Math.max(...alive.map((c) => c.worst)) < tune.quietFloor && band[0].shards <= tune.simpleShards
-  const engineWin = nothingBinds && band.length > 1 ? band[0].id : onThroughput.id
+    Math.max(...alive.map((c) => c.worst)) < tune.quietFloor && simplest.shards <= tune.simpleShards
+  const engineWin = nothingBinds && band.length > 1 ? simplest.id : onThroughput.id
   const winner = alive.find((c) => c.id === engineWin)!
   /* Stores within a few percent of the winner are not really beaten — the
      arithmetic simply does not separate them, and saying "SQL wins" because it
