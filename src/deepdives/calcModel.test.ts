@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
-  TUNING, THRESHOLDS, L,
+  TUNING, THRESHOLDS, L, storeConstants,
   type Req, type Vals, type Tuning,
 } from './calcModel'
 
@@ -1060,5 +1060,53 @@ describe('what each threshold is worth is derived from a sweep, never hand-set',
     // "relaxing this half alone changes nothing — the shard floor blocks first"
     for (const [n, c] of CASES.entries())
       expect(JSON.stringify(outcome(c.v, c.req, { ...TUNING, quietFloor: 1 }))).toBe(JSON.stringify(base[n]))
+  })
+})
+
+describe('the claims the engine-constants panel makes in prose', () => {
+  /* That panel once quoted three hand-measured percentages and one absolute:
+     "key shape changes the engine in 10.7%, and never across engine families."
+     By the time a reader challenged it every part was wrong — the buffer-pool
+     cliff and the per-store shard bill had handed key shape exactly the power
+     that sentence denied it — and nothing failed, because a measurement
+     quoted in prose is accountable to nobody.
+
+     What the panel says now is mechanism, which does not rot. These are the
+     two claims it makes, and if the model ever contradicts one, this fails
+     with the sentence that needs rewriting rather than letting the page go on
+     asserting it. */
+  const FAMILY: Record<string, string> = {
+    sql: 'relational', sqlShard: 'relational', doc: 'document',
+    wide: 'ring', col: 'columnar', mem: 'memory',
+  }
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const crossesFamilies = (axis: 'access' | 'keyShape', a: string, b: string) =>
+    CASES.some((c) => {
+      const w1 = model(c.v, c.req).engineWin
+      const w2 = model(c.v, { ...c.req, [axis]: c.req[axis] === a ? b : a }).engineWin
+      return FAMILY[w1] !== FAMILY[w2]
+    })
+
+  it('“the whole read-side difference between a B-tree and a ring” is exactly that', () => {
+    const ring = STORES.find((s) => s.id === 'wide')!
+    const btree = STORES.find((s) => s.id === 'sqlShard')!
+    // sweeping a range: indistinguishable, which is why chat ties
+    expect(storeConstants(ring, 'range').readAmp).toBe(storeConstants(btree, 'range').readAmp)
+    // fetching one record: the ring pays twice, and that gap IS the sentence
+    expect(storeConstants(ring, 'point').readAmp).toBe(2 * storeConstants(btree, 'point').readAmp)
+  })
+
+  it('both the read shape and the key shape can move the answer across engine families', () => {
+    /* The second half is the correction. Before the cliff shipped, key shape
+       could only choose between one relational primary and several; the panel
+       said so, in the word "never". It can cross now, and the page says so. */
+    expect(crossesFamilies('access', 'point', 'range'), 'read shape no longer crosses families').toBe(true)
+    expect(crossesFamilies('keyShape', 'monotonic', 'scattered'), 'key shape no longer crosses families').toBe(true)
   })
 })

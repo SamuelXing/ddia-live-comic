@@ -481,10 +481,17 @@ export default function Calculator() {
     const tieCols = m.engineTie.map((id) => m.eCols.find((x) => x.id === id)!)
     const most = tieCols.reduce((a, b) => (b.shards > a.shards ? b : a))
     const least = tieCols.reduce((a, b) => (b.shards < a.shards ? b : a))
+    /* Spell the contrast out only when the two bills are genuinely different
+       amounts of operational work — 19 ring nodes against 1,342 hand-run
+       primaries. Inside a factor of two it is the same decision twice, and the
+       sentence would be making a fuss about rounding. A display threshold, not
+       a modelling one: it changes what is said, never what is chosen, which is
+       why it lives here and not in TUNING beside the numbers that decide. */
+    const CONTRAST = 2
     so = (
       <>
         {joined} land within 5% of each other, so <b>throughput does not decide this one</b>.{' '}
-        {most.shards > 8 && most.shards >= least.shards * 2 ? (
+        {most.shards > TUNING.simpleShards && most.shards >= least.shards * CONTRAST ? (
           <>
             The split does: {shortOf(most.id)} needs{' '}
             <Num how={splitHow(most)} ceil="data" jump={jump}>{fmt.int(most.shards)} shards</Num> — its inserts read
@@ -495,7 +502,7 @@ export default function Calculator() {
             Discord runs the second (a ring of a few dozen nodes that rebalances itself). So the real question is who
             operates the split — weigh it against the atomicity scope row: what each one stops being able to promise.
           </>
-        ) : c.shards > 8 ? (
+        ) : c.shards > TUNING.simpleShards ? (
           <>
             At <Num how={shardHow(c.shardBy)} ceil={c.shardBy === 'writes' ? 'writes' : 'data'} jump={jump}>{c.shards} shards</Num>{' '}
             it is decided operationally instead: a ring rebalances itself and hand-sharded primaries do not — you own
@@ -1318,15 +1325,29 @@ export default function Calculator() {
                     </div>
                   ))}
                 </div>
+                {/* This paragraph used to quote three hand-measured percentages and
+                    one absolute — "key shape changes the engine in 10.7%, and never
+                    across engine families". By the time a reader challenged it, all
+                    four were wrong: the buffer-pool cliff and the per-store shard
+                    bill had given key shape exactly the power that sentence denied
+                    it, and nothing failed, because a measurement quoted in prose is
+                    accountable to no one. What replaces it is mechanism, which does
+                    not rot, plus a test that fails if either claim stops holding. */}
                 <p className="hw-note">
-                  One of these carries far more weight than the rest. Sweeping 1,008 workloads and
-                  flipping one input at a time, the <b>read shape</b> changes the recommended engine
-                  in <b>73.8%</b> of them — and it does that entirely by switching the ring's
-                  point-lookup penalty between ×2 and ×1. Key shape changes it in 10.7%, and never
-                  across engine families; it only decides whether the relational answer is one
-                  primary or many. So: <em>scale decides whether you shard, the read shape decides
-                  whether what you shard is a B-tree or a ring</em> — and that second decision rests
-                  on the single assumed constant above.
+                  <b>The point-lookup number is the one to argue with.</b> It is the whole read-side
+                  difference between a B-tree and a ring: sweeping a range, both cost one lookup and
+                  the engines are indistinguishable; fetching one record, the ring probes several
+                  sorted files and the B-tree walks to a single leaf. So the read shape you picked
+                  above decides whether those two are the same machine or one is twice the work —
+                  through this one assumed constant and nothing else.
+                </p>
+                <p className="hw-note">
+                  It was, for a while, the only thing on this page that could move an answer between
+                  engine families. That stopped being true when the buffer-pool cliff arrived:{' '}
+                  <b>key shape moves families too now</b>, by a different route. It changes no read
+                  cost at all — it changes how many machines the rows end up cut across, because a
+                  B-tree taking scattered ids has to keep splitting until each node's slice fits its
+                  RAM, and a ring never does.
                 </p>
               </div>
             )}
