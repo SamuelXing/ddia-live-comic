@@ -1006,7 +1006,7 @@ export default function Calculator() {
               dressing rounding up as a finding.
             </li>
             <li>
-              <b>The small-system branch is a veto, not a trigger.</b> Passing it does not send you
+              <b>That last question is a veto, not a trigger.</b> Passing it does not send you
               to a different store — it stops the ranking from running at all and hands you the
               simplest machine in the tie, sometimes at more shards than the alternative would need.
               Fail it and the ordinary rule takes over, which is usually what moves you. So a shard

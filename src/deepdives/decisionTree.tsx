@@ -132,18 +132,20 @@ export function StoreDecisionTree(): ReactElement {
       <E x1={336} y1={284} x2={336} y2={310} label="NO — a tie" at="right" />
 
       {/* 5 — and when it has not decided, this is what is left.
-          Asked as "still small?" rather than "straining?", which is how it read
-          first: a reader took the shard half of the test for a load test and
-          concluded the page switches stores once a count passes 8. It does the
-          opposite — a small enough split is what KEEPS you on the simple
-          machine. "Small system" covers both halves of the AND; "straining"
-          only ever covered the utilisation one. */}
+          Two earlier wordings failed here and the failures are instructive.
+          "Is anything straining?" named only the utilisation half of an AND
+          whose other half is a shard count, so a reader took it for a load
+          test and concluded the page switches stores once the count passes 8
+          — the opposite of what it does. "Is this still a small system?"
+          covered both halves but named neither: small in what way, and what
+          system? This asks the thing the two criteria jointly test, in the
+          words someone would use out loud. */}
       <N x={186} y={310} w={300} h={38} tone="ask"
-         label="Is this still a small system?"
-         sub="all walls under 25%, simplest tie under 8 shards" />
+         label="Is there a scaling problem yet?"
+         sub="a wall past 25%, or the simplest tie past 8 shards" />
       <N x={6} y={311} w={150} h={36} tone="win" label="The simplest machine" sub="one primary, not a ring" />
-      <E x1={186} y1={329} x2={156} y2={329} label="YES" />
-      <E x1={336} y1={348} x2={336} y2={374} label="NO" at="right" />
+      <E x1={186} y1={329} x2={156} y2={329} label="NO" />
+      <E x1={336} y1={348} x2={336} y2={374} label="YES" at="right" />
 
       <N x={186} y={374} w={300} h={38} tone="win"
          label="Fewest pieces wins"
