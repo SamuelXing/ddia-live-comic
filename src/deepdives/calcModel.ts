@@ -537,6 +537,15 @@ export const TUNING: Tuning = {
   simpleShards: 8,
 }
 
+/** WHAT "126 OF 945" COUNTS. A bare denominator is exactly the kind of number
+ *  this page exists not to print, and the first version of the panel printed
+ *  one. This is the sweep every `worth` below was measured against. */
+export const SWEEP = {
+  n: 945,
+  how: 'every preset, at all 15 points on the user ladder, at three activity levels and three retention lengths',
+  what: 'the whole answer — the store, its shard count, and the component list',
+}
+
 export const THRESHOLDS: {
   k: keyof Tuning
   label: string
@@ -544,49 +553,61 @@ export const THRESHOLDS: {
   /** the rungs `sensitivity()` nudges it between */
   steps: number[]
   decides: string
+  /** answers that change out of SWEEP.n — one rung down, one rung up, and the
+   *  threshold relaxed until it never binds. Data, not prose, because a test
+   *  re-derives all of it: a measurement quoted in a sentence goes stale in
+   *  silence, and these are the numbers asking the reader to trust the rest. */
+  worth: { down: number | null; up: number | null; off: number }
   note: string
 }[] = [
   {
     k: 'cacheAt', label: 'Read pressure that forces a cache', fmt: (n) => Math.round(n * 100) + '%',
     steps: [0.1, 0.2, 0.3, 0.5, 0.75],
     decides: 'whether a cache appears — and therefore whether every store is judged on misses instead of reads',
-    note: 'Below it a database answers its own reads. There is no measurement behind 30%; it is the level at which one node has spent enough of its read budget that a bad minute has nowhere to go.',
+    worth: { down: 39, up: 51, off: 306 },
+    note: 'Below it a database answers its own reads. Nothing measured 30%: it is the level at which one node has spent enough of its read budget that a bad minute has nowhere to go. It moves more answers than anything else here — and almost none of them are the store. Relax it completely and 306 answers change, of which 6 pick a different database; the rest are cache tiers appearing and disappearing.',
   },
   {
     k: 'logAt', label: 'Write pressure that forces a log', fmt: (n) => Math.round(n * 100) + '%',
     steps: [0.25, 0.4, 0.5, 0.7, 0.9],
     decides: 'whether the store consumes the peak or the daily average',
-    note: 'Paired with a peak factor of 2 or more, because a flat workload has no spike for a log to absorb. Half a ceiling as the trigger is a judgement about how much headroom a primary should keep, not a fact about disks.',
+    worth: { down: 21, up: 18, off: 201 },
+    note: 'Paired with a peak factor of 2 or more, because a flat workload has no spike for a log to absorb. Half a ceiling is a judgement about how much headroom a primary should keep, not a fact about disks. Notable for what it has never done: across all 945 workloads, at every value including switched off, it has not once changed the recommended store — a log flattens the peak for every engine equally. It decides whether you operate a log, never what you keep the data in.',
   },
   {
-    k: 'blobAt', label: 'Object size that leaves the database', fmt: (n) => n >= 1000 ? n / 1000 + ' MB' : n + ' KB',
+    k: 'blobAt', label: 'Object size that leaves the database', fmt: (n) => (n >= 1000 ? n / 1000 + ' MB' : n + ' KB'),
     steps: [100, 200, 500, 1000, 2000],
     decides: 'whether the store holds the bytes or a pointer row',
-    note: 'Rows this large stop behaving like rows: they blow out the page cache and make every backup a bandwidth problem. Where exactly that starts is a matter of taste, and 500 KB is ours.',
+    worth: { down: 0, up: 0, off: 135 },
+    note: 'Rows this large stop behaving like rows: they blow out the page cache and turn every backup into a bandwidth problem. The sweep says the exact value does not matter, and says why — no workload here writes anything between 5 KB and 5 MB, so this threshold sits in a wide empty gap. Move it a rung either way and nothing at all changes; take it away and 135 answers do. If your objects live in that gap, this number is suddenly yours to set.',
   },
   {
     k: 'memNodes', label: 'Nodes of pure RAM before in-memory is off the table', fmt: (n) => String(n),
     steps: [2, 4, 8, 16, 32],
-    decides: 'whether the in-memory store stays a candidate',
-    note: 'Not a hard limit — Facebook ran far more — but past a handful of machines holding nothing but RAM, the interesting question has stopped being throughput and become what happens when one of them restarts.',
+    decides: 'whether the in-memory store stays a candidate at all',
+    worth: { down: 9, up: 4, off: 24 },
+    note: 'Not a hard limit — Facebook’s memcache fleet ran far more — but past a handful of machines holding nothing but RAM, the interesting question has stopped being throughput and become what happens when one of them restarts cold. Shares its value with the shard floor below by coincidence, not by design: the two decide unrelated things and were picked separately.',
   },
   {
     k: 'tieBand', label: 'How close counts as a tie', fmt: (n) => Math.round(n * 100) + '%',
     steps: [0.02, 0.05, 0.1, 0.2, 0.5],
     decides: 'which stores reach the split tie-break instead of losing on throughput',
-    note: 'INERT, and the sweep is emphatic about it: every value from 0% to 10% gives the identical answer on all 945 workloads. It only starts moving answers past 20%. The reason is structural — stores that tie share their amplification constants exactly, so the gap between them is either zero or large, with nothing in between for this number to land in.',
+    worth: { down: 0, up: 0, off: 0 },
+    note: 'INERT, and the sweep is emphatic about it: narrow it to zero, widen it to 10%, nothing changes anywhere. It only starts moving answers past 20%. The reason is structural rather than lucky — stores that tie share their amplification constants exactly, so the gap between two survivors is either zero or large, and there is nothing in the 0–10% range for this number to land in.',
   },
   {
     k: 'quietFloor', label: 'Utilisation below which nothing is straining', fmt: (n) => Math.round(n * 100) + '%',
     steps: [0.05, 0.1, 0.25, 0.5, 1],
-    decides: 'when the page is allowed to ignore the ranking and hand you the simplest machine',
-    note: 'NEARLY REDUNDANT. Raising it to 50%, or removing it altogether, changes not one answer in 945 — the shard floor below has quietly absorbed its job. Lowering it does a little: 10% changes 9 answers. A candidate for deletion rather than tuning.',
+    decides: 'half of when the page may ignore the ranking and hand you the simplest machine',
+    worth: { down: 9, up: 0, off: 102 },
+    note: 'One half of an AND — the simplest machine wins only when nothing is straining AND the tie needs no real split. This half never binds on its own: relax it as far as it goes and not one answer changes, because the shard floor below has already blocked every case it would have let through. Switching the rule off from this side changes 102 answers, but that is the rule’s worth, not this number’s. A candidate for deletion rather than tuning.',
   },
   {
     k: 'simpleShards', label: 'Shards past which nothing is simple', fmt: (n) => String(n),
     steps: [2, 4, 8, 16, 32],
-    decides: 'the same rule, and it is this half that actually decides it',
-    note: 'THE LOAD-BEARING ONE. Removing it changes 126 of 945 answers; halving it to 4 changes 17, doubling it to 16 changes 16. When this page recommends one primary instead of a ring, this number — not the two above — is what said so. It is also pure judgement: eight hand-managed shards is where we stopped being willing to call an architecture simple.',
+    decides: 'the other half of that rule — and the half that actually decides it',
+    worth: { down: 17, up: 16, off: 126 },
+    note: 'THE LOAD-BEARING ONE: relax it and 126 answers change. When this page says “one primary, not a ring”, this number said it. It is also inherited judgement rather than measurement — it was set to match a bare `shards > 8` that has sat in this page’s verdict copy since its first version, where it arrived with no reason attached. For scale: the smallest hand-sharded fleet anyone has published is Notion’s 32 physical databases, and that took a long blog post to explain. We stop calling an architecture simple four times earlier than that.',
   },
 ]
 

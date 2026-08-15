@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
-  TUNING, THRESHOLDS, L,
+  TUNING, THRESHOLDS, SWEEP, L,
   type Req, type Vals, type Tuning,
 } from './calcModel'
 
@@ -998,5 +998,60 @@ describe('the thresholds are constants too, and now they are visible ones', () =
       expect(a.logNeed, p.id).toBe(b.logNeed)
       expect(a.cacheAbsorbs, p.id).toBe(b.cacheAbsorbs)
     }
+  })
+})
+
+describe('the sweep numbers printed beside each threshold are re-derived, not remembered', () => {
+  /* USER-REPORTED: the panel said "126 of 945" and never said what 945 was.
+     Two problems, and the second is worse. A bare denominator is exactly the
+     kind of number this page exists not to print — and a measurement quoted
+     inside a prose string goes stale the moment the model moves, silently,
+     while still reading as authoritative. So the counts are data now, and
+     this re-runs the sweep that produced every one of them.
+
+     It also caught a real error in the first draft of that copy: the note for
+     the quiet floor said "raising it to 50%, or removing it altogether,
+     changes not one answer", conflating two OPPOSITE directions. Relaxing it
+     changes nothing; switching the rule off from that side changes 102. */
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const base = CASES.map((c) => JSON.stringify(outcome(c.v, c.req)))
+  const changed = (over: Partial<Tuning>) =>
+    CASES.filter((c, i) => JSON.stringify(outcome(c.v, c.req, { ...TUNING, ...over })) !== base[i]).length
+
+  /** the value at which a threshold stops binding at all — its "off" position */
+  const OFF: Record<keyof Tuning, number> = {
+    cacheAt: 1e9, logAt: 1e9, blobAt: 1e9, memNodes: Number.MAX_SAFE_INTEGER,
+    tieBand: 0, quietFloor: 0, simpleShards: Number.MAX_SAFE_INTEGER,
+  }
+
+  it('the sweep is the size the page says it is', () => {
+    // 7 presets × 15 DAU rungs × 3 activity levels × 3 retentions = 945
+    expect(PRESETS.length * L.count.length * 3 * 3).toBe(945)
+    expect(CASES.length).toBe(SWEEP.n)
+  })
+
+  it('every printed count re-derives — all 21 of them', () => {
+    for (const t of THRESHOLDS) {
+      const i = t.steps.indexOf(TUNING[t.k])
+      if (t.worth.down !== null) expect(changed({ [t.k]: t.steps[i - 1] }), `${t.k} down`).toBe(t.worth.down)
+      if (t.worth.up !== null) expect(changed({ [t.k]: t.steps[i + 1] }), `${t.k} up`).toBe(t.worth.up)
+      expect(changed({ [t.k]: OFF[t.k] }), `${t.k} off`).toBe(t.worth.off)
+    }
+  })
+
+  it('the two claims the panel makes in words also hold', () => {
+    // "the log threshold has never once changed the recommended store"
+    const storeMoves = (over: Partial<Tuning>) =>
+      CASES.filter((c) => outcome(c.v, c.req, { ...TUNING, ...over }).store !== outcome(c.v, c.req).store).length
+    for (const logAt of [...THRESHOLDS.find((t) => t.k === 'logAt')!.steps, OFF.logAt])
+      expect(storeMoves({ logAt }), `logAt ${logAt} moved a store`).toBe(0)
+    // "the quiet floor never binds on its own — the shard floor blocks first"
+    expect(changed({ quietFloor: 1 })).toBe(0)
   })
 })

@@ -25,6 +25,7 @@ import {
   ENGINE_CONSTANTS,
   THRESHOLDS,
   TUNING,
+  SWEEP,
   model,
   consequences,
   sensitivity,
@@ -1290,11 +1291,12 @@ export default function Calculator() {
                     A ceiling is a fact about a machine. A <em>threshold</em> is us deciding when a
                     number has got big enough to mean something — when reads are heavy enough to
                     deserve a cache, when two stores are close enough to call a tie, when a shard
-                    count stops being simple. Each one below says what it decides and{' '}
-                    <b>what a 945-workload sweep says it is actually worth</b>, because an assumed
-                    number that moves no answer and one that moves an eighth of them deserve very
-                    different amounts of your suspicion. All seven are swept in “which assumption is
-                    load-bearing” below.
+                    count stops being simple. Each one says what it decides, and then what it is{' '}
+                    <b>actually worth</b>: {SWEEP.how} — <b>{fmt.int(SWEEP.n)} workloads</b> — re-run
+                    with that threshold moved, counting how many change {SWEEP.what}. An assumed
+                    number that moves nothing and one that moves an eighth of the answers deserve
+                    very different amounts of your suspicion, and until you can see both counts you
+                    cannot tell which you are looking at.
                   </p>
                   {THRESHOLDS.map((t) => (
                     <div className="thresh-row" key={t.k}>
@@ -1303,6 +1305,23 @@ export default function Calculator() {
                         <span className="thresh-v">{t.fmt(TUNING[t.k])}</span>
                       </div>
                       <div className="thresh-d">decides {t.decides}</div>
+                      {/* the counts sit ABOVE the prose on purpose: the verdict in
+                          the note ("inert", "load-bearing") is our reading of
+                          these three numbers, and a reader should meet the
+                          evidence before the conclusion drawn from it. */}
+                      <div className="thresh-w">
+                        <span className="lbl">answers that change</span>
+                        <span>
+                          one rung down <b>{t.worth.down === null ? '—' : fmt.int(t.worth.down)}</b>
+                        </span>
+                        <span>
+                          one rung up <b>{t.worth.up === null ? '—' : fmt.int(t.worth.up)}</b>
+                        </span>
+                        <span>
+                          switched off <b>{fmt.int(t.worth.off)}</b>
+                        </span>
+                        <span className="of">out of {fmt.int(SWEEP.n)}</span>
+                      </div>
                       <div className="ctl-hint">{t.note}</div>
                     </div>
                   ))}

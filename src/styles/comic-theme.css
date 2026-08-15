@@ -302,6 +302,14 @@
   font-family: var(--gnf-mono); font-size: 11.5px; background: var(--panel-2); color: var(--ink);
   border: 1px solid var(--line); padding: 1px 7px; white-space: nowrap; flex: none;
 }
+.dd-page[class] .thresh-w {
+  display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 5px 0 5px;
+  font-family: var(--gnf-mono); font-size: 10px; color: var(--muted);
+}
+.dd-page[class] .thresh-w b { color: var(--ink-2); font-weight: 500; }
+.dd-page[class] .thresh-w .of { color: var(--muted); font-style: italic; }
+.dd-page[class] .thresh-w .lbl { color: var(--ink-2); letter-spacing: .04em; }
+.dd-page[class] .thresh-w .lbl::after { content: ':'; }
 .dd-page[class] .thresh-d {
   font-family: var(--gnf-mono); font-size: 10.5px; color: var(--muted); margin: 3px 0 2px;
 }
