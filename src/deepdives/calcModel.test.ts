@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
-  TUNING, THRESHOLDS, SWEEP, L,
+  TUNING, THRESHOLDS, L,
   type Req, type Vals, type Tuning,
 } from './calcModel'
 
@@ -1001,18 +1001,18 @@ describe('the thresholds are constants too, and now they are visible ones', () =
   })
 })
 
-describe('the sweep numbers printed beside each threshold are re-derived, not remembered', () => {
-  /* USER-REPORTED: the panel said "126 of 945" and never said what 945 was.
-     Two problems, and the second is worse. A bare denominator is exactly the
-     kind of number this page exists not to print — and a measurement quoted
-     inside a prose string goes stale the moment the model moves, silently,
-     while still reading as authoritative. So the counts are data now, and
-     this re-runs the sweep that produced every one of them.
+describe('what each threshold is worth is derived from a sweep, never hand-set', () => {
+  /* USER-REPORTED, twice. The panel first printed three counts per threshold —
+     "one rung down 17, one rung up 16, switched off 126, out of 945" — and the
+     objection was exactly right on both halves: a reader can do nothing with
+     17, and 21 hand-maintained numbers go stale the moment the arithmetic
+     moves, dragging a re-measurement behind every future change.
 
-     It also caught a real error in the first draft of that copy: the note for
-     the quiet floor said "raising it to 50%, or removing it altogether,
-     changes not one answer", conflating two OPPOSITE directions. Relaxing it
-     changes nothing; switching the rule off from that side changes 102. */
+     So the sweep lives here, where precision belongs, and the page gets the
+     one bit that changes what a reader does. This test DERIVES the label
+     rather than checking a number, which means a model change that turns an
+     inert threshold decisive fails with the word it should have become — one
+     word to fix, not twenty-one numbers to re-measure. */
   const CASES = PRESETS.flatMap((p) =>
     L.count.flatMap((dau) =>
       [5, 50, 200].flatMap((actions) =>
@@ -1020,38 +1020,45 @@ describe('the sweep numbers printed beside each threshold are re-derived, not re
       ),
     ),
   )
-  const base = CASES.map((c) => JSON.stringify(outcome(c.v, c.req)))
-  const changed = (over: Partial<Tuning>) =>
-    CASES.filter((c, i) => JSON.stringify(outcome(c.v, c.req, { ...TUNING, ...over })) !== base[i]).length
+  const base = CASES.map((c) => outcome(c.v, c.req))
 
-  /** the value at which a threshold stops binding at all — its "off" position */
-  const OFF: Record<keyof Tuning, number> = {
-    cacheAt: 1e9, logAt: 1e9, blobAt: 1e9, memNodes: Number.MAX_SAFE_INTEGER,
-    tieBand: 0, quietFloor: 0, simpleShards: Number.MAX_SAFE_INTEGER,
+  /** Move a threshold one rung each way and ask what survived the move:
+   *  nothing at all, only the machines around the store, or the store itself. */
+  const derive = (t: (typeof THRESHOLDS)[number]): 'inert' | 'operational' | 'decisive' => {
+    const i = t.steps.indexOf(TUNING[t.k])
+    let any = false
+    for (const j of [i - 1, i + 1]) {
+      if (j < 0 || j >= t.steps.length) continue
+      for (const [n, c] of CASES.entries()) {
+        const o = outcome(c.v, c.req, { ...TUNING, [t.k]: t.steps[j] })
+        if (o.store !== base[n].store) return 'decisive'
+        if (JSON.stringify(o) !== JSON.stringify(base[n])) any = true
+      }
+    }
+    return any ? 'operational' : 'inert'
   }
 
-  it('the sweep is the size the page says it is', () => {
-    // 7 presets × 15 DAU rungs × 3 activity levels × 3 retentions = 945
-    expect(PRESETS.length * L.count.length * 3 * 3).toBe(945)
-    expect(CASES.length).toBe(SWEEP.n)
+  it('every label on the page is the label the sweep produces', () => {
+    for (const t of THRESHOLDS)
+      expect(derive(t), `${t.k} is labelled "${t.worth}" but the sweep says otherwise`).toBe(t.worth)
   })
 
-  it('every printed count re-derives — all 21 of them', () => {
-    for (const t of THRESHOLDS) {
-      const i = t.steps.indexOf(TUNING[t.k])
-      if (t.worth.down !== null) expect(changed({ [t.k]: t.steps[i - 1] }), `${t.k} down`).toBe(t.worth.down)
-      if (t.worth.up !== null) expect(changed({ [t.k]: t.steps[i + 1] }), `${t.k} up`).toBe(t.worth.up)
-      expect(changed({ [t.k]: OFF[t.k] }), `${t.k} off`).toBe(t.worth.off)
-    }
+  it('all three verdicts are represented, so the labels are telling stores apart', () => {
+    /* A guard against the classification quietly collapsing: if a change to the
+       model made every threshold decisive, each label would still be "correct"
+       and the panel would have stopped saying anything. */
+    expect(new Set(THRESHOLDS.map((t) => t.worth)).size).toBe(3)
   })
 
-  it('the two claims the panel makes in words also hold', () => {
-    // "the log threshold has never once changed the recommended store"
-    const storeMoves = (over: Partial<Tuning>) =>
-      CASES.filter((c) => outcome(c.v, c.req, { ...TUNING, ...over }).store !== outcome(c.v, c.req).store).length
-    for (const logAt of [...THRESHOLDS.find((t) => t.k === 'logAt')!.steps, OFF.logAt])
-      expect(storeMoves({ logAt }), `logAt ${logAt} moved a store`).toBe(0)
-    // "the quiet floor never binds on its own — the shard floor blocks first"
-    expect(changed({ quietFloor: 1 })).toBe(0)
+  it('the two claims the notes make in words also hold', () => {
+    // "it has never once changed the recommended store" — at any value, not
+    // just the neighbouring rungs the label is derived from
+    const logAt = THRESHOLDS.find((t) => t.k === 'logAt')!
+    for (const at of [...logAt.steps, 1e9])
+      for (const [n, c] of CASES.entries())
+        expect(outcome(c.v, c.req, { ...TUNING, logAt: at }).store, `logAt ${at}`).toBe(base[n].store)
+    // "relaxing this half alone changes nothing — the shard floor blocks first"
+    for (const [n, c] of CASES.entries())
+      expect(JSON.stringify(outcome(c.v, c.req, { ...TUNING, quietFloor: 1 }))).toBe(JSON.stringify(base[n]))
   })
 })
