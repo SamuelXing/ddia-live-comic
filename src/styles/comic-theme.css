@@ -262,75 +262,31 @@
 .dd-page[class] .calc-formulas code {
   font-family: var(--gnf-mono); font-size: 11.5px; background: var(--panel-2); padding: 1px 5px;
 }
-/* THE DECISION LADDER — how the store gets picked, gate by gate.
-   Built from the book's own parts: inked boxes, hard offset shadows, squared
-   corners, a Comic Neue step badge. The spine between gates is the argument —
-   each one is only reached because the gate above did not settle the answer —
-   so the connector is drawn rather than implied by stacking. Two accents,
-   carrying their usual meaning: terra where a store falls out, denim where a
-   gate produces an answer. */
-.dd-page[class] .dtree { list-style: none; padding: 0; margin: 14px 0 10px; }
-.dd-page[class] .dt-gate {
-  position: relative; display: grid; grid-template-columns: 38px 1fr 210px; gap: 0;
-  border: 2px solid #1a1a1a; background: var(--paper-2, var(--card));
-  box-shadow: 3px 3px 0 #1a1a1a; margin: 0 0 26px;
+/* THE DECISION TREE figure. The SVG carries its own ink borders and hard
+   shadows, so the frame here only has to give it paper to sit on and keep it
+   from being squeezed illegible: below ~660px it scrolls inside its own box
+   rather than shrinking 13px display type into nothing. */
+.dd-page[class] .dt-fig {
+  margin: 14px 0 10px; padding: 14px 14px 10px; background: var(--panel-2);
+  border: 2px solid #1a1a1a; box-shadow: 3px 3px 0 #1a1a1a; overflow-x: auto;
 }
-/* the connector: a 2px rule with a solid head, so the ladder reads as one
-   path and not six unrelated cards */
-.dd-page[class] .dt-gate:not(:last-child)::after {
-  content: ''; position: absolute; left: 18px; bottom: -26px; width: 2px; height: 26px;
-  background: #1a1a1a;
+.dd-page[class] .dt-fig > svg { display: block; min-width: 620px; }
+.dd-page[class] .dt-fig figcaption {
+  font-family: var(--gnf-mono); font-size: 10px; line-height: 1.7; color: var(--muted);
+  margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--line); min-width: 620px;
 }
-.dd-page[class] .dt-gate:not(:last-child)::before {
-  content: ''; position: absolute; left: 13px; bottom: -26px; width: 12px; height: 12px;
-  background: #1a1a1a; clip-path: polygon(50% 100%, 0 0, 100% 0); z-index: 1;
+/* the legend keys read as the thing they name, so the caption does not have to
+   say "the terracotta one" in words */
+.dd-page[class] .dt-fig figcaption .k {
+  border: 1.5px solid; padding: 0 5px; margin-right: 2px; font-weight: 700;
 }
-.dd-page[class] .dt-n {
-  font-family: var(--gnf-comic); font-size: 13px; font-weight: 700; color: #fff;
-  background: #1a1a1a; display: flex; align-items: flex-start; justify-content: center;
-  padding-top: 11px; letter-spacing: .04em;
-}
-.dd-page[class] .dt-main { padding: 11px 14px 12px; min-width: 0; }
-.dd-page[class] .dt-main h5 {
-  font-family: var(--gnf-display); font-size: 15.5px; margin: 0 0 5px; color: var(--ink);
-}
-.dd-page[class] .dt-main p { font-size: 13px; line-height: 1.5; margin: 0; color: var(--ink-2); }
-.dd-page[class] ul.dt-crit { list-style: none; padding: 0; margin: 8px 0 0; }
-.dd-page[class] ul.dt-crit li {
-  font-size: 12.5px; line-height: 1.45; color: var(--ink-2); margin: 0 0 5px;
-  padding-left: 15px; position: relative;
-}
-.dd-page[class] ul.dt-crit li::before {
-  content: '·'; position: absolute; left: 4px; top: -1px;
-  font-family: var(--gnf-mono); font-weight: 700; color: var(--muted);
-}
-.dd-page[class] ul.dt-crit code {
-  font-family: var(--gnf-mono); font-size: 11px; background: var(--panel-2); padding: 1px 4px;
-}
-/* what leaves at this gate. Muted by default — most gates pass everyone
-   through, and only two of the six actually end the decision. */
-.dd-page[class] .dt-exit {
-  border-left: 2px dashed var(--line); padding: 11px 13px 12px; background: var(--panel-2);
-}
-.dd-page[class] .dt-exit-h {
-  display: block; font-family: var(--gnf-mono); font-size: 9.5px; letter-spacing: .1em;
-  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
-}
-.dd-page[class] .dt-exit b { font-family: var(--gnf-display); font-size: 14px; color: var(--ink); }
-.dd-page[class] .dt-exit p { font-size: 12px; line-height: 1.45; margin: 3px 0 0; color: var(--ink-2); }
-.dd-page[class] .dt-exit.out { border-left-color: #bd5f3d; }
-.dd-page[class] .dt-exit.out b { color: #97462a; }
-.dd-page[class] .dt-exit.win { border-left-color: #3f6191; }
-.dd-page[class] .dt-exit.win b { color: #29456c; }
-/* the override is not a gate in the chain — it overrules gate 05 */
-.dd-page[class] .dt-gate.dt-override { border-style: dashed; }
-@media (max-width: 700px) {
-  .dd-page[class] .dt-gate { grid-template-columns: 30px 1fr; }
-  .dd-page[class] .dt-exit { grid-column: 2; border-left: none; border-top: 2px dashed var(--line); }
-  .dd-page[class] .dt-exit.out { border-top-color: #bd5f3d; }
-  .dd-page[class] .dt-exit.win { border-top-color: #3f6191; }
-  .dd-page[class] .dt-gate:not(:last-child)::after { left: 14px; }
-  .dd-page[class] .dt-gate:not(:last-child)::before { left: 9px; }
+.dd-page[class] .dt-fig figcaption .k.out { color: #97462a; border-color: #bd5f3d; background: #f6e9e2; }
+.dd-page[class] .dt-fig figcaption .k.win { color: #29456c; border-color: #3f6191; background: #e8edf5; }
+.dd-page[class] .dt-fig figcaption .k.flow { color: #6b6459; border-color: #8a8177; background: #fff; }
+.dd-page[class] ul.dt-notes { list-style: none; padding: 0; margin: 12px 0 4px; }
+.dd-page[class] ul.dt-notes li {
+  font-size: 13px; line-height: 1.55; color: var(--ink-2);
+  border-left: 2px solid var(--line); padding: 1px 0 1px 12px; margin: 0 0 9px;
 }
 .dd-page[class] .calc-help-b .tbl td.ok { color: #2f6b46; font-family: var(--gnf-mono); font-size: 11.5px; }
 .dd-page[class] .calc-help-b .tbl td.warn { color: #97462a; font-family: var(--gnf-mono); font-size: 11.5px; }
