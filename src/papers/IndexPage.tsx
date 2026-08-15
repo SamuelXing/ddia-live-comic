@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, TOC } from './book'
+import { BOOK, TOC, progressLabel } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
 import { SITE_TITLE } from '../routeTitle'
@@ -53,7 +53,7 @@ export default function PapersIndexPage() {
           <h1>{BOOK.title}</h1>
           <p className="dek">{BOOK.dek}</p>
           <div className="gn-tags">
-            <span className="gn-tag">1 of 18 chapters live</span>
+            <span className="gn-tag">{progressLabel()}</span>
             <span className="gn-tag">Each chapter · one paper</span>
           </div>
         </header>

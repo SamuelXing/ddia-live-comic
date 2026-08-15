@@ -267,6 +267,7 @@ export const bigtable: Chapter = {
       title: 'The Google File System (SOSP)',
       url: 'https://static.googleusercontent.com/media/research.google.com/en//archive/gfs-sosp2003.pdf',
       note: 'Read §2.3–2.7: the interface and consistency model — the constraint this entire chapter grows from. Chapter 1 of this book reads it in full.',
+      // Ch 1 is live; the seenIn rail above links to it.
     },
     {
       year: '1996',
@@ -276,6 +277,7 @@ export const bigtable: Chapter = {
     },
   ],
   seenIn: [
+    { label: 'The File System That Refused to Edit — Ch 1', to: '/papers/gfs', live: true },
     { label: 'B-trees vs LSM-trees — the comic', to: '/ddia/read/storage', live: true },
     { label: 'Choosing the Partition Key — the comic', to: '/ddia/read/partition-key', live: true },
     { label: 'The wide-column ring, priced out — capacity calculator', to: '/calculator/capacity', live: true },

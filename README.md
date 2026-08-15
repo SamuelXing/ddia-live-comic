@@ -11,7 +11,7 @@
 | | | |
 |---|---|---|
 | **[DDIA, as a live comic](https://systemscomic.com/ddia)** | complete, growing | Replication, partitioning, consensus — twelve short comics, each built around one misconception it exists to kill. Then met again inside Kafka, Postgres, Redis, RabbitMQ, the web tier and S3, in nine-chapter deep-dives with animated traces and a hardware envelope you can overload. Plus two whole applications you push until they break. |
-| **[The Papers That Broke the Database](https://systemscomic.com/papers)** | being written | The history of distributed systems through the papers that made it. One chapter live of eighteen; the season's map is on the page. |
+| **[The Papers That Broke the Database](https://systemscomic.com/papers)** | being written | The history of distributed systems through the papers that made it, one forcing event per chapter. You design the answer before the paper gives it to you. Shipping a chapter at a time; the whole season's map is on the page. |
 | **[The calculator](https://systemscomic.com/calculator)** | shared instrument | Put in a workload, get machine counts back — and check every number against the division that produced it. |
 
 ## Quick start

@@ -14,18 +14,28 @@
  * binary with CHROME_PATH=/path/to/chrome
  */
 import { chromium } from 'playwright-core';
+import { ROUTES } from './routes.mjs';
 const exe=process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
 const b=await chromium.launch({executablePath:exe});
 const BASE=process.env.BASE_URL||'http://localhost:5173';
-const slugs=['tail-latency','storage','replication-leader','replication-lag','replication-quorum','partitioning','partition-key','transactions','distributed-troubles','consensus','shuffle','stream-table'];
+/* Derived from the route table, not hand-listed. The list used to be a literal
+   array of comic slugs, which meant a new page was measured only if someone
+   remembered to add it here — and the papers book, whose chapters carry SVG
+   figures of exactly the same kind, was never measured at all. routes.mjs is
+   the right source because a test already pins it to COMICS and CHAPTERS, so a
+   page cannot exist without appearing here. */
+const pages=Object.keys(ROUTES)
+  .filter(p=>p.startsWith('/ddia/read/')||p.startsWith('/papers/'))
+  .sort();
+if(pages.length<13){console.error(`Only ${pages.length} pages resolved from the route table — expected every comic and chapter.`);process.exit(1)}
 const all=[];
 let measured=0;
-for (const s of slugs){
+for (const s of pages){
   const p=await b.newPage({viewport:{width:1200,height:1200}});
   const pageErrors=[];
   p.on('pageerror',e=>pageErrors.push(e.message));
   p.on('console',m=>m.type()==='error'&&pageErrors.push(m.text()));
-  await p.goto(BASE+'/read/'+s,{waitUntil:'networkidle'});
+  await p.goto(BASE+s,{waitUntil:'networkidle'});
   // The in-the-wild and tradeoffs blocks are <details>, collapsed by default,
   // and getBBox() reports zeros for a display:none subtree — so a figure in a
   // bullet would measure as a point at the origin and silently pass. Open
@@ -89,4 +99,4 @@ for (const s of slugs){
 }
 await b.close();
 if(all.length){console.error('Diagram issues:\n'+all.join('\n')+`\n\n${all.length} issue(s).`);process.exit(1)}
-console.log(`Diagram geometry OK - ${measured} diagram(s) measured across ${slugs.length} comics.`)
+console.log(`Diagram geometry OK - ${measured} diagram(s) measured across ${pages.length} pages.`)

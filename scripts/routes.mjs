@@ -89,6 +89,10 @@ export const ROUTES = {
     title: 'The Papers That Broke the Database',
     desc: 'Follow the history of distributed systems, and dig deep into the papers that made it.',
   },
+  '/papers/gfs': {
+    title: 'The File System That Refused to Edit',
+    desc: 'Google’s machines die weekly and its files outgrew every disk. Design the file system that falls out of that — then read the 2003 paper and see how close you got.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',

@@ -12,6 +12,108 @@ const TERRA = '#bd5f3d'
 const MUTED = '#8a8177'
 const MONO = 'JetBrains Mono, monospace'
 
+/** Ch 1 — why 64 MB. The same petabyte catalogued at two block sizes, priced
+ *  in the only currency that mattered: the master's RAM. */
+export function ChunkBudgetDiagram() {
+  const col = (x: number, accent: string, head: string, sub: string, lines: string[], last: string, ok: string) => (
+    <>
+      <rect x={x} y="24" width="158" height="114" fill="none" stroke={accent} strokeWidth="1.8" />
+      <text x={x + 12} y="42" fontFamily={MONO} fontSize="8" fill={accent}>{head}</text>
+      <text x={x + 12} y="55" fontFamily={MONO} fontSize="6" fill={MUTED}>{sub}</text>
+      {lines.map((t, i) => (
+        <text key={i} x={x + 12} y={76 + i * 12} fontFamily={MONO} fontSize="6.4" fill={INK}>{t}</text>
+      ))}
+      <text x={x + 12} y="118" fontFamily={MONO} fontSize="7.2" fill={accent}>{last}</text>
+      <text x={x + 12} y="132" fontFamily={MONO} fontSize="6.2" fill={accent}>{ok}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 178"
+      role="img"
+      aria-label="One petabyte catalogued at 4 KB blocks needs about 15 TB of master memory; at 64 MB chunks it needs under 1 GB."
+    >
+      <text x="8" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one petabyte — two ways to keep the catalogue
+      </text>
+      {col(
+        8,
+        TERRA,
+        '4 KB blocks',
+        'what an ordinary file system does',
+        ['1 PB ÷ 4 KB', '= 244,000,000,000 blocks', '× 64 B of metadata each'],
+        '= ~15 TB of RAM',
+        '✗ no such machine, then or now',
+      )}
+      {col(
+        178,
+        DENIM,
+        '64 MB chunks',
+        'what GFS chose',
+        ['1 PB ÷ 64 MB', '= 15,000,000 chunks', '× 64 B of metadata each'],
+        '= under 1 GB of RAM',
+        '✓ fits, with room to grow',
+      )}
+      <text x="172" y="158" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        chunk size is not a disk tuning knob — it is the master&rsquo;s memory budget
+      </text>
+      <text x="172" y="170" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        (64 bytes per chunk is the paper&rsquo;s own figure, §2.6.1)
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 1 — the consistency model, drawn. Three replicas of one chunk after an
+ *  append failed on C and the client retried: the record is in all three, but
+ *  the replicas are not identical and one region is garbage. */
+export function AppendRegionsDiagram() {
+  const REC = '#e8edf5'
+  const JUNK = '#f6e9e2'
+  const row = (y: number, name: string, firstFill: string, firstStroke: string, firstText: string, firstColor: string) => (
+    <>
+      <text x="8" y={y + 13} fontFamily={MONO} fontSize="6.2" fill={INK}>{name}</text>
+      <rect x="48" y={y} width="136" height="20" fill={firstFill} stroke={firstStroke} strokeWidth="1.6" />
+      <text x="116" y={y + 13} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={firstColor}>{firstText}</text>
+      <rect x="184" y={y} width="136" height="20" fill={REC} stroke={DENIM} strokeWidth="1.6" />
+      <text x="252" y={y + 13} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={DENIM}>the record</text>
+    </>
+  )
+  const tick = (x: number) => <line x1={x} y1="108" x2={x} y2="116" stroke={INK} strokeWidth="1.4" />
+  return (
+    <svg
+      viewBox="0 0 344 178"
+      role="img"
+      aria-label="Three replicas of a chunk after a failed append and a retry: two hold the record twice, one holds padding then the record. Only the retried region is identical in all three."
+    >
+      <text x="8" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one chunk, three replicas — after a failure and a retry
+      </text>
+
+      {row(24, 'replica A', REC, DENIM, 'the record', DENIM)}
+      {row(52, 'replica B', REC, DENIM, 'the record', DENIM)}
+      {row(80, 'replica C', JUNK, TERRA, 'padding — the attempt that failed', TERRA)}
+
+      <line x1="48" y1="112" x2="184" y2="112" stroke={TERRA} strokeWidth="1.6" />
+      <line x1="184" y1="112" x2="320" y2="112" stroke={DENIM} strokeWidth="1.6" />
+      {tick(48)}
+      {tick(184)}
+      {tick(320)}
+      <text x="116" y="126" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>inconsistent</text>
+      <text x="116" y="137" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>replicas disagree here</text>
+      <text x="252" y="126" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={DENIM}>defined</text>
+      <text x="252" y="137" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>the offset you were handed</text>
+
+      <text x="172" y="158" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        the promise: your record is in every replica, at least once
+      </text>
+      <text x="172" y="170" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        not exactly once, and not in identical replicas — that part is yours
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 3 — the grid is a rendering; the truth is a flattened, sorted KV list.
  *  Left: the human "table" view of Webtable. Right: the same cells as sorted
  *  entries; the empty cells simply never appear. */

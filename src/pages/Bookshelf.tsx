@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK } from '../papers/book'
+import { BOOK, progressLabel } from '../papers/book'
 
 /* ============================================================
    The bookshelf — the front door of systemscomic.com.
@@ -24,7 +24,7 @@ const LIVE_BOOKS = [
     kicker: 'Book two · being written',
     title: BOOK.title,
     dek: BOOK.dek,
-    meta: '1 of 18 chapters live · Season 1 · Where Data Lives',
+    meta: `${progressLabel()} · Season 1 · Where Data Lives`,
   },
 ]
 
