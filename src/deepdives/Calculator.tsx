@@ -1006,6 +1006,13 @@ export default function Calculator() {
               dressing rounding up as a finding.
             </li>
             <li>
+              <b>The small-system branch is a veto, not a trigger.</b> Passing it does not send you
+              to a different store — it stops the ranking from running at all and hands you the
+              simplest machine in the tie, sometimes at more shards than the alternative would need.
+              Fail it and the ordinary rule takes over, which is usually what moves you. So a shard
+              count crossing eight never picks a ring; it stops protecting the primary.
+            </li>
+            <li>
               <b>The last fork is the one this page argues hardest for.</b> Two stores can bind on
               the same wall at the same percentage and still need the data cut into wildly different
               numbers of pieces — every store splits for data size and write rate, but only an

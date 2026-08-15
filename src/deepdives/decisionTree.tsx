@@ -131,13 +131,19 @@ export function StoreDecisionTree(): ReactElement {
       <E x1={486} y1={265} x2={516} y2={265} label="YES" />
       <E x1={336} y1={284} x2={336} y2={310} label="NO — a tie" at="right" />
 
-      {/* 5 — and when it has not decided, this is what is left. */}
+      {/* 5 — and when it has not decided, this is what is left.
+          Asked as "still small?" rather than "straining?", which is how it read
+          first: a reader took the shard half of the test for a load test and
+          concluded the page switches stores once a count passes 8. It does the
+          opposite — a small enough split is what KEEPS you on the simple
+          machine. "Small system" covers both halves of the AND; "straining"
+          only ever covered the utilisation one. */}
       <N x={186} y={310} w={300} h={38} tone="ask"
-         label="Is anything actually straining?"
-         sub="a wall past 25%, or the simplest tie past 8 shards" />
+         label="Is this still a small system?"
+         sub="all walls under 25%, simplest tie under 8 shards" />
       <N x={6} y={311} w={150} h={36} tone="win" label="The simplest machine" sub="one primary, not a ring" />
-      <E x1={186} y1={329} x2={156} y2={329} label="NO" />
-      <E x1={336} y1={348} x2={336} y2={374} label="YES" at="right" />
+      <E x1={186} y1={329} x2={156} y2={329} label="YES" />
+      <E x1={336} y1={348} x2={336} y2={374} label="NO" at="right" />
 
       <N x={186} y={374} w={300} h={38} tone="win"
          label="Fewest pieces wins"
