@@ -960,6 +960,72 @@ export default function Calculator() {
             </li>
           </ol>
 
+          {/* The store decision as a flow chart, because the prose version of it
+              is four paragraphs and the reader has to hold all four at once to
+              see that the last question only gets asked when the first three
+              did not settle it. Drawn in ASCII rather than SVG: the page is
+              already monospace where it is being precise, and a box you can
+              select and paste into a terminal is the right register for a tool
+              whose whole claim is that you could do this on paper. */}
+          <h4>How the store gets picked</h4>
+          <p>
+            Five questions, asked in this order. Each one only gets asked because the one above it
+            did not settle the answer — which is why <b>the shard count decides so many real
+            workloads</b>: by the time you reach it, throughput has already failed to separate
+            anything.
+          </p>
+          <pre className="calc-tree">
+{`  +--------------------------------+
+  |     THE PROMISES, THE LOAD     |
+  +--------------------------------+
+                  |
+                  v
+  +--------------------------------+           `}<b className="t-out">RULED OUT</b>{`
+  |  CAN THIS STORE KEEP THE       | -- NO --> and no throughput
+  |  PROMISE IT IS ASKED TO KEEP?  |           number un-rules it
+  +--------------------------------+
+                  | YES
+                  v
+  +--------------------------------+           misses, not reads.
+  |  WHAT LOAD ACTUALLY REACHES    |           sustained, not peak.
+  |  IT, IN THE SYSTEM AROUND IT?  |           pointers, not blobs.
+  +--------------------------------+
+                  |
+                  v
+  +--------------------------------+           the largest share
+  |  DIVIDE IT BY EVERY CEILING.   |           is this store's
+  |  WHICH WALL COMES FIRST?       |           first wall
+  +--------------------------------+
+                  |
+                  v
+  +--------------------------------+           `}<b className="t-win">IT WINS</b>{`
+  |  IS ONE STORE'S WALL MORE      | -- YES -> the arithmetic
+  |  THAN 5% BELOW THE REST?       |           separated them
+  +--------------------------------+
+                  | NO  <- they tie
+                  v
+  +--------------------------------+           `}<b className="t-win">ONE POSTGRES</b>{`
+  |  IS EVERY WALL UNDER 25%, AND  | -- YES -> the simplest machine
+  |  THE SIMPLEST TIE <= 8 SHARDS? |           in the tie band
+  +--------------------------------+
+                  | NO
+                  v
+  +----------------------------------------------------------+
+  |  `}<b className="t-win">FEWEST SHARDS WINS -- 19 BEATS 1,342</b>{`                    |
+  |  The question stops being which engine is faster.        |
+  |  It is now who runs the split: a ring that rebalances    |
+  |  itself, or a thousand primaries that you do.            |
+  +----------------------------------------------------------+`}
+          </pre>
+          <p>
+            The last box is the one this page argues hardest for. Two stores can bind on the same
+            wall at the same percentage and still cut the same rows into <b>19 pieces or 1,342</b> —
+            a B-tree taking random ids has to shard until each node’s slice fits its RAM, and an
+            LSM never does. Slack pays the first bill, Discord the second, for the same chat
+            workload. Nothing about that gap is visible in a utilisation percentage, which is why
+            it is the tie-break rather than a footnote.
+          </p>
+
           <h4>How the ceilings are computed</h4>
           <p>
             The arithmetic is a separate module the page only renders — how it is tested is stated

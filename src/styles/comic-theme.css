@@ -262,6 +262,17 @@
 .dd-page[class] .calc-formulas code {
   font-family: var(--gnf-mono); font-size: 11.5px; background: var(--panel-2); padding: 1px 5px;
 }
+/* the store-decision flow chart. 67 columns wide, so it scrolls inside its own
+   box rather than pushing the page sideways on a phone. Two accents only:
+   terra for the terminal that rules a store out, denim for the three that
+   name a winner. */
+.dd-page[class] .calc-tree {
+  font-family: var(--gnf-mono); font-size: 11px; line-height: 1.5; white-space: pre;
+  color: var(--ink-2); background: var(--panel-2); border: 1px solid var(--line);
+  padding: 12px 14px; margin: 10px 0 6px; overflow-x: auto;
+}
+.dd-page[class] .calc-tree .t-out { color: #97462a; }
+.dd-page[class] .calc-tree .t-win { color: #29456c; }
 .dd-page[class] .calc-help-b .tbl td.ok { color: #2f6b46; font-family: var(--gnf-mono); font-size: 11.5px; }
 .dd-page[class] .calc-help-b .tbl td.warn { color: #97462a; font-family: var(--gnf-mono); font-size: 11.5px; }
 .dd-page[class] .calc-src { font-size: 12.5px; color: var(--muted); margin-top: 12px; }
