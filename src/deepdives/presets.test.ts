@@ -11,6 +11,7 @@ import {
   ANALYTICS,
   ACCESS,
   RECENCY,
+  KEY_SHAPE,
 } from './calcModel'
 import type { Req, Vals } from './calcModel'
 
@@ -53,6 +54,7 @@ describe('the presets tour the whole table', () => {
     check('analytics', ANALYTICS)
     check('access', ACCESS)
     check('recency', RECENCY)
+    check('keyShape', KEY_SHAPE)
     expect(missing).toEqual([])
   })
 
@@ -87,13 +89,14 @@ describe('the stores that can never win say so', () => {
           for (const an of ANALYTICS)
             for (const acc of ACCESS)
               for (const rec of RECENCY)
-                for (const sc of SCALES)
-                  won.add(
-                    winnerFor(
-                      { ...INIT, ...sc.s },
-                      { fresh: fresh.id, txn: txn.id, loss: loss.id, analytics: an.id, access: acc.id, recency: rec.id },
-                    ),
-                  )
+                for (const ks of KEY_SHAPE)
+                  for (const sc of SCALES)
+                    won.add(
+                      winnerFor(
+                        { ...INIT, ...sc.s },
+                        { fresh: fresh.id, txn: txn.id, loss: loss.id, analytics: an.id, access: acc.id, recency: rec.id, keyShape: ks.id },
+                      ),
+                    )
     return won
   }
 

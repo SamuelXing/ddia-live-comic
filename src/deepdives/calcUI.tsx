@@ -69,7 +69,7 @@ export function Slider({ inp, value, set }: { inp: Inp; value: number; set: (n: 
   )
 }
 
-export function Ctl({ label, info, hint, children, val }: { label: string; info?: string; hint: string; children: ReactNode; val?: string }) {
+export function Ctl({ label, info, hint, children, val }: { label: ReactNode; info?: string; hint: string; children: ReactNode; val?: string }) {
   return (
     <div className="ctl">
       <div className="ctl-top">

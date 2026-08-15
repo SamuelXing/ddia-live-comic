@@ -13,7 +13,7 @@ import { model, consequences, INIT, L, HW, PRESETS, type Req, type Vals } from '
    constants (group commit, hit rates) and everything the page itself says
    it will not tell you (hot keys, tail latency, multi-DC, cost). */
 
-const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' }
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'monotonic' }
 const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
 
 const close = (actual: number, expected: number, tol = 1e-3) => {
@@ -209,13 +209,20 @@ describe('Discord — messages on a wide-column ring (Discord Engineering, 2017 
   it('range reads inside a partition pick the wide-column ring, at Discord scale', () => {
     const { m } = build(2e8, 'range')
     expect(m.engineWin).toBe('wide')
-    // it wins on headroom, not on the binding ceiling: reads bind both stores
-    // equally once neither pays a point-lookup penalty, and the LSM's ×1 write
-    // amplification leaves it far more room on the other axis
+    /* It wins on headroom, not on the binding ceiling: reads bind both stores
+       equally once neither pays a point-lookup penalty, and the LSM's ×1 write
+       amplification leaves it far more room on the other axis.
+
+       Compared against SHARDED relational, not single-primary. Single-primary
+       is disqualified at this scale for needing shards at all, and — since a
+       channel id scatters inserts — it is also the one store here that cannot
+       escape the buffer-pool cliff by splitting, so its binding wall is a
+       different wall entirely. The store this comparison is about is the one
+       Slack actually operates. */
     const wide = m.eCols.find((c) => c.id === 'wide')!
-    const sql = m.eCols.find((c) => c.id === 'sql')!
-    close(wide.worst, sql.worst)
-    expect(wide.next).toBeLessThan(sql.next)
+    const shard = m.eCols.find((c) => c.id === 'sqlShard')!
+    close(wide.worst, shard.worst)
+    expect(wide.next).toBeLessThan(shard.next)
   })
 
   it('and at the smaller scale where Discord actually made the move', () => {
@@ -290,7 +297,7 @@ describe('Netflix — throughput per node stays flat as the cluster grows (2011 
     const b = model({ ...base, dau: 2e8 }, REQ)
     close(b.peakWrites / a.peakWrites, 2)
     // per-shard write load stays within a rounding step of itself
-    const perShard = (m: ReturnType<typeof model>) => m.dbWrites / m.shardsNeeded
+    const perShard = (m: ReturnType<typeof model>) => m.dbWrites / m.eCols.find((c) => c.id === m.engineWin)!.shards
     expect(Math.abs(perShard(b) - perShard(a)) / perShard(a)).toBeLessThan(0.1)
   })
   it('the measured 11k writes/s per node sits inside our per-primary band', () => {

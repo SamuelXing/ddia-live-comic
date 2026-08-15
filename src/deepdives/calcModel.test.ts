@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  model, consequences, outcome, sensitivity, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
-  type Req, type Vals,
+  model, consequences, outcome, sensitivity, inertRequirements, INIT, PRESETS, WORKLOAD, DERIVED_INP, HW, STORES, POINTER_BYTES,
+  TUNING, THRESHOLDS, L, storeConstants,
+  type Req, type Vals, type Tuning,
 } from './calcModel'
 
 /* Every expected value in this file is computed BY HAND in the comment above
@@ -10,7 +11,7 @@ import {
    right, the model is wrong. This tool recommends real infrastructure — a
    silently wrong number here is the most expensive kind of bug we can ship. */
 
-const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' }
+const REQ: Req = { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'monotonic' }
 const vals = (over: Vals = {}): Vals => ({ ...INIT, ...over })
 const req = (over: Partial<Req> = {}): Req => ({ ...REQ, ...over })
 
@@ -194,6 +195,295 @@ describe('engine: each column is judged on the load that REACHES it', () => {
   })
 })
 
+describe('when nothing binds, the simplest machine wins', () => {
+  /* REGRESSION (user-reported): the chat preset recommended a wide-column ring
+     at EVERY size on the ladder, down to 10,000 daily users — where every
+     surviving store sits at 0.04% of its binding ceiling and one machine holds
+     the whole dataset. Five stores tied, and the tie-break handed it to the
+     ring on headroom nobody was going to need.
+
+     Headroom is a real tie-break when the load is real. When no ceiling is
+     under pressure and the data fits without splitting, the arithmetic has
+     separated nothing, and answering "run a Cassandra ring" to a chat app with
+     ten thousand users is not a trade-off — it is a wrong answer with a
+     confident percentage next to it. */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const at = (dau: number) => model({ ...INIT, ...chat.sets, dau }, chat.req)
+
+  it('a chat app with 10,000 users gets one Postgres', () => {
+    const m = at(1e4)
+    // every candidate at 0.04% of its wall, and no store needs more than one machine
+    expect(Math.max(...m.eCols.map((c) => c.shards))).toBe(1)
+    expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.05)
+    expect(m.engineWin).toBe('sql')
+  })
+
+  it('and the ring still wins where Discord actually moved', () => {
+    // 20M daily users: the B-tree needs 1,342 shards to keep scattered inserts
+    // in the buffer pool; the ring needs 19 nodes for the same rows. Nothing
+    // about that is "nothing binds" — who runs the split is the whole question,
+    // and 1,342 against 19 is that question stated as a number.
+    const m = at(2e7)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(19)
+    expect(m.engineWin).toBe('wide')
+  })
+
+  it('the rule is an AND: quiet ceilings do not excuse 336 shards', () => {
+    /* 5M daily users on the chat preset. Every ceiling is quiet — 21.7% is the
+       worst any survivor sees — but a B-tree taking scattered inserts needs 336
+       shards to stay in the buffer pool (4.608e13 B ÷ 1.37439e11 = 335.3 → 336),
+       where the ring needs 5 for the same rows. "Simple" is not the word for
+       336 hand-managed primaries, so the simplicity rule stays off and the
+       store with the smaller split keeps the win. */
+    const m = at(5e6)
+    expect(Math.max(...m.eCols.filter((c) => !c.dq).map((c) => c.worst))).toBeLessThan(0.25)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(336)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(5)
+    expect(m.engineWin).toBe('wide')
+  })
+})
+
+describe('a full scan gets a price, not just a recommendation', () => {
+  /* "Someone will also analyse this" was a bare boolean: it added the columnar
+     copy to the component list and named no number, while the number that
+     justifies it — how long one pass over the data takes — sat computed in the
+     ceilings table with nothing pointing at it. */
+  it('one pass over the rows, as a share of one node’s sequential day', () => {
+    const v = vals()
+    const m = model(v, req({ analytics: 'yes' }))
+    // 1.10592e14 B ÷ 8 GiB/s (8.58993e9 B/s) = 12,874.6 s
+    close(m.scanSeconds, 12874.6)
+    // ÷ 86,400 s in a day = 14.9% of one node doing nothing else
+    const c = consequences(v, req({ analytics: 'yes' }), m, false)
+    close(c.scanDayShare, 0.149012)
+  })
+})
+
+describe('the page can say which requirements are deciding nothing right now', () => {
+  /* Not "exclude impossible combinations" — none are impossible, and a test
+     above sweeps all 128 to prove the candidate list never empties. The useful
+     thing is the opposite: name the controls that have gone quiet, and let the
+     reader see WHY they went quiet. */
+
+  it('cross-key atomicity silences the read shape — it already removed everyone it would have moved', () => {
+    // 'multi' eliminates document, wide-column, columnar and in-memory. The two
+    // relational survivors read at ×1 whether the query is a point or a range,
+    // so the access picker has nothing left to change.
+    const v = vals()
+    expect(inertRequirements(v, req({ txn: 'multi' }))).toContain('access')
+    expect(inertRequirements(v, req({ txn: 'single' }))).not.toContain('access')
+  })
+
+  it('key shape is quiet until a node holds more rows than it has RAM', () => {
+    const small = vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 })
+    expect(model(small, req()).ramHosts).toBe(1)
+    expect(inertRequirements(small, req())).toContain('keyShape')
+    // and speaks up once the data is past that line
+    expect(inertRequirements(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req())).not.toContain('keyShape')
+  })
+
+  it('narrowing the field counts, even when the winner is unchanged', () => {
+    /* At defaults the answer is sharded SQL whether or not writes span keys —
+       but "atomic across keys" still eliminates the document store, the ring,
+       the columnar store and the in-memory one. An earlier signature looked
+       only at the winner and reported this requirement as deciding nothing,
+       one row above a comparison table it had just cut in half. */
+    const v = vals()
+    expect(inertRequirements(v, req({ txn: 'multi' }))).not.toContain('txn')
+    expect(model(v, req({ txn: 'multi' })).eCols.filter((c) => !c.dq).length).toBeLessThan(
+      model(v, req({ txn: 'single' })).eCols.filter((c) => !c.dq).length,
+    )
+  })
+
+  it('never reports a requirement inert that is visibly doing something', () => {
+    // freshness always picks the transport, at every size — it can never be quiet
+    for (const v of [vals({ dau: 1e4 }), vals(), vals({ dau: 5e8 })])
+      expect(inertRequirements(v, req())).not.toContain('fresh')
+  })
+})
+
+describe('“must be current” puts the cache on the write path — and pays for it', () => {
+  /* The page has always SAID this: an asynchronous copy cannot answer a read
+     that must reflect the write that just happened, so the only safe cache is
+     one every write updates or invalidates. It just never charged for it —
+     `cacheNodes` was sized from reads alone, so the sentence was true and the
+     arithmetic beside it was not. */
+
+  // 500M DAU × 20/day, 50/50 split, no fan-out: 347,222/s peak, half each way.
+  // readSide = 173,611/s (no deliveries). writeUtil = 173,611 ÷ 26,667 = 6.5,
+  // so the log is forced and the store sees 173,611 ÷ 3 = 57,870/s sustained.
+  const v = vals({ dau: 5e8, readPct: 50, fanout: 0 })
+  const stale = model(v, req({ recency: 'stale' }))
+  const current = model(v, req({ recency: 'current' }))
+
+  it('a stale-tolerant cache absorbs reads only', () => {
+    close(stale.readSide, 173611.1)
+    close(stale.dbWrites, 57870.37)
+    const c = consequences(v, req({ recency: 'stale' }), stale, false)
+    // 173,611.1 ÷ 100,000 per core = 1.736 → 2 nodes
+    close(c.cacheOps, 173611.1)
+    expect(c.cacheNodes).toBe(2)
+  })
+
+  it('a current cache absorbs reads AND writes, and that costs a node', () => {
+    const c = consequences(v, req({ recency: 'current' }), current, false)
+    expect(current.cacheOnWritePath).toBe(true)
+    // (173,611.1 + 57,870.4) ÷ 100,000 = 2.315 → 3 nodes
+    close(c.cacheOps, 231481.5)
+    expect(c.cacheNodes).toBe(3)
+  })
+
+  it('the requirement is no longer inert: it moves a number, not just a sentence', () => {
+    const a = consequences(v, req({ recency: 'stale' }), stale, false)
+    const b = consequences(v, req({ recency: 'current' }), current, false)
+    expect(b.cacheOps).toBeGreaterThan(a.cacheOps)
+    expect(b.cacheNodes).toBeGreaterThan(a.cacheNodes)
+  })
+})
+
+/* THE BUFFER-POOL CLIFF.
+   A B-tree writes the row where it belongs, so it must first READ the leaf page
+   that position sits on. Two things have to be true for that read to cost a
+   disk seek: the insert point has to be somewhere unpredictable (a random id,
+   a hash), AND a node's slice of the data has to have outgrown its RAM. Miss
+   either and the page is already in the buffer pool and the read is free —
+   which is why a B-tree feels fine for years and then does not.
+
+   Both conditions are load-bearing, and the second test below is the one that
+   keeps the model honest: without the key-shape condition every dataset larger
+   than RAM would charge the penalty, and this page would answer "LSM" to
+   everything — which it did, in a first attempt at this. */
+describe('the buffer-pool cliff: when an insert has to seek before it can write', () => {
+  /* 50M DAU × 20/day, 10% reads, no fan-out, 5 KB writes — the same workload as
+     "moderate ingest" above, which stays on sharded SQL with an ordered key. */
+  const heavy = (over: Partial<Req> = {}) =>
+    model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req({ keyShape: 'scattered', ...over }))
+
+  it('a scattered key past RAM does not change the engine — it explodes the shard count', () => {
+    const m = heavy()
+    // 9e8 writes/day × 5,120 B × 30 × 12 = 1.65888e15 B; ÷ 10 TB = 166 shards
+    // is all the DISK asks for. RAM asks for far more: ÷ 1.37439e11 = 12,069.94
+    close(m.dbStorage, 1.65888e15)
+    expect(m.storageShards).toBe(166)
+    expect(m.ramHosts).toBe(12070)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(12070)
+    // the ring never pays the RAM split: 166 pieces is the whole bill
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(166)
+    // behind the forced log: 31,250 ÷ 3 = 10,416.7 writes/s sustained
+    close(m.dbWrites, 10416.667)
+
+    /* THE ACTUAL BILL. A B-tree can keep scattered inserts cheap — by splitting
+       until a node's slice is back inside its RAM. That is 73x more shards than
+       the disk alone needed, and it is a real operational choice, not a
+       theoretical one: it is what Slack runs. The tool's job is to print the
+       number, not to hide it inside a utilisation percentage. */
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    close(bt.nodeBytes, 1.3743828e11)
+    expect(bt.nodeBytes).toBeLessThanOrEqual(m.ramBytes)
+    expect(bt.poolMisses).toBe(0)
+    // so per node it is the same machine as before: reads 3,472.2 ÷ 80,000 = 4.34%,
+    // write stream 10,416.7 × 5,120 × 3 ÷ 3.2212e9 = 4.97%
+    close(bt.rU, 0.043403)
+    close(bt.bwU, 0.049671)
+    expect(m.engineWin).toBe('sqlShard')
+
+    /* The store that CANNOT split is the one that eats the seek. Single-primary
+       SQL is already disqualified here for needing shards at all — but the
+       column still has to report an honest number beside the disqualification,
+       and "one random read per insert" is that number. */
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    expect(one.dq).not.toBeNull()
+    close(one.poolMisses, 10416.667)
+    // (3,472.2 × 1 + 10,416.7) ÷ 80,000 = 17.36%, and the seeks outweigh the reads
+    close(one.rU, 0.173611)
+    expect(one.worstName).toBe('the buffer-pool cliff')
+
+    // the LSM is charged nothing at any size: it appends to a sorted buffer and
+    // places the row later, in compaction
+    expect(m.eCols.find((c) => c.id === 'wide')!.poolMisses).toBe(0)
+  })
+
+  it('the SAME workload with an ordered key never leaves the buffer pool', () => {
+    // Time-ordered ids (UUIDv7, Snowflake, an auto-increment) insert at the
+    // right-hand edge of the tree. That leaf page is the one page guaranteed to
+    // be resident, so the read costs nothing however large the dataset gets.
+    const m = model(vals({ readPct: 10, fanout: 0, writeSize: 5 }), req({ keyShape: 'monotonic' }))
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    expect(bt.poolMisses).toBe(0)
+    // back to reads alone: 3,472.2 ÷ 80,000 = 4.34%, under the 4.97% write stream
+    close(bt.rU, 0.043403)
+    expect(bt.worstName).toBe('the write stream')
+    expect(m.engineWin).toBe('sqlShard')
+  })
+
+  it('a scattered key under RAM is free too — this is what retention buys you', () => {
+    // 100k DAU × 20/day, 1 KB writes, 1 month kept: 1.8e6 writes/day × 1,024 B
+    // × 30 = 5.5296e10 B, inside one node's 1.37439e11 B of RAM.
+    // A workflow store that garbage-collects finished runs lives here, which is
+    // why random UUID keys cost it nothing.
+    const m = model(
+      vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 }),
+      req({ keyShape: 'scattered' }),
+    )
+    close(m.dbStorage, 5.5296e10)
+    expect(m.storageShards).toBe(1)
+    const bt = m.eCols.find((c) => c.id === 'sql')!
+    close(bt.nodeBytes, 5.5296e10)
+    expect(bt.poolMisses).toBe(0)
+    expect(m.engineWin).toBe('sql')
+  })
+
+  it('the reason named for the shard count is the reason that actually won', () => {
+    /* The page prints the shard count and the division that produced it side by
+       side; that pairing IS the product. A count of 1,342 next to arithmetic
+       yielding 19 is worse than printing no arithmetic at all, and adding the
+       memory reason without adding its name to `shardBy` did exactly that on
+       five of the seven presets before this test existed. */
+    for (const p of PRESETS) {
+      const v = { ...INIT, ...p.sets }
+      const m = model(v, p.req)
+      const c = consequences(v, p.req, m, true)
+      const win = m.eCols.find((x) => x.id === m.engineWin)!
+      const claimed =
+        c.shardBy === 'memory' ? win.ramShards
+        : c.shardBy === 'storage' ? m.storageShards
+        : c.shardBy === 'writes' ? m.writeShardsNeeded
+        : Math.max(m.storageShards, m.writeShardsNeeded)
+      expect(claimed, `${p.id} says it shards by ${c.shardBy}, which yields ${claimed}, not ${c.shards}`).toBe(c.shards)
+    }
+  })
+
+  it('the binding-wall utilisation is reproducible from reads plus insert seeks', () => {
+    // the same invariant one level down: rU has to be exactly what wallOf prints
+    const m = heavy()
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    close((one.colReads * 1 + one.poolMisses) / m.diskReadCeiling, one.rU)
+  })
+
+  it('below one node of RAM the key shape decides NOTHING — it is scale-gated', () => {
+    /* The rule a reader must not walk away with is "scattered ids mean LSM".
+       The cliff has a precondition, and under it the leaf page is in the buffer
+       pool whatever the id looks like — so this field is inert, and the page
+       has to be able to say so rather than implying a choice that is not live
+       yet. 100k DAU, 1 KB rows, one month kept = 55 GB, inside 128 GB. */
+    const v = vals({ dau: 1e5, readPct: 10, fanout: 0, writeSize: 1, retention: 1 })
+    const a = model(v, req({ keyShape: 'monotonic' }))
+    const b = model(v, req({ keyShape: 'scattered' }))
+    expect(a.ramHosts).toBe(1)
+    expect(b.engineWin).toBe(a.engineWin)
+    expect(b.eCols.map((c) => c.shards)).toEqual(a.eCols.map((c) => c.shards))
+    expect(b.eCols.every((c, i) => c.poolMisses === a.eCols[i].poolMisses && c.poolMisses === 0)).toBe(true)
+  })
+
+  it('every preset states a key shape, and the ordered default keeps old answers', () => {
+    /* The dimension is new; the presets are the record of what this page used
+       to answer. Any preset that flips has to flip because someone decided its
+       ids are scattered — never because the field defaulted to something. */
+    for (const p of PRESETS) expect(p.req.keyShape, `${p.id} has no keyShape`).toBeTruthy()
+  })
+})
+
 describe('the chain: forced additions transform downstream load', () => {
   it('defaults: cache and CDN fire; misses and origin egress are the residuals', () => {
     const m = model(vals(), req())
@@ -335,7 +625,7 @@ describe('the storage decision is decomposed, and each dimension filters', () =>
     // the disqualification is load-driven, not a blanket ban: shrink the data
     // until one machine holds it and the simplest store comes back
     const m = model(vals({ dau: 1e5, retention: 1 }), req())
-    expect(m.shardsNeeded).toBe(1)
+    expect(Math.max(...m.eCols.map((c) => c.shards))).toBe(1)
     expect(m.eCols.find((c) => c.id === 'sql')!.dq).toBeNull()
     expect(m.engineWin).toBe('sql')
   })
@@ -411,10 +701,20 @@ describe('sensitivity: which assumption is load-bearing', () => {
     const before = JSON.stringify(outcome(v, req()))
     const flips = sensitivity(v, req())
     expect(flips.length).toBeGreaterThan(0)
+    /* Two kinds of constant now get swept — the hardware sliders the reader
+       can see, and the thresholds the model used to hide. Both have to be
+       re-derivable from the flip alone, because a reported flip that does not
+       reproduce is worse than no sweep at all. */
     for (const f of flips) {
-      const h = HW.find((x) => x.id === f.id)!
-      const i = h.steps.indexOf(v[f.id])
-      const after = outcome({ ...v, [f.id]: h.steps[f.dir === 'up' ? i + 1 : i - 1] }, req())
+      const h = HW.find((x) => x.id === f.id)
+      const t = THRESHOLDS.find((x) => x.k === f.id)
+      expect(h || t, `${f.id} is reported but belongs to neither table`).toBeTruthy()
+      const after = h
+        ? outcome({ ...v, [f.id]: h.steps[h.steps.indexOf(v[f.id]) + (f.dir === 'up' ? 1 : -1)] }, req())
+        : outcome(v, req(), {
+            ...TUNING,
+            [t!.k]: t!.steps[t!.steps.indexOf(TUNING[t!.k]) + (f.dir === 'up' ? 1 : -1)],
+          })
       expect(JSON.stringify(after), `${f.label} ${f.dir}`).not.toBe(before)
     }
   })
@@ -473,7 +773,7 @@ describe('a column is a thing you could install', () => {
    It cannot happen today. The reason is worth writing down, because it is an
    accident rather than a design: NO filter is written to keep a store alive,
    and sharded SQL survives all of them only as a side effect of its own
-   capabilities. Six requirements, two options each, so 64 combinations —
+   capabilities. Seven requirements, two options each, so 128 combinations —
    small enough to simply try all of them rather than argue about it. */
 describe('the candidate list can never empty', () => {
   const OPTS = {
@@ -483,6 +783,7 @@ describe('the candidate list can never empty', () => {
     analytics: ['no', 'yes'],
     access: ['point', 'range'],
     recency: ['stale', 'current'],
+    keyShape: ['monotonic', 'scattered'],
   }
 
   const COMBOS: Req[] = []
@@ -492,7 +793,8 @@ describe('the candidate list can never empty', () => {
         for (const analytics of OPTS.analytics)
           for (const access of OPTS.access)
             for (const recency of OPTS.recency)
-              COMBOS.push({ fresh, txn, loss, analytics, access, recency })
+              for (const keyShape of OPTS.keyShape)
+                COMBOS.push({ fresh, txn, loss, analytics, access, recency, keyShape })
 
   /* Two of the five disqualifications are load-dependent, not requirement-
      dependent — the in-memory RAM check and the single-primary shard check —
@@ -505,7 +807,7 @@ describe('the candidate list can never empty', () => {
   ]
 
   it('every requirement combination, at every scale, leaves a store standing', () => {
-    expect(COMBOS.length).toBe(64)
+    expect(COMBOS.length).toBe(128)
     SCALES.forEach((s) =>
       COMBOS.forEach((r) => {
         const m = model(s.v, r)
@@ -527,5 +829,284 @@ describe('the candidate list can never empty', () => {
       SCALES.every((s) => COMBOS.every((r) => !model(s.v, r).eCols.find((c) => c.id === st.id)!.dq)),
     ).map((st) => st.id)
     expect(universal).toContain('sqlShard')
+  })
+})
+
+describe('the shard bill is per store — the actual Slack-vs-Discord number', () => {
+  /* USER-REPORTED, the second half of it. A probe of all 896 preset×requirement
+     combinations shows sharded SQL is never disqualified — everything on this
+     page can, in fact, scale on sharded Postgres, which is what Slack, Notion
+     and Instagram did. So when the ring "wins" a tie, the page owes the reader
+     the number that actually separates the two, and it is not a utilisation
+     percentage: it is HOW MANY PIECES each engine needs the data cut into.
+     A B-tree taking scattered inserts must shard until a node's slice fits its
+     RAM; an LSM only ever shards for disk. One global `shardsNeeded` charged
+     the B-tree's split to every column — the page said "1,342 shards" while
+     recommending a ring that needs 19 nodes. */
+  const chat = PRESETS.find((p) => p.id === 'chat')!
+  const v = { ...INIT, ...chat.sets }
+  const m = model(v, chat.req)
+
+  it('chat at 20M: the B-tree needs 1,342 shards, the ring needs 19 nodes', () => {
+    // 5e8 writes/day × 1,024 B × 30 × 12 = 1.8432e14 B of rows.
+    // RAM: ÷ 1.37438953472e11 (128 GB) = 1,341.2 → 1,342 (scattered inserts
+    // must keep the leaf page resident). Disk: ÷ 1e13 (10 TB) = 18.4 → 19.
+    close(m.dbStorage, 1.8432e14)
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.shards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.shards).toBe(19)
+    // the ordered-id stores never pay the RAM split — only storage and rate
+    expect(m.eCols.find((c) => c.id === 'sqlShard')!.ramShards).toBe(1342)
+    expect(m.eCols.find((c) => c.id === 'wide')!.ramShards).toBe(1)
+  })
+
+  it('the tie is decided by the split, and the page can say so', () => {
+    // Both bind on read pressure at the same 8.68%: misses 6,944.4/s × ×1
+    // ÷ 80,000/s. Throughput separates nothing.
+    const bt = m.eCols.find((c) => c.id === 'sqlShard')!
+    const ring = m.eCols.find((c) => c.id === 'wide')!
+    close(bt.worst, 0.086806)
+    close(ring.worst, 0.086806)
+    expect(m.engineTie).toContain('sqlShard')
+    // the winner is the store that needs 19 pieces, not 1,342
+    expect(m.engineWin).toBe('wide')
+  })
+
+  it('consequences bill the CHOSEN store, not a global maximum', () => {
+    // choose the ring (the winner): 19 shards, split for storage
+    const ring = consequences(v, chat.req, m, true)
+    expect(ring.shards).toBe(19)
+    expect(ring.shardBy).toBe('storage')
+    // pin sharded SQL instead: 1,342 shards, split to stay inside RAM
+    const bt = consequences(v, chat.req, m, true, 'sqlShard')
+    expect(bt.shards).toBe(1342)
+    expect(bt.shardBy).toBe('memory')
+  })
+
+  it('with an ordered key the bill is the same for every survivor', () => {
+    // ingest preset forced monotonic: no store pays a RAM split, so the only
+    // reasons left — data size and write rate — are store-independent
+    const ingest = PRESETS.find((p) => p.id === 'ingest')!
+    const mono = model({ ...INIT, ...ingest.sets }, { ...ingest.req, keyShape: 'monotonic' })
+    const counts = new Set(mono.eCols.filter((c) => !c.dq && c.id !== 'mem').map((c) => c.shards))
+    expect(counts.size).toBe(1)
+  })
+
+  it("single-primary SQL's obituary names the division that actually killed it", () => {
+    /* Pre-existing bug, found while building this: the dq said "needs 1,342
+       shards" while its `how` printed the STORAGE division — 184 TB ÷ 10 TB,
+       which yields 19. The pairing of claim and arithmetic is the product. */
+    const one = m.eCols.find((c) => c.id === 'sql')!
+    expect(one.dq).toContain('1,342')
+    expect(one.dqHow).toContain('RAM')
+  })
+})
+
+describe('the thresholds are constants too, and now they are visible ones', () => {
+  /* USER-REPORTED, and a fair hit: the decision figure prints "5%", "25%" and
+     "8 shards", and a reader asked where those came from. They came from us.
+     They sat inline in model() as bare numbers while the page ran a panel
+     arguing that a reader is entitled to see the constants that picked their
+     database — and two of the three were added the same week that panel
+     shipped. These tests hold the fix in place: every threshold is named,
+     swept, and carries a measured claim about how much it is worth. */
+
+  it('every knob in TUNING is described in THRESHOLDS — no invisible constants', () => {
+    /* The guard that matters. Adding a bare number to model() is easy; adding
+       one that never reaches the reader is the failure this whole exercise is
+       about, so the type-level key set has to match the display table. */
+    expect(THRESHOLDS.map((t) => t.k).sort()).toEqual((Object.keys(TUNING) as (keyof Tuning)[]).sort())
+    for (const t of THRESHOLDS) {
+      expect(t.steps, `${t.k} steps must contain its shipped value`).toContain(TUNING[t.k])
+      expect(t.note.length, `${t.k} needs a note worth reading`).toBeGreaterThan(80)
+      expect(t.decides.length, `${t.k} must say what it decides`).toBeGreaterThan(20)
+    }
+  })
+
+  it('the shipped defaults are exactly what the figure and the copy claim', () => {
+    // the decision tree prints these three; if one moves, the drawing lies
+    expect(TUNING.tieBand).toBe(0.05)
+    expect(TUNING.quietFloor).toBe(0.25)
+    expect(TUNING.simpleShards).toBe(8)
+  })
+
+  /* One sweep, reused by the three claims below. 7 presets x 15 DAU rungs x
+     3 activity levels x 3 retentions — wide enough that a threshold moving
+     nothing across it is a real finding rather than a lucky sample. */
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const flipsWhen = (over: Partial<Tuning>) =>
+    CASES.filter((c) => model(c.v, c.req).engineWin !== model(c.v, c.req, { ...TUNING, ...over }).engineWin).length
+
+  it('the tie band decides nothing anywhere between 0% and 10%', () => {
+    /* Structural, not lucky: the stores that tie share their amplification
+       constants exactly — sharded SQL and the document store are both ×3/×1,
+       and on a range read the ring and the columnar store are both ×1 — so
+       the gap between tied stores is either zero or large. There is nothing
+       in the 0–10% range for this number to land in. */
+    expect(CASES.length).toBe(945)
+    for (const tieBand of [0, 0.01, 0.02, 0.1]) expect(flipsWhen({ tieBand }), `tieBand ${tieBand}`).toBe(0)
+    // and it does start mattering eventually, so it is inert rather than dead
+    expect(flipsWhen({ tieBand: 0.2 })).toBeGreaterThan(0)
+  })
+
+  it('the quiet floor has been all but absorbed by the shard floor', () => {
+    // raising it, or removing it entirely, changes not one answer
+    for (const quietFloor of [0.5, 1]) expect(flipsWhen({ quietFloor }), `quietFloor ${quietFloor}`).toBe(0)
+    // lowering it does a little, which is the only reason it still exists
+    expect(flipsWhen({ quietFloor: 0.1 })).toBeGreaterThan(0)
+    expect(flipsWhen({ quietFloor: 0.1 })).toBeLessThan(CASES.length * 0.02)
+  })
+
+  it('the shard floor is the load-bearing half of that rule', () => {
+    // remove it and an eighth of the answers change — this is the number that
+    // actually says "one primary, not a ring"
+    const gone = flipsWhen({ simpleShards: Number.MAX_SAFE_INTEGER })
+    expect(gone).toBeGreaterThan(CASES.length * 0.1)
+    // and it is worth more than either of its companions by a wide margin
+    expect(gone).toBeGreaterThan(flipsWhen({ quietFloor: 0.1 }) * 5)
+  })
+
+  it('the sensitivity sweep now reports a threshold when one is load-bearing', () => {
+    /* The whole point: a reader who nudges nothing should still be told which
+       assumed number their answer is resting on. Before this, the sweep could
+       only see the hardware sliders. */
+    const swept = new Set(
+      PRESETS.flatMap((p) => sensitivity({ ...INIT, ...p.sets }, p.req)).map((f) => f.id),
+    )
+    const names = THRESHOLDS.map((t) => t.k)
+    expect(names.some((n) => swept.has(n)), 'no threshold ever surfaces — the sweep is not wired up').toBe(true)
+    // and every flip a threshold produces must be labelled an assumption
+    for (const p of PRESETS)
+      for (const f of sensitivity({ ...INIT, ...p.sets }, p.req))
+        if ((names as string[]).includes(f.id)) expect(f.src).toBe('assume')
+  })
+
+  it('default tuning reproduces the answers the presets have always given', () => {
+    // the refactor must be a refactor: passing TUNING explicitly and passing
+    // nothing at all have to be the same run
+    for (const p of PRESETS) {
+      const v = { ...INIT, ...p.sets }
+      const a = model(v, p.req)
+      const b = model(v, p.req, TUNING)
+      expect(a.engineWin, p.id).toBe(b.engineWin)
+      expect(a.eCols.map((c) => c.shards), p.id).toEqual(b.eCols.map((c) => c.shards))
+      expect(a.logNeed, p.id).toBe(b.logNeed)
+      expect(a.cacheAbsorbs, p.id).toBe(b.cacheAbsorbs)
+    }
+  })
+})
+
+describe('what each threshold is worth is derived from a sweep, never hand-set', () => {
+  /* USER-REPORTED, twice. The panel first printed three counts per threshold —
+     "one rung down 17, one rung up 16, switched off 126, out of 945" — and the
+     objection was exactly right on both halves: a reader can do nothing with
+     17, and 21 hand-maintained numbers go stale the moment the arithmetic
+     moves, dragging a re-measurement behind every future change.
+
+     So the sweep lives here, where precision belongs, and the page gets the
+     one bit that changes what a reader does. This test DERIVES the label
+     rather than checking a number, which means a model change that turns an
+     inert threshold decisive fails with the word it should have become — one
+     word to fix, not twenty-one numbers to re-measure. */
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const base = CASES.map((c) => outcome(c.v, c.req))
+
+  /** Move a threshold one rung each way and ask what survived the move:
+   *  nothing at all, only the machines around the store, or the store itself. */
+  const derive = (t: (typeof THRESHOLDS)[number]): 'inert' | 'operational' | 'decisive' => {
+    const i = t.steps.indexOf(TUNING[t.k])
+    let any = false
+    for (const j of [i - 1, i + 1]) {
+      if (j < 0 || j >= t.steps.length) continue
+      for (const [n, c] of CASES.entries()) {
+        const o = outcome(c.v, c.req, { ...TUNING, [t.k]: t.steps[j] })
+        if (o.store !== base[n].store) return 'decisive'
+        if (JSON.stringify(o) !== JSON.stringify(base[n])) any = true
+      }
+    }
+    return any ? 'operational' : 'inert'
+  }
+
+  it('every label on the page is the label the sweep produces', () => {
+    for (const t of THRESHOLDS)
+      expect(derive(t), `${t.k} is labelled "${t.worth}" but the sweep says otherwise`).toBe(t.worth)
+  })
+
+  it('all three verdicts are represented, so the labels are telling stores apart', () => {
+    /* A guard against the classification quietly collapsing: if a change to the
+       model made every threshold decisive, each label would still be "correct"
+       and the panel would have stopped saying anything. */
+    expect(new Set(THRESHOLDS.map((t) => t.worth)).size).toBe(3)
+  })
+
+  it('the two claims the notes make in words also hold', () => {
+    // "it has never once changed the recommended store" — at any value, not
+    // just the neighbouring rungs the label is derived from
+    const logAt = THRESHOLDS.find((t) => t.k === 'logAt')!
+    for (const at of [...logAt.steps, 1e9])
+      for (const [n, c] of CASES.entries())
+        expect(outcome(c.v, c.req, { ...TUNING, logAt: at }).store, `logAt ${at}`).toBe(base[n].store)
+    // "relaxing this half alone changes nothing — the shard floor blocks first"
+    for (const [n, c] of CASES.entries())
+      expect(JSON.stringify(outcome(c.v, c.req, { ...TUNING, quietFloor: 1 }))).toBe(JSON.stringify(base[n]))
+  })
+})
+
+describe('the claims the engine-constants panel makes in prose', () => {
+  /* That panel once quoted three hand-measured percentages and one absolute:
+     "key shape changes the engine in 10.7%, and never across engine families."
+     By the time a reader challenged it every part was wrong — the buffer-pool
+     cliff and the per-store shard bill had handed key shape exactly the power
+     that sentence denied it — and nothing failed, because a measurement
+     quoted in prose is accountable to nobody.
+
+     What the panel says now is mechanism, which does not rot. These are the
+     two claims it makes, and if the model ever contradicts one, this fails
+     with the sentence that needs rewriting rather than letting the page go on
+     asserting it. */
+  const FAMILY: Record<string, string> = {
+    sql: 'relational', sqlShard: 'relational', doc: 'document',
+    wide: 'ring', col: 'columnar', mem: 'memory',
+  }
+  const CASES = PRESETS.flatMap((p) =>
+    L.count.flatMap((dau) =>
+      [5, 50, 200].flatMap((actions) =>
+        [1, 12, 60].map((retention) => ({ v: { ...INIT, ...p.sets, dau, actions, retention }, req: p.req })),
+      ),
+    ),
+  )
+  const crossesFamilies = (axis: 'access' | 'keyShape', a: string, b: string) =>
+    CASES.some((c) => {
+      const w1 = model(c.v, c.req).engineWin
+      const w2 = model(c.v, { ...c.req, [axis]: c.req[axis] === a ? b : a }).engineWin
+      return FAMILY[w1] !== FAMILY[w2]
+    })
+
+  it('“the whole read-side difference between a B-tree and a ring” is exactly that', () => {
+    const ring = STORES.find((s) => s.id === 'wide')!
+    const btree = STORES.find((s) => s.id === 'sqlShard')!
+    // sweeping a range: indistinguishable, which is why chat ties
+    expect(storeConstants(ring, 'range').readAmp).toBe(storeConstants(btree, 'range').readAmp)
+    // fetching one record: the ring pays twice, and that gap IS the sentence
+    expect(storeConstants(ring, 'point').readAmp).toBe(2 * storeConstants(btree, 'point').readAmp)
+  })
+
+  it('both the read shape and the key shape can move the answer across engine families', () => {
+    /* The second half is the correction. Before the cliff shipped, key shape
+       could only choose between one relational primary and several; the panel
+       said so, in the word "never". It can cross now, and the page says so. */
+    expect(crossesFamilies('access', 'point', 'range'), 'read shape no longer crosses families').toBe(true)
+    expect(crossesFamilies('keyShape', 'monotonic', 'scattered'), 'key shape no longer crosses families').toBe(true)
   })
 })

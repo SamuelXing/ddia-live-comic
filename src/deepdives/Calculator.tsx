@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { fmt } from './format'
 import { Picker, Info, Num, Slider, Ctl } from './calcUI'
+import { StoreDecisionTree } from './decisionTree'
 import {
   WORKLOAD,
   DERIVED_INP,
@@ -14,11 +15,18 @@ import {
   ANALYTICS,
   ACCESS,
   RECENCY,
+  KEY_SHAPE,
   PROTOCOLS,
   STORES,
   PRESETS,
   INIT,
   storeConstants,
+  inertRequirements,
+  ENGINE_CONSTANTS,
+  THRESHOLDS,
+  TUNING,
+  SWEEP,
+  WORTH_LABEL,
   model,
   consequences,
   sensitivity,
@@ -143,6 +151,19 @@ const dur = (s: number) =>
 
 /** Every slider on the page, in one list — the same list the URL round-trips. */
 const ALL_INPUTS = [...WORKLOAD, DERIVED_INP, ...HW]
+/** Marks a requirement that currently decides nothing, and says so. The point
+ *  is not to disable it — none of the 128 combinations is illegal — but to
+ *  stop a reader inferring a rule ("scattered ids mean LSM") from a control
+ *  that is not actually live at their size. */
+function Quiet({ on }: { on: boolean }) {
+  if (!on) return null
+  return (
+    <span className="src-a" title="Flipping this changes no engine, no component and no number for the workload as configured">
+      not deciding anything here
+    </span>
+  )
+}
+
 const REQ_PICKS = [
   { key: 'fresh', options: FRESH },
   { key: 'txn', options: TXN },
@@ -150,6 +171,7 @@ const REQ_PICKS = [
   { key: 'analytics', options: ANALYTICS },
   { key: 'access', options: ACCESS },
   { key: 'recency', options: RECENCY },
+  { key: 'keyShape', options: KEY_SHAPE },
 ]
 
 export default function Calculator() {
@@ -161,16 +183,23 @@ export default function Calculator() {
   )
   const [v, setV] = useState<Vals>(() => ({ ...INIT, ...shared.vals }))
   const [showHw, setShowHw] = useState(false)
+  const [showEng, setShowEng] = useState(false)
   const [fresh, setFresh] = useState(shared.picks.fresh ?? 'pull')
   const [txn, setTxn] = useState(shared.picks.txn ?? 'single')
   const [loss, setLoss] = useState(shared.picks.loss ?? 'keep')
   const [analytics, setAnalytics] = useState(shared.picks.analytics ?? 'no')
   const [access, setAccess] = useState(shared.picks.access ?? 'point')
   const [recency, setRecency] = useState(shared.picks.recency ?? 'stale')
+  const [keyShape, setKeyShape] = useState(shared.picks.keyShape ?? 'monotonic')
   const [pinT, setPinT] = useState<string | null>(null)
   const [pinE, setPinE] = useState<string | null>(null)
   const [preset, setPreset] = useState<string | null>(null)
-  const req: Req = { fresh, txn, loss, analytics, access, recency }
+  const req: Req = { fresh, txn, loss, analytics, access, recency, keyShape }
+  /* Which of the seven are currently deciding nothing. Shown rather than
+     hidden: a greyed-out control tells the reader they may not choose; a
+     control that says "nothing turns on this right now, because X" tells them
+     what actually decided it, which is the part worth learning. */
+  const inert = new Set(inertRequirements(v, req))
 
   /* The address bar always describes what is on screen, so "copy the URL"
      works without a button and a shared link is never stale. replaceState, so
@@ -203,6 +232,12 @@ export default function Calculator() {
     setAnalytics(p.req.analytics)
     setAccess(p.req.access)
     setRecency(p.req.recency)
+    /* Forgetting one of these lines is invisible: the preset LOOKS applied —
+       every slider moved — while one requirement quietly keeps its old value.
+       That happened with keyShape: every preset carried it, the model priced
+       it, and no click ever set it, so the buffer-pool cliff never appeared
+       on this page for anyone using the presets. */
+    setKeyShape(p.req.keyShape)
     setPinT(null)
     setPinE(null)
     // reset workload+derived to defaults first so a preset is deterministic,
@@ -221,6 +256,7 @@ export default function Calculator() {
     setAnalytics('no')
     setAccess('point')
     setRecency('stale')
+    setKeyShape('monotonic')
     setPinT(null)
     setPinE(null)
     setPreset(null)
@@ -228,20 +264,21 @@ export default function Calculator() {
   const atDefaults =
     Object.keys(INIT).every((k) => v[k] === INIT[k]) &&
     fresh === 'pull' && txn === 'single' && loss === 'keep' && analytics === 'no' &&
-    access === 'point' && recency === 'stale' && pinT === null && pinE === null
+    access === 'point' && recency === 'stale' && keyShape === 'monotonic' && pinT === null && pinE === null
 
   // ---------- all arithmetic: the pure, unit-tested model ----------
   const m = model(v, req)
   const effT = PROTOCOLS.find((p) => p.id === (pinT ?? m.transportWin))!
   const effE = STORES.find((e) => e.id === (pinE ?? m.engineWin))!
   const winE = STORES.find((e) => e.id === m.engineWin)!
-  const c = consequences(v, req, m, effT.holds)
+  const c = consequences(v, req, m, effT.holds, effE.id)
   /* The counterfactual: the same workload with the store the ARITHMETIC picked.
      Pinning a different survivor changes what the system needs — a store whose
      reads cost twice as much can push the read pressure over the threshold that
-     forces a cache — and the honest thing is to attribute that change to the
-     pick rather than let it appear as if the workload changed. */
-  const cWin = consequences({ ...v, ...storeConstants(winE, access) }, req, m, effT.holds)
+     forces a cache, and the shard bill is per store — and the honest thing is
+     to attribute that change to the pick rather than let it appear as if the
+     workload changed. */
+  const cWin = consequences({ ...v, ...storeConstants(winE, access) }, req, m, effT.holds, winE.id)
   const sens = sensitivity(v, req)
 
   /* Clicking a computed percentage should answer "percent of WHAT" by taking
@@ -328,8 +365,44 @@ export default function Calculator() {
       return { ceil: 'cache', how: `${fmt.compact(m.readSide + m.dbWrites)}/s of ops ÷ ${fmt.compact(m.cacheCeiling)}/s on one core` }
     if (col.worstName === 'the write stream')
       return { ceil: 'stream', how: `${fmt.bytes(col.bw)}/s ÷ ${v.seqWrite} GiB/s sequential` }
-    return { ceil: 'reads', how: `${fmt.compact(col.colReads)}/s${m.cacheAbsorbs ? ' of misses' : ''} × ×${amp} per read ÷ ${fmt.compact(m.diskReadCeiling)}/s` }
+    const reads = `${fmt.compact(col.colReads)}/s${m.cacheAbsorbs ? ' of misses' : ''} × ×${amp} per read`
+    /* Once inserts are seeking, the reads alone no longer reproduce the number
+       on screen — the seeks are the larger half of it, and leaving them out of
+       the division is the one thing this page must never do. */
+    return {
+      ceil: 'reads',
+      how: col.poolMisses > 0
+        ? `(${reads} + ${fmt.compact(col.poolMisses)}/s of insert seeks) ÷ ${fmt.compact(m.diskReadCeiling)}/s`
+        : `${reads} ÷ ${fmt.compact(m.diskReadCeiling)}/s`,
+    }
   }
+
+  /* The shard count is a Math.max over three reasons, and the division printed
+     beside it has to be the one that WON — otherwise the page shows "1,342
+     shards" next to arithmetic that produces 19. Memory is the reason whenever
+     inserts are scattered and a node's slice has outgrown its RAM, and it
+     usually wins by an order of magnitude. */
+  const shardHow = (by: string) =>
+    by === 'memory'
+      ? effE.id === 'mem'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — the dataset lives in RAM, so RAM is the disk`
+        : `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — scattered inserts have to stay in the buffer pool`
+      : by === 'storage'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB per node`
+        : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s`
+
+  /* The same pairing, per COLUMN: each store's shard count next to the division
+     that produced it. This is the number the old global count erased — a B-tree
+     taking scattered inserts splits to fit RAM, the ring splits to fit disk,
+     and the two bills differ by the ~70× between a node's disk and its RAM. */
+  const splitHow = (col: EngineCol) =>
+    col.ramShards >= Math.max(m.storageShards, m.writeShardsNeeded) && col.ramShards > 1
+      ? col.id === 'mem'
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — the dataset lives in RAM`
+        : `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node — its inserts read the leaf page first, so a node's slice must fit its RAM`
+      : m.storageShards >= m.writeShardsNeeded
+        ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB of disk per node`
+        : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s per node`
 
   /** what the load has already become by the time it reaches any store */
   const chain: ReactNode[] = []
@@ -400,12 +473,38 @@ export default function Calculator() {
   } else if (m.engineTie.length > 1) {
     const names = m.engineTie.map(shortOf)
     const joined = names.length === 2 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    /* The number that actually separates a tie: the split each store carries.
+       Chat at 20M DAU is the canonical case — sharded SQL and the ring bind on
+       the same wall at the same 8.7%, and what differs is 1,342 pieces against
+       19. That contrast IS the Slack-vs-Discord decision, and a single global
+       shard count used to erase it from this very sentence. */
+    const tieCols = m.engineTie.map((id) => m.eCols.find((x) => x.id === id)!)
+    const most = tieCols.reduce((a, b) => (b.shards > a.shards ? b : a))
+    const least = tieCols.reduce((a, b) => (b.shards < a.shards ? b : a))
+    /* Spell the contrast out only when the two bills are genuinely different
+       amounts of operational work — 19 ring nodes against 1,342 hand-run
+       primaries. Inside a factor of two it is the same decision twice, and the
+       sentence would be making a fuss about rounding. A display threshold, not
+       a modelling one: it changes what is said, never what is chosen, which is
+       why it lives here and not in TUNING beside the numbers that decide. */
+    const CONTRAST = 2
     so = (
       <>
         {joined} land within 5% of each other, so <b>throughput does not decide this one</b>.{' '}
-        {c.shards > 8 ? (
+        {most.shards > TUNING.simpleShards && most.shards >= least.shards * CONTRAST ? (
           <>
-            At <Num how={c.shardBy === 'storage' ? `${fmt.bytes(m.dbStorage)} ÷ ${v.diskPerNode} TB per node` : `${fmt.compact(m.dbWrites)} writes/s ÷ ${fmt.compact(m.writeCeiling)}/s`} ceil={c.shardBy === 'storage' ? 'data' : 'writes'} jump={jump}>{c.shards} shards</Num>{' '}
+            The split does: {shortOf(most.id)} needs{' '}
+            <Num how={splitHow(most)} ceil="data" jump={jump}>{fmt.int(most.shards)} shards</Num> — its inserts read
+            the leaf page they are about to write, so every node's slice has to fit in RAM — while {shortOf(least.id)}{' '}
+            gets by with <Num how={splitHow(least)} ceil="data" jump={jump}>{fmt.int(least.shards)}</Num>, because its
+            writes never read and only the disk sets the piece size. Both bills are paid in production for exactly
+            this workload: Slack runs the first (MySQL sharded by channel id, thousands of shards behind Vitess),
+            Discord runs the second (a ring of a few dozen nodes that rebalances itself). So the real question is who
+            operates the split — weigh it against the atomicity scope row: what each one stops being able to promise.
+          </>
+        ) : c.shards > TUNING.simpleShards ? (
+          <>
+            At <Num how={shardHow(c.shardBy)} ceil={c.shardBy === 'writes' ? 'writes' : 'data'} jump={jump}>{c.shards} shards</Num>{' '}
             it is decided operationally instead: a ring rebalances itself and hand-sharded primaries do not — you own
             the routing, the rebalancing and the failover, forever. Weigh that against the atomicity scope row: what
             each one stops being able to promise.
@@ -460,12 +559,17 @@ export default function Calculator() {
       {alive.length > 1 && (
         <div className="vd-sec">
           <span className="vd-h">How close each survivor gets to its first wall</span>
+          {/* The split column is per store on purpose — it is the one number in
+              this table that can differ by ~70× between two stores whose
+              utilisations match exactly, and it used to be printed as a single
+              global count, which erased the entire Slack-vs-Discord contrast. */}
           <table className="vd-tbl">
             <thead>
               <tr>
                 <th>Store</th>
                 <th>Its first wall</th>
                 <th>How close</th>
+                <th>The split it needs</th>
                 <th>The division that produced it</th>
               </tr>
             </thead>
@@ -479,6 +583,11 @@ export default function Calculator() {
                     <td>
                       <Num how={w.how} ceil={w.ceil} jump={jump}>
                         {pc(col.worst)}
+                      </Num>
+                    </td>
+                    <td>
+                      <Num how={splitHow(col)} ceil="data" jump={jump}>
+                        {col.shards === 1 ? 'one node' : `${fmt.int(col.shards)} shards`}
                       </Num>
                     </td>
                     <td className="how">{w.how}</td>
@@ -518,7 +627,9 @@ export default function Calculator() {
      changes: how close this particular workload gets to each wall. Without it
      the section looked frozen, and a reader switching presets reasonably
      concluded the page was broken. */
-  const cacheUse = m.readSide / m.cacheCeiling
+  /* the tier is sized from cacheOps, so the utilisation printed beside it has
+     to come from cacheOps too — reads plus writes when reads must be current */
+  const cacheUse = c.cacheOps / m.cacheCeiling
   const ceilings: { id: Ceil; k: string; v: string; use: string; how: string }[] = [
     { id: 'writes', k: 'Durable writes', v: `${fmt.compact(m.writeCeiling)}/s`,
       use: `${fmt.compact(m.peakWrites)}/s at peak · ${pc(m.writeUtil)}`,
@@ -533,7 +644,7 @@ export default function Calculator() {
       use: effE.id === 'mem' ? 'nothing reaches disk — it is all RAM' : `${fmt.bytes(effCol.bw)}/s · ${pc(effCol.bwU)}`,
       how: 'sequential bandwidth, before any fsync' },
     { id: 'cache', k: 'Cache ops', v: `${fmt.compact(m.cacheCeiling)}/s`,
-      use: `${fmt.compact(m.readSide)}/s · ${pc(cacheUse)} → ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
+      use: `${fmt.compact(c.cacheOps)}/s${m.cacheOnWritePath ? ' (reads + writes)' : ''} · ${pc(cacheUse)} → ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
       how: `1 ÷ ${v.cacheOp} µs per op` },
     { id: 'data', k: 'Data it should hold', v: `${v.diskPerNode} TB`,
       use: `${fmt.bytes(m.dbStorage)} of rows · ${m.storageShards} shard${m.storageShards === 1 ? '' : 's'}`,
@@ -640,7 +751,9 @@ export default function Calculator() {
       key: 'cacheNodes',
       need: c.needs.cacheNodes,
       what: 'More than one cache node',
-      number: `${fmt.compact(m.readSide)}/s delivery side ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
+      number: m.cacheOnWritePath
+        ? `(${fmt.compact(m.readSide)}/s of reads + ${fmt.compact(m.dbWrites)}/s of writes) ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'} — the writes are in there because reads must be current, so every write has to update or invalidate the cache in the same breath`
+        : `${fmt.compact(m.readSide)}/s delivery side ÷ ${fmt.compact(m.cacheCeiling)}/s per core = ${c.cacheNodes} node${c.cacheNodes === 1 ? '' : 's'}`,
       trigger: `fires above ${fmt.compact(m.cacheCeiling)}/s of delivery-side work — you are at ${fmt.compact(m.readSide)}/s`,
       because: 'a cache server is effectively single-threaded per shard, so past one core’s worth of operations you are partitioning, not scaling up',
       to: [
@@ -665,13 +778,17 @@ export default function Calculator() {
       need: c.needs.shard,
       what: 'Shard the database',
       number:
-        c.shardBy === 'storage'
-          ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
-          : c.shardBy === 'writes'
-            ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
-            : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
-      trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now) or rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now)`,
-      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
+        c.shardBy === 'memory'
+          ? effE.id === 'mem'
+            ? `${fmt.bytes(m.dbStorage)} ÷ ${v.ram} GB of RAM per node = ${effCol.shards} shards — the dataset lives in RAM, so RAM is the disk`
+            : `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.ram} GB of RAM per node = ${effCol.ramShards} shards. Ids that land anywhere make each insert read the leaf page it is about to write, so the split is sized to keep that page in the buffer pool — ${m.storageShards} shards is all the disk asked for`
+          : c.shardBy === 'storage'
+            ? `${fmt.bytes(m.dbStorage)} of rows ÷ ${v.diskPerNode} TB per node = ${m.storageShards} shards — the write rate alone (${fmt.n1(c.writeUtilAfter * 100)}% of one primary) would never have forced this`
+            : c.shardBy === 'writes'
+              ? `${fmt.compact(m.dbWrites)} writes/s${m.logNeed ? ' sustained, behind the log,' : ''} vs a ${fmt.compact(m.writeCeiling)}/s ceiling (${fmt.n1(c.writeUtilAfter * 100)}% of one primary)`
+              : `two independent reasons: ${fmt.compact(m.dbWrites)} writes/s needs ${c.writeShards} shards, ${fmt.bytes(m.dbStorage)} of rows needs ${m.storageShards} — the larger wins`,
+      trigger: `fires when sustained writes outgrow one primary (${pc(c.writeUtilAfter)} now), rows outgrow ${v.diskPerNode} TB per node (${fmt.bytes(m.dbStorage)} now), or scattered inserts outgrow ${v.ram} GB of RAM per node`,
+      because: `replicas do not help: every replica holds every byte and replays every write. ${c.shardBy === 'memory' ? (effE.id === 'mem' ? 'Here RAM sets the piece size because there is nothing else: the store IS memory, and a shard is one node’s worth of it.' : 'And this split is not for capacity at all: it is to get a node\u2019s slice back inside its RAM, so a B-tree stops paying a disk seek on every insert. It is the alternative to changing engines — Slack shards messages by channel ID across thousands of MySQL shards, the same key Discord handed to a ring.') : c.shardBy === 'storage' ? 'Past some tens of TB, backups and replica rebuilds take longer than anyone can tolerate — data size splits the store even when the write rate never would.' : 'Past one primary the only move left is to split the data.'} ${effE.scale}${isFinite(m.monthsToDouble) ? ` And it is not once: at ${v.growth}%/mo the data doubles every ${Math.round(m.monthsToDouble)} months, so the shard count doubles on the same clock. What differs is what each repetition costs. Hand-managed, the worst published case is Google's AdWords MySQL: “the last resharding took over two years of intense effort… across dozens of teams”, and they capped growth rather than do it again. Automatic is far cheaper but not free — DynamoDB splits partitions “in the order of minutes”, while a Cassandra node joining a busy cluster was measured at 106 hours to stream 2.2 TB and three weeks to finish compacting.` : ''}`,
       to: [
         { label: 'Idea: consistent hashing', href: '/ddia/read/partitioning' },
         { label: 'Postgres deep-dive', href: '/ddia/components/postgres' },
@@ -716,7 +833,7 @@ export default function Calculator() {
       key: 'analytical',
       need: c.needs.analytical,
       what: 'A separate analytical store',
-      number: `a full scan of ${fmt.bytes(m.dbStorage)} of rows at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — on the same disk your 5 ms lookups live on`,
+      number: `a full scan of ${fmt.bytes(m.dbStorage)} of rows at ${v.seqRead} GiB/s sequential = ${dur(m.scanSeconds)} — which is ${pc(c.scanDayShare)} of one node's entire sequential-read day, for ONE pass, on the same disk your 5 ms lookups live on`,
       trigger: 'gated by a requirement: set “what the data must answer” to “also analyze it”',
       because:
         'a row store reads every column of every row to answer an aggregate. A columnar store reads only the columns the query touches and compresses them severalfold (structured data compresses 5–10×, per napkin-math) — fed from the same log by change-data-capture, so the primary never feels the scan',
@@ -739,7 +856,7 @@ export default function Calculator() {
     after.push({ k: 'Writes reaching the primary', v: `${fmt.compact(m.peakWrites)} → ${fmt.compact(m.dbWrites)}/s`, how: `the log absorbs the ×${fmt.n1(v.peak)} peak; the primary consumes at the daily average` })
   if (c.shardNeed)
     after.push(
-      c.shardBy === 'storage'
+      c.shardBy === 'storage' || c.shardBy === 'memory'
         ? { k: 'Data per shard', v: `${fmt.bytes(m.dbStorage / c.shards)} × ${c.shards} shards`, how: `writes per shard: ${fmt.compact(m.dbWrites / c.shards)}/s — ${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each` }
         : { k: 'Writes per shard', v: `${fmt.compact(m.dbWrites / c.shards)}/s × ${c.shards} shards`, how: `${pc(m.dbWrites / c.shards / m.writeCeiling)} of one primary each · ${fmt.bytes(m.dbStorage / c.shards)} of rows each` },
     )
@@ -812,51 +929,138 @@ export default function Calculator() {
           <span className="chev">▸</span> How to use this, and how it works
         </summary>
         <div className="calc-help-b">
-          <h4>Using it</h4>
+          {/* WHAT IT DOES, BEFORE HOW TO DRIVE IT.
+
+              This section used to open with six numbered instructions, which is
+              the wrong end: a reader who does not know what the page is doing
+              cannot tell a slider that matters from one that does not, and the
+              instructions have to keep explaining the model in passing. The
+              model is four operations, and the fourth is a sort — a reader
+              worked that out from the code and said so, which is a fair sign
+              the page should have said it first. */}
+          <h4>What it does — four operations, in this order</h4>
+          <p>
+            Everything on this page is one of these four, and knowing which is which tells you what
+            a control can and cannot change. <b>Only the last one is a comparison</b>; the three
+            above it are there to make sure the comparison is between things that are actually
+            comparable.
+          </p>
+          <ol className="calc-ops">
+            <li>
+              <span className="op-k">Filter</span>
+              <b>A promise the store cannot keep removes it.</b> Cross-key transactions, surviving a
+              node death, fetching one whole record, holding more data than one machine. These come
+              from the product, not from the technology, and no throughput number puts a store back.
+            </li>
+            <li>
+              <span className="op-k">Transform</span>
+              <b>The load each survivor sees is not the load you typed in.</b> A cache absorbs the
+              reads, a log flattens the peak, blobs move to object storage and leave a pointer row
+              behind. Judging a store on traffic that never arrives taxes it for work it never does,
+              so the transform happens first and everybody is judged on the same, smaller number.
+            </li>
+            <li>
+              <span className="op-k">Measure</span>
+              <b>Divide that by every ceiling one machine has.</b> The biggest share is that store’s
+              first wall — and stores meet different walls first, because their amplification
+              constants differ. One number per survivor comes out of this step, and it is the only
+              number the next step is allowed to look at.
+            </li>
+            <li>
+              <span className="op-k">Sort</span>
+              <b>Two orders, and a rule that picks which one applies.</b> When one store’s wall sits
+              clearly below the rest, that settles it. When several tie — which happens more often
+              than the arithmetic suggests — the tie is broken on{' '}
+              <em>what each one costs to operate</em>: fewest shards first, then headroom on the
+              wall that is not binding, then simplicity. Unless nothing is straining at all, in
+              which case the ranking is skipped and the simplest machine in the tie wins outright.
+            </li>
+          </ol>
+          <p>
+            Those two orders are worth naming, because the whole storage argument on this page is
+            the difference between them. One is <b>which machine you would rather be woken up by</b>
+            {' '}— the columns are listed in that order, one primary first, a leaderless ring last.
+            The other is <b>what the thing costs to run</b>, and its first term is how many pieces
+            the data has to be cut into. The tree below is those four operations drawn out; every
+            fork in it belongs to step one or step four.
+          </p>
+          <figure className="dt-fig">
+            <StoreDecisionTree />
+            <figcaption>
+              <span className="k out">terra</span> a store falls out ·{' '}
+              <span className="k win">denim</span> the tree produces an answer ·{' '}
+              <span className="k flow">grey</span> nothing leaves, but the number everyone is judged
+              on changes
+            </figcaption>
+          </figure>
+          <ul className="dt-notes">
+            <li>
+              <b>The promise filter is the only gate a requirement can shut</b>, and it shuts it
+              completely: several keys changing together, an acknowledged write surviving a node
+              death, a read fetching one whole record, data already past one machine. No throughput
+              number reopens it.
+            </li>
+            <li>
+              <b>The two grey steps are why the comparison is fair.</b> Reads a cache absorbs never
+              arrive; peaks a log absorbs never arrive; blobs that moved to object storage never
+              arrive. Judging a store on traffic it never sees taxes it for work it never does.
+            </li>
+            <li>
+              <b>“Clearly the lowest” means more than 5% below every other survivor.</b> Inside that
+              band the arithmetic has separated nothing, and calling a 2% gap a result would be
+              dressing rounding up as a finding.
+            </li>
+            <li>
+              <b>That last question is a veto, not a trigger.</b> Passing it does not send you
+              to a different store — it stops the ranking from running at all and hands you the
+              simplest machine in the tie, sometimes at more shards than the alternative would need.
+              Fail it and the ordinary rule takes over, which is usually what moves you. So a shard
+              count crossing eight never picks a ring; it stops protecting the primary.
+            </li>
+            <li>
+              <b>The last fork is the one this page argues hardest for.</b> Two stores can bind on
+              the same wall at the same percentage and still need the data cut into wildly different
+              numbers of pieces — every store splits for data size and write rate, but only an
+              engine that reads a page before writing it also splits to keep each node’s slice
+              inside its RAM, and a node holds far more disk than memory. That gap is invisible in
+              a utilisation percentage, which is why it is the tie-break and not a footnote.
+            </li>
+          </ul>
+
+          <h4>Driving it</h4>
           <ol>
             <li>
-              <b>Start from a typical system, or from scratch.</b> The presets are one honest hand
-              moving every visible slider and requirement at once — inspect what they set, then
+              <b>Start from a typical system, or from scratch.</b> A preset is one honest hand
+              moving every visible slider and requirement at once — inspect what it set, then
               adjust. Nothing about a preset is hidden state.
             </li>
             <li>
-              <b>State the requirements</b> — must data appear on its own, do writes span keys, can
-              the data be rebuilt, will anyone run analytics across all of it. These are facts about
-              the product, not technology choices — and they act as <em>filters</em>: a requirement
-              can disqualify a column outright, and no throughput number un-disqualifies it.
+              <b>Answer the requirements truthfully</b>, because they run step one and step one is
+              absolute. Getting “writes span keys” wrong does not make the answer slightly off; it
+              makes the page compare a set of stores you cannot use.
             </li>
             <li>
-              <b>Describe the workload</b> — how many people, how often each one acts, how much
-              bigger the busiest moment is, how large one written object and one read response are.
-              Every input snaps to a round step (10k, 20k, 50k…) because at this level of modelling
-              the <em>scale</em> is the answer; “16k users” implies a precision nobody has.
+              <b>Describe the workload.</b> Every input snaps to a round step — 10k, 20k, 50k —
+              because at this level of modelling the <em>scale</em> is the answer, and “16k users”
+              implies a precision nobody has.
             </li>
             <li>
-              <b>Read “the choices the numbers make.”</b> Transport and storage engine are computed
-              comparisons: every option is a column, disqualified columns are greyed with the
-              requirement that removed them, and each survivor is judged on <em>the load that would
-              reach it in the system built around it</em> — its reads become misses if it forces a
-              cache, its writes become the sustained rate behind a forced log. If reality has
-              already chosen, <b>click that column to pin it</b>, and everything downstream follows.
+              <b>Read the comparison table as the output of step four.</b> Disqualified columns are
+              greyed with the requirement that removed them; each survivor carries its own first
+              wall and its own shard count. If reality has already chosen for you,{' '}
+              <b>click that column to pin it</b> and everything downstream re-derives.
             </li>
             <li>
-              <b>Read “what the numbers force,”</b> then <b>“the load, after the additions.”</b> A
-              component appears only when a computed ceiling is crossed, and each addition
-              transforms the load downstream — which is why adding a log can make sharding
-              unnecessary.
-            </li>
-            <li>
-              <b>Open “the hardware underneath”</b> and change a constant to see how sensitive the
-              conclusion is. If a decision flips when you nudge an assumption, that decision was
-              never solid.
+              <b>Open “the hardware underneath” and break something on purpose.</b> Move a constant
+              one rung. If a decision flips, that decision was resting on a number nobody measured,
+              and the sweep at the bottom of the page will tell you which one.
             </li>
           </ol>
 
           <h4>How the ceilings are computed</h4>
           <p>
-            Nothing here is a remembered rule of thumb, and none of it is computed in the page as it
-            renders: the arithmetic is a separate, unit-tested module whose expected values were
-            worked out by hand. Each ceiling is one division:
+            The arithmetic is a separate module the page only renders — how it is tested is stated
+            in “How the answer is produced” above. Each ceiling is one division:
           </p>
           <ul className="calc-formulas">
             <li><code>durable writes/s = commits per fsync ÷ fsync latency</code> — a commit is not durable until the write reaches disk, and one fsync can cover a batch of commits.</li>
@@ -918,7 +1122,10 @@ export default function Calculator() {
             Discord and Slack store chat messages with the same access pattern — a range of
             messages inside one channel partition — and made opposite choices: Discord moved to a
             wide-column ring, Slack sharded MySQL by channel id and serves 2.3M queries a second
-            through it. Neither is wrong, and no arithmetic on this page separates them.
+            through it. The comparison table can now print the bill each of them signed — at the
+            chat preset that is 1,342 hand-run MySQL shards against a ring of 19 nodes that
+            rebalances itself — but which bill a team is equipped to pay is exactly the thing
+            those two teams decided differently, and no division answers it. Neither is wrong.
           </p>
           <p>
             That is not a one-off. Asked why they stayed on a familiar engine rather than a
@@ -961,19 +1168,33 @@ export default function Calculator() {
             </div>
 
             <p className="sb-title" style={{ marginTop: 18 }}>The requirements</p>
-            <Ctl label="How reads find the data" info={ACCESS.find((o) => o.id === access)!.info} hint={ACCESS.find((o) => o.id === access)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How reads find the data <Quiet on={inert.has('access')} /></>} info={ACCESS.find((o) => o.id === access)!.info} hint={ACCESS.find((o) => o.id === access)!.info.split('.')[0] + '.'}>
               <Picker options={ACCESS} value={access} onPick={pickReq(setAccess)} />
             </Ctl>
-            <Ctl label="How fresh reads must be" info={RECENCY.find((o) => o.id === recency)!.info} hint={RECENCY.find((o) => o.id === recency)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How fresh reads must be <Quiet on={inert.has('recency')} /></>} info={RECENCY.find((o) => o.id === recency)!.info} hint={RECENCY.find((o) => o.id === recency)!.info.split('.')[0] + '.'}>
               <Picker options={RECENCY} value={recency} onPick={pickReq(setRecency)} />
             </Ctl>
-            <Ctl label="Writes that span keys" info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
+            {/* Scale-gated, and the page has to say which side of the gate you
+                are on — otherwise the picker reads as "scattered ids mean LSM",
+                which is only true above a size most workloads never reach. */}
+            <Ctl
+              label={<>Where a new row sorts <Quiet on={inert.has('keyShape')} /></>}
+              info={KEY_SHAPE.find((o) => o.id === keyShape)!.info}
+              hint={
+                m.ramHosts <= 1
+                  ? `Only decides anything once one node holds more rows than it has RAM — and it does not yet: ${fmt.bytes(m.dbStorage)} of rows still fits ${v.ram} GB, so the leaf page a B-tree writes is in the buffer pool whichever id format you pick.`
+                  : `Past that line: ${fmt.bytes(m.dbStorage)} of rows against ${v.ram} GB per node, so an unpredictable insert point means a disk seek every time. Ids that land anywhere need ${fmt.compact(m.ramHosts)} shards to stay in the buffer pool; ids that sort last need none.`
+              }
+            >
+              <Picker options={KEY_SHAPE} value={keyShape} onPick={pickReq(setKeyShape)} />
+            </Ctl>
+            <Ctl label={<>Writes that span keys <Quiet on={inert.has('txn')} /></>} info={TXN.find((o) => o.id === txn)!.info} hint={TXN.find((o) => o.id === txn)!.info.split('.')[0] + '.'}>
               <Picker options={TXN} value={txn} onPick={pickReq(setTxn)} />
             </Ctl>
-            <Ctl label="If a node dies, this data" info={LOSS.find((o) => o.id === loss)!.info} hint={LOSS.find((o) => o.id === loss)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>If a node dies, this data <Quiet on={inert.has('loss')} /></>} info={LOSS.find((o) => o.id === loss)!.info} hint={LOSS.find((o) => o.id === loss)!.info.split('.')[0] + '.'}>
               <Picker options={LOSS} value={loss} onPick={pickReq(setLoss)} />
             </Ctl>
-            <Ctl label="What the data must answer" info={ANALYTICS.find((o) => o.id === analytics)!.info} hint={ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>What the data must answer <Quiet on={inert.has('analytics')} /></>} info={ANALYTICS.find((o) => o.id === analytics)!.info} hint={ANALYTICS.find((o) => o.id === analytics)!.info.split('.')[0] + '.'}>
               <Picker options={ANALYTICS} value={analytics} onPick={pickReq(setAnalytics)} />
             </Ctl>
             <Ctl label={DERIVED_INP.label} info={DERIVED_INP.info} hint={DERIVED_INP.hint} val={DERIVED_INP.fmt(v.derived)}>
@@ -1000,7 +1221,7 @@ export default function Calculator() {
                 to explain.
               </div>
             )}
-            <Ctl label="How users get new data" info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
+            <Ctl label={<>How users get new data <Quiet on={inert.has('fresh')} /></>} info={FRESH.find((o) => o.id === fresh)!.info} hint={FRESH.find((o) => o.id === fresh)!.info.split('.')[0] + '.'}>
               <Picker options={FRESH} value={fresh} onPick={pickReq(setFresh)} />
             </Ctl>
 
@@ -1042,6 +1263,120 @@ export default function Calculator() {
                     <div className="ctl-hint">{inp.hint}</div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            <button className="hw-toggle" onClick={() => setShowEng((s) => !s)}>
+              {showEng ? '▾' : '▸'} The engine constants
+            </button>
+            {showEng && (
+              <div className="hw-body">
+                <p className="hw-note">
+                  The engine decision runs on four constants per store, and unlike everything above
+                  they are <span className="src-a">assumed</span> — modelling choices, not
+                  measurements. They are the same species as a query planner's cost constants:
+                  Postgres ships{' '}
+                  <a
+                    href="https://www.postgresql.org/docs/current/runtime-config-query.html#RUNTIME-CONFIG-QUERY-CONSTANTS"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    random_page_cost = 4.0
+                  </a>{' '}
+                  and says plainly that it is a default to be tuned, not a fact. You are entitled to
+                  see the numbers that picked your database.
+                </p>
+                <div className="gn-tbl-wrap">
+                  <table className="tbl">
+                    <thead>
+                      <tr>
+                        <th>Store</th>
+                        <th>Writes per write</th>
+                        <th>Lookups per read — point / range</th>
+                        <th>Insert seeks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {STORES.map((st) => (
+                        <tr key={st.id} className={st.id === effE.id ? 'is-win' : undefined}>
+                          <td>{st.short}</td>
+                          <td>×{st.sets.writeAmp}</td>
+                          <td>
+                            {st.sets.readAmp.point === 0
+                              ? 'none — RAM'
+                              : `×${st.sets.readAmp.point} / ×${st.sets.readAmp.range}`}
+                          </td>
+                          <td>{st.sets.writeReadsFirst ? 'yes' : 'no'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {ENGINE_CONSTANTS.map((c) => (
+                  <div className="ctl" key={c.k}>
+                    <div className="ctl-top">
+                      <span className="ctl-label">
+                        {c.label} <span className="src-a">assumed</span>
+                      </span>
+                    </div>
+                    <div className="ctl-hint">{c.note}</div>
+                  </div>
+                ))}
+                {/* The thresholds live in the SAME panel as the engine constants,
+                    because they are the same species and separating them would
+                    imply otherwise: numbers this page chose, that pick your
+                    architecture, that nobody measured. They were the harder ones
+                    to admit to — the engine constants at least sat in a table,
+                    while these were bare comparisons inside a function. */}
+                <div className="thresh">
+                  <span className="thresh-h">And seven thresholds, which are judgements</span>
+                  <p className="hw-note">
+                    A ceiling is a fact about a machine. A <em>threshold</em> is us deciding when a
+                    number has got big enough to mean something — when reads are heavy enough to
+                    deserve a cache, when two stores are close enough to call a tie, when a shard
+                    count stops being simple. Each one below says what it decides, and then the
+                    thing worth knowing about an assumption: <b>whether moving it changes anything
+                    at all</b>. That verdict is not our opinion — it comes from re-running{' '}
+                    {SWEEP.how} with the threshold nudged either way, and a test re-derives it, so
+                    a number that becomes load-bearing later cannot go on being described as
+                    harmless.
+                  </p>
+                  {THRESHOLDS.map((t) => (
+                    <div className="thresh-row" key={t.k}>
+                      <div className="thresh-top">
+                        <span className="thresh-k">{t.label}</span>
+                        <span className="thresh-v">{t.fmt(TUNING[t.k])}</span>
+                      </div>
+                      <div className="thresh-d">decides {t.decides}</div>
+                      <div className={'thresh-w w-' + t.worth}>{WORTH_LABEL[t.worth]}</div>
+                      <div className="ctl-hint">{t.note}</div>
+                    </div>
+                  ))}
+                </div>
+                {/* This paragraph used to quote three hand-measured percentages and
+                    one absolute — "key shape changes the engine in 10.7%, and never
+                    across engine families". By the time a reader challenged it, all
+                    four were wrong: the buffer-pool cliff and the per-store shard
+                    bill had given key shape exactly the power that sentence denied
+                    it, and nothing failed, because a measurement quoted in prose is
+                    accountable to no one. What replaces it is mechanism, which does
+                    not rot, plus a test that fails if either claim stops holding. */}
+                <p className="hw-note">
+                  <b>The point-lookup number is the one to argue with.</b> It is the whole read-side
+                  difference between a B-tree and a ring: sweeping a range, both cost one lookup and
+                  the engines are indistinguishable; fetching one record, the ring probes several
+                  sorted files and the B-tree walks to a single leaf. So the read shape you picked
+                  above decides whether those two are the same machine or one is twice the work —
+                  through this one assumed constant and nothing else.
+                </p>
+                <p className="hw-note">
+                  It was, for a while, the only thing on this page that could move an answer between
+                  engine families. That stopped being true when the buffer-pool cliff arrived:{' '}
+                  <b>key shape moves families too now</b>, by a different route. It changes no read
+                  cost at all — it changes how many machines the rows end up cut across, because a
+                  B-tree taking scattered ids has to keep splitting until each node's slice fits its
+                  RAM, and a ring never does.
+                </p>
               </div>
             )}
           </div>

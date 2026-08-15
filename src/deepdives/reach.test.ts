@@ -22,6 +22,7 @@ const REQ_AXES = {
   analytics: ['no', 'yes'],
   access: ['point', 'range'],
   recency: ['stale', 'current'],
+  keyShape: ['monotonic', 'scattered'],
 }
 const WORKLOAD_AXES: Record<string, number[]> = {
   dau: [1e4, 1e6, 5e7, 5e8],
@@ -50,12 +51,13 @@ function sweep(): { needs: Needs; label: string }[] {
         for (const analytics of REQ_AXES.analytics)
           for (const access of REQ_AXES.access)
             for (const recency of REQ_AXES.recency)
-              run({ fresh, txn, loss, analytics, access, recency }, { ...INIT },
-                  `${fresh}/${txn}/${loss}/${analytics}/${access}/${recency}`)
+              for (const keyShape of REQ_AXES.keyShape)
+                run({ fresh, txn, loss, analytics, access, recency, keyShape }, { ...INIT },
+                    `${fresh}/${txn}/${loss}/${analytics}/${access}/${recency}/${keyShape}`)
   for (const fresh of REQ_AXES.fresh)
     for (const [key, vals] of Object.entries(WORKLOAD_AXES))
       for (const val of vals)
-        run({ fresh, txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' },
+        run({ fresh, txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'monotonic' },
             { ...INIT, [key]: val }, `${fresh} + ${key}=${val}`)
   return out
 }
@@ -96,13 +98,14 @@ describe('no dead columns in the store table', () => {
   for (const txn of ['single', 'multi'])
     for (const loss of ['keep', 'rebuild'])
       for (const access of ['point', 'range'])
+       for (const keyShape of ['monotonic', 'scattered'])
         for (const [k, vals] of Object.entries({
           dau: [1e4, 1e5, 1e6, 5e7, 5e8], readPct: [0, 50, 99], fanout: [0, 1, 100],
           writeSize: [1, 50, 5000], retention: [1, 12, 60], actions: [1, 20, 200], peak: [1, 3],
         }))
           for (const val of vals)
             winners.add(model({ ...INIT, [k]: val } as Vals,
-              { fresh: 'pull', txn, loss, analytics: 'no', access, recency: 'stale' } as Req).engineWin)
+              { fresh: 'pull', txn, loss, analytics: 'no', access, recency: 'stale', keyShape } as Req).engineWin)
 
   it.each(STORES.map((s) => [s.id, s] as const))('%s is either winnable or explains itself', (id, store) => {
     if (winners.has(id)) return

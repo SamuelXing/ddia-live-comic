@@ -38,6 +38,8 @@ export interface Req {
   access: string
   /** may a read be answered from a copy that has not caught up? */
   recency: string
+  /** where a new row lands in the sort order: at the end, or anywhere */
+  keyShape: string
 }
 
 const int = (n: number) => Math.round(n).toLocaleString('en-US')
@@ -148,6 +150,10 @@ export const ACCESS: Opt[] = [
   { id: 'point', label: 'Fetch one thing', info: 'Reads name what they want — a user, an order, a message by id. This is what an index is for, and it is the pattern a column-oriented store is worst at: one row lives spread across as many files as it has columns.' },
   { id: 'range', label: 'Scan a range', info: 'Reads sweep an ordered slice — a time window, a feed, everything under one partition key. Sorted layouts win here, and the sort key becomes the most consequential schema decision you will make.' },
 ]
+export const KEY_SHAPE: Opt[] = [
+  { id: 'monotonic', label: 'New rows sort last', info: 'Ids that only ever grow — a timestamp, an auto-increment, Snowflake, UUIDv7. Every insert lands at the right-hand edge of the sort order, so the leaf page a B-tree has to write is the same one every time and it never leaves memory. Free at any size, and a choice you make once, when you pick an id format.' },
+  { id: 'scattered', label: 'New rows land anywhere', info: 'Random UUIDs, hashes, natural keys like an email — the insert point is unpredictable, so a B-tree has to fetch the leaf page it is about to write. That fetch costs nothing until one node holds more rows than it has RAM — below that line the page is in the buffer pool whichever id format you picked, and this field moves no number on the page. Past it, every insert is a disk seek — and the way out is either many more shards, or an engine whose writes never read. Which is to say it is not a choice between B-trees and LSMs; it is a choice that only exists at a size, and this page will tell you whether you are there yet.' },
+]
 export const RECENCY: Opt[] = [
   { id: 'stale', label: 'Slightly stale is fine', info: 'A feed a few seconds behind, a count that lags, a profile that updates eventually. This is what makes caches and read replicas legal — you can answer from a copy that has not caught up yet, which is the cheapest scaling move in this entire tool.' },
   { id: 'current', label: 'Must be current', info: 'An account balance, remaining stock at checkout, a permission check. The read must reflect the write that just happened. Asynchronous replicas cannot serve it — they are behind by definition — and a cache is only safe if writes update or invalidate it in the same breath, which puts the cache on the write path too.' },
@@ -215,7 +221,12 @@ export interface Store {
      pass. Charging an LSM its point-lookup penalty on a range scan penalised
      Cassandra for the exact workload it is built for — which is why this tool
      used to pick single-primary SQL for a Discord-shaped chat at every scale. */
-  sets: { writeAmp: number; readAmp: { point: number; range: number } }
+  /** does one INSERT have to READ a page before it can write it? True for
+   *  every B-tree — the row goes where it belongs, so the leaf page has to be
+   *  in hand first. False for LSM-family engines, which append to a sorted
+   *  buffer in memory and place the row later, in compaction. Only costs
+   *  anything when the insert point is unpredictable AND the node is past RAM. */
+  sets: { writeAmp: number; readAmp: { point: number; range: number }; writeReadsFirst: boolean }
   perWrite: string
   scale: string
   info: string
@@ -244,7 +255,7 @@ export const STORES: Store[] = [
     id: 'sql', label: 'Single-primary SQL', short: 'Single-primary SQL',
     model: 'relational', engine: 'B-tree', dist: 'one primary + replicas', txnScope: 'anything, one transaction',
     multiKey: 'yes', durable: true, pointFast: true,
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — WAL, page, indexes',
     scale: 'You shard by hand when the time comes: choose a partition key, route to it, rebalance later — and the key is nearly impossible to change once data exists.',
     chooseFor:
@@ -258,7 +269,7 @@ export const STORES: Store[] = [
     id: 'sqlShard', label: 'Sharded SQL', short: 'Sharded SQL',
     model: 'relational', engine: 'B-tree', dist: 'sharded primaries', txnScope: 'within one shard',
     multiKey: 'shard', durable: true, pointFast: true,
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — same, per shard',
     scale: 'Already sharded — the work is routing, rebalancing, and living with a partition key you chose early. Cross-shard transactions need two-phase commit, which is slower and fails in more ways.',
     chooseFor:
@@ -284,7 +295,7 @@ export const STORES: Store[] = [
     // B-tree, and journal + document + indexes is the same three writes. Giving
     // it a cheaper constant made it beat single-primary SQL on a number I had
     // invented, when the real reason to choose it is the data model.
-    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 } },
+    sets: { writeAmp: 3, readAmp: { point: 1, range: 1 }, writeReadsFirst: true },
     perWrite: '×3 — journal, doc, indexes',
     scale: 'Sharding is built in; the partition key is still yours to pick and still hard to change.',
     chooseFor:
@@ -300,7 +311,7 @@ export const STORES: Store[] = [
     multiKey: 'no', durable: true, pointFast: true,
     // point: bloom-filter probes across several sorted runs. range: one sweep of
     // sorted contiguous rows inside the partition — the case it is designed for.
-    sets: { writeAmp: 1, readAmp: { point: 2, range: 1 } },
+    sets: { writeAmp: 1, readAmp: { point: 2, range: 1 }, writeReadsFirst: false },
     perWrite: '×1 — compaction repays it later',
     scale: 'The ring does it for you — add nodes and partitions move. You pay in compaction load and in giving up anything cross-partition.',
     chooseFor:
@@ -327,7 +338,7 @@ export const STORES: Store[] = [
     multiKey: 'no', durable: true, pointFast: false,
     // point: reassembling one row means touching every column file. range: it
     // reads only the columns the query names, which is the whole idea.
-    sets: { writeAmp: 1, readAmp: { point: 3, range: 1 } },
+    sets: { writeAmp: 1, readAmp: { point: 3, range: 1 }, writeReadsFirst: false },
     perWrite: '×1 — batched writes only',
     scale: 'Add shards and replicas; the real lever is that columns compress severalfold, so a scan reads far less than the logical size.',
     chooseFor:
@@ -341,7 +352,7 @@ export const STORES: Store[] = [
     id: 'mem', label: 'In-memory key-value', short: 'In-memory',
     model: 'key-value', engine: 'in-memory', dist: 'sharded, single-threaded', txnScope: 'one key',
     multiKey: 'no', durable: false, pointFast: true,
-    sets: { writeAmp: 1, readAmp: { point: 0, range: 0 } },
+    sets: { writeAmp: 1, readAmp: { point: 0, range: 0 }, writeReadsFirst: false },
     perWrite: 'none — RAM',
     scale: 'Add shards, each single-threaded — but check the data still fits in RAM, which is usually the real limit.',
     chooseFor:
@@ -381,7 +392,7 @@ export const PRESETS: Preset[] = [
   {
     id: 'app', label: 'Internal / B2B app',
     info: '50k daily users on an ordinary transactional app — the case where the answer is still one database, and the page says so.',
-    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'no', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'no', access: 'point', recency: 'current', keyShape: 'monotonic' },
     sets: { dau: 5e4, actions: 50, peak: 3, readPct: 85, fanout: 1, online: 10, writeSize: 2, readSize: 50, lat: 100, retention: 36, growth: 5, derived: 1 },
   },
   {
@@ -395,37 +406,37 @@ export const PRESETS: Preset[] = [
        reader who takes the single answer as "a feed is one database" has
        learned the opposite of the lesson. */
     info: '50M readers, a post fans out to ~100 followers — the write is cheap, the deliveries are not. The store below is where posts LIVE; the timeline every reader sees is a derived copy, which is why this preset counts 2 derived systems.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 5e7, actions: 50, peak: 3, readPct: 90, fanout: 100, online: 10, writeSize: 1, readSize: 50, lat: 100, retention: 12, growth: 10, derived: 2 },
   },
   {
     id: 'chat', label: 'Chat / messaging',
     info: 'Messages must appear the moment they are sent — held connections, small payloads, half the traffic is writes.',
-    req: { fresh: 'push', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale' },
+    req: { fresh: 'push', txn: 'single', loss: 'keep', analytics: 'no', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 2e7, actions: 50, peak: 2, readPct: 50, fanout: 5, online: 20, writeSize: 1, readSize: 2, lat: 50, retention: 12, growth: 10, derived: 1 },
   },
   {
     id: 'ingest', label: 'Metrics / event ingest',
     info: '50M devices reporting 200 times a day, almost never read back — and analyzed in bulk later.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'yes', access: 'range', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'yes', access: 'range', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 5e7, actions: 200, peak: 2, readPct: 10, fanout: 0, online: 1, writeSize: 2, readSize: 10, lat: 20, retention: 6, growth: 20, derived: 2 },
   },
   {
     id: 'ledger', label: 'Payments / ledger',
     info: 'Money moves between accounts — cross-key transactions disqualify half the table before any arithmetic runs.',
-    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'yes', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'multi', loss: 'keep', analytics: 'yes', access: 'point', recency: 'current', keyShape: 'monotonic' },
     sets: { dau: 1e7, actions: 5, peak: 5, readPct: 60, fanout: 1, online: 2, writeSize: 2, readSize: 5, lat: 200, retention: 60, growth: 5, derived: 2 },
   },
   {
     id: 'media', label: 'Media sharing',
     info: '5 MB uploads and 2 MB views at 100M users — the problem is bandwidth and blobs, not request rate.',
-    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale' },
+    req: { fresh: 'pull', txn: 'single', loss: 'keep', analytics: 'no', access: 'point', recency: 'stale', keyShape: 'scattered' },
     sets: { dau: 1e8, actions: 20, peak: 3, readPct: 95, fanout: 1, online: 5, writeSize: 5000, readSize: 2000, lat: 100, retention: 60, growth: 10, derived: 1 },
   },
   {
     id: 'sessions', label: 'Sessions / rate limits',
     info: 'Every request checks it, nothing is delivered, and losing a node costs a re-login — the one workload where durability stops being a filter.',
-    req: { fresh: 'pull', txn: 'single', loss: 'rebuild', analytics: 'no', access: 'point', recency: 'current' },
+    req: { fresh: 'pull', txn: 'single', loss: 'rebuild', analytics: 'no', access: 'point', recency: 'current', keyShape: 'scattered' },
     sets: { dau: 2e6, actions: 100, peak: 3, readPct: 95, fanout: 1, online: 20, writeSize: 1, readSize: 1, lat: 5, retention: 1, growth: 10, derived: 0 },
   },
 ]
@@ -441,6 +452,179 @@ export const CANNOT_WIN: Record<string, string> = {
   doc: 'its numbers here match sharded SQL almost exactly, so it never wins on arithmetic. You choose it when a record is naturally a nested tree — a fit question this page cannot measure.',
   col: 'it is disqualified the moment reads fetch one record, and when they do not, it is a sidecar fed from the primary rather than the system of record. It wins queries, not workloads.',
 }
+
+/**
+ * WHERE THE ENGINE CONSTANTS COME FROM.
+ *
+ * Every slider on this page carries a provenance tag, and `sensitivity()`
+ * sweeps each one and reports the ones that flip the answer. The per-store
+ * amplification constants had neither: they sat hardcoded in STORES, invisible,
+ * unswept — and a sweep of 1,008 workloads showed the ring's point-lookup
+ * penalty alone decides relational-vs-ring in about three quarters of them.
+ * The number doing the most work was the only one nobody could see.
+ *
+ * These are the same species as a query planner's cost constants — Postgres
+ * ships `random_page_cost = 4.0` and `seq_page_cost = 1.0`, documents that they
+ * are modelling choices rather than measurements, and lets you change them.
+ * Same deal here. The reader is entitled to see the numbers that picked their
+ * database.
+ */
+export const ENGINE_CONSTANTS: {
+  k: 'writeAmp' | 'point' | 'range' | 'seek'
+  label: string
+  src: 'napkin' | 'assume'
+  note: string
+}[] = [
+  {
+    k: 'writeAmp',
+    label: 'Writes per logical write',
+    src: 'assume',
+    note: 'A B-tree commit lands in three places — the WAL, the heap page, and every index that covers the row — so ×3. An LSM appends once to a sorted buffer, so ×1 in the foreground; compaction repays the difference later, off the critical path, and this page does not charge it. That omission flatters the LSM on sustained ingest.',
+  },
+  {
+    k: 'point',
+    label: 'Disk lookups per point read',
+    src: 'assume',
+    note: 'A B-tree walks to one leaf: ×1. An LSM has to consider the memtable and several sorted runs, and bloom filters skip most but not all of them: ×2. A columnar store reassembles a row from as many files as it has columns: ×3. THIS IS THE LOAD-BEARING NUMBER — the ×2 is the entire read-side difference between relational and the ring, so it carries the whole decision whenever reads bind. It is an assumption, not a measurement, and a value of 1.5 would move a lot of answers.',
+  },
+  {
+    k: 'range',
+    label: 'Disk lookups per range read',
+    src: 'assume',
+    note: 'Everything is ×1: a B-tree walks its leaf chain, an LSM sweeps sorted contiguous rows inside one partition, a columnar store reads the columns it was built to read. Which is the real content of “range scans suit sorted layouts” — not that the LSM gets faster, but that it stops paying the point-lookup penalty above.',
+  },
+  {
+    k: 'seek',
+    label: 'Does an insert read before it writes',
+    src: 'assume',
+    note: 'A B-tree puts the row where it belongs, so it fetches that leaf page first — free while the page is resident, a disk seek when it is not. An LSM never does. Modelled as a step at exactly one node of RAM; the truth is a curve, and the buffer pool is only a fraction of RAM, so the cliff edge here is softer and earlier in reality than on this page.',
+  },
+]
+
+/**
+ * THE THRESHOLDS THIS PAGE CHOSE.
+ *
+ * The constants above at least looked like constants. These did not: they sat
+ * inline in `model()` as bare numbers — `> 0.3`, `< 0.25`, `<= 8` — deciding
+ * whether you get a cache, a log, or a leaderless ring, while the page made a
+ * virtue of showing its arithmetic. Two of them were added in the same week
+ * the engine-constants panel shipped, which is the more embarrassing half.
+ *
+ * None of them are measured. They are editorial: the point at which this page
+ * is willing to say "that is close enough to call a tie", "that is quiet", or
+ * "that is more machines than anyone would call simple". So each one below
+ * carries what a 945-workload sweep says it is actually worth — because an
+ * assumed number that moves no answer and an assumed number that moves an
+ * eighth of them deserve very different amounts of the reader's suspicion.
+ */
+export interface Tuning {
+  cacheAt: number
+  logAt: number
+  blobAt: number
+  memNodes: number
+  tieBand: number
+  quietFloor: number
+  simpleShards: number
+}
+
+export const TUNING: Tuning = {
+  cacheAt: 0.3,
+  logAt: 0.5,
+  blobAt: 500,
+  memNodes: 8,
+  tieBand: 0.05,
+  quietFloor: 0.25,
+  simpleShards: 8,
+}
+
+/** How much a threshold is actually worth, as a verdict rather than a count.
+ *
+ *  The first version of this panel printed three numbers per threshold —
+ *  "one rung down 17, one rung up 16, switched off 126, out of 945" — which
+ *  failed twice over. A reader cannot do anything with 17; what they want to
+ *  know is whether to argue with the number. And 21 hand-maintained counts go
+ *  stale the moment the model moves, so every future change to the arithmetic
+ *  dragged a re-measurement behind it.
+ *
+ *  So the sweep still runs, in the tests, where precision belongs — and what
+ *  reaches the page is the one bit that changes what a reader does. The test
+ *  DERIVES this label rather than checking it, so a model change that makes an
+ *  inert threshold decisive fails with the word it should have become. */
+export type Worth = 'inert' | 'operational' | 'decisive'
+
+export const WORTH_LABEL: Record<Worth, string> = {
+  inert: 'nudging it changes nothing',
+  operational: 'changes what you operate, never what you store in',
+  decisive: 'can change which database you get',
+}
+
+/** The sweep behind those labels, named here so the tests and the page agree
+ *  on what was actually tried. */
+export const SWEEP = {
+  how: 'every preset, at every scale on the user ladder, at three activity levels and three retention lengths',
+}
+
+export const THRESHOLDS: {
+  k: keyof Tuning
+  label: string
+  fmt: (n: number) => string
+  /** the rungs `sensitivity()` nudges it between */
+  steps: number[]
+  decides: string
+  /** re-derived by a test from the sweep above — never hand-set */
+  worth: Worth
+  note: string
+}[] = [
+  {
+    k: 'cacheAt', label: 'Read pressure that forces a cache', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.1, 0.2, 0.3, 0.5, 0.75],
+    decides: 'whether a cache appears — and so whether every store is judged on misses instead of reads',
+    worth: 'decisive',
+    note: 'Below it, a database answers its own reads. Nothing measured 30%: it is the level at which one node has spent enough of its read budget that a bad minute has nowhere to go. It moves more answers than anything else here, though nearly all of them are cache tiers appearing rather than databases changing.',
+  },
+  {
+    k: 'logAt', label: 'Write pressure that forces a log', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.25, 0.4, 0.5, 0.7, 0.9],
+    decides: 'whether the store consumes the peak or the daily average',
+    worth: 'operational',
+    note: 'Paired with a peak factor of 2 or more, since a flat workload has no spike for a log to absorb. Half a ceiling is a judgement about how much headroom a primary should keep, not a fact about disks — and it has never once changed the recommended store, because a log flattens the peak for every engine equally.',
+  },
+  {
+    k: 'blobAt', label: 'Object size that leaves the database', fmt: (n) => (n >= 1000 ? n / 1000 + ' MB' : n + ' KB'),
+    steps: [100, 200, 500, 1000, 2000],
+    decides: 'whether the store holds the bytes or a pointer row',
+    worth: 'inert',
+    note: 'Rows this large stop behaving like rows: they blow out the page cache and turn every backup into a bandwidth problem. It reads as inert only because nothing here writes objects anywhere near it — if yours are a few hundred KB, this number is suddenly the one deciding your storage bill.',
+  },
+  {
+    k: 'memNodes', label: 'Nodes of pure RAM before in-memory is off the table', fmt: (n) => String(n),
+    steps: [2, 4, 8, 16, 32],
+    decides: 'whether the in-memory store stays a candidate at all',
+    worth: 'decisive',
+    note: 'Not a hard limit — Facebook’s memcache fleet ran far more — but past a handful of machines holding nothing but RAM, the interesting question stops being throughput and becomes what happens when one of them restarts cold. It shares its value with the shard floor below by coincidence: the two decide unrelated things and were picked separately.',
+  },
+  {
+    k: 'tieBand', label: 'How close counts as a tie', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.02, 0.05, 0.1, 0.2, 0.5],
+    decides: 'which stores reach the split tie-break instead of losing on throughput',
+    worth: 'inert',
+    note: 'Inert for a structural reason rather than a lucky one: stores that tie share their amplification constants exactly, so the gap between two survivors is either zero or large. Anything from nothing to a tenth lands in the same empty space, and only a band past a fifth starts sweeping in stores that genuinely lost.',
+  },
+  {
+    k: 'quietFloor', label: 'Utilisation below which nothing is straining', fmt: (n) => Math.round(n * 100) + '%',
+    steps: [0.05, 0.1, 0.25, 0.5, 1],
+    decides: 'half of when the page may ignore the ranking and hand you the simplest machine',
+    worth: 'decisive',
+    note: 'One half of an AND: the simplest machine wins only when nothing is straining AND the tie needs no real split. Relaxing this half alone changes nothing, because the shard floor below has already blocked every case it would have let through — which makes it a candidate for deletion rather than tuning.',
+  },
+  {
+    k: 'simpleShards', label: 'Shards past which nothing is simple', fmt: (n) => String(n),
+    steps: [2, 4, 8, 16, 32],
+    decides: 'the other half of that rule — and the half that actually decides it',
+    worth: 'decisive',
+    note: 'When this page says “one primary, not a ring”, this is the number that said it. It is also inherited judgement rather than measurement: it was set to match a bare “more than 8 shards” that has sat in the verdict copy since the first version of this page, where it arrived with no reason attached. For scale, the smallest hand-sharded fleet anyone has published is Notion’s 32 physical databases — and that took a long blog post to explain.',
+  },
+]
 
 /** the visible constants a store implies, resolved for this access pattern */
 export function storeConstants(st: Store, access: string) {
@@ -465,7 +649,23 @@ export interface EngineCol {
   worst: number
   /** utilisation of the ceiling that is not binding — headroom on the other axis */
   next: number
-  worstName: 'the write stream' | 'read pressure' | 'ops on one core'
+  /** random reads this store's own INSERTS cost: a B-tree fetching the leaf
+   *  page it is about to write, once that page stopped being resident. 0 for
+   *  LSM engines at any size, and 0 for anything while the page is in RAM. */
+  poolMisses: number
+  /** the bytes ONE node holds — dbStorage split across the shards it needs.
+   *  The cliff is a per-node fact, so it has to be measured after sharding. */
+  nodeBytes: number
+  /** how many pieces THIS store needs the data cut into. Per store, because the
+   *  reasons differ: every store splits for data size and write rate, but only
+   *  a B-tree taking scattered inserts must also split until a node's slice
+   *  fits its RAM — ~70× more pieces than the disk alone asks for. One global
+   *  count charged that split to every column and printed the ring's bill
+   *  wrong by that factor. */
+  shards: number
+  /** the RAM-fit term of that max — 1 unless this store pays it */
+  ramShards: number
+  worstName: 'the write stream' | 'read pressure' | 'the buffer-pool cliff' | 'ops on one core'
   dq: string | null
   /** the arithmetic behind the disqualification, so a claim like "needs 19
    *  shards" can be traced to the division that produced 19 */
@@ -478,7 +678,7 @@ export interface EngineCol {
 /** which row of "what one machine can do" a utilisation was measured against */
 export type Ceil = 'writes' | 'reads' | 'stream' | 'cache' | 'data' | 'egress' | 'conns' | 'scan'
 
-export function model(v: Vals, req: Req) {
+export function model(v: Vals, req: Req, tune: Tuning = TUNING) {
   // ---------- workload ----------
   const actionsPerDay = v.dau * v.actions
   const avgQps = actionsPerDay / 86400
@@ -507,7 +707,7 @@ export function model(v: Vals, req: Req) {
   const ramBytes = v.ram * 2 ** 30
 
   /** blobs leave the database: what the engine stores and scans is a pointer row */
-  const blobNeed = v.writeSize >= 500
+  const blobNeed = v.writeSize >= tune.blobAt
   const dbBytesW = blobNeed ? POINTER_BYTES : bytesW
   /** the bytes that actually live in the database — rows, not blobs */
   const dbStorage = blobNeed ? writesPerDay * dbBytesW * 30 * v.retention : storageTotal
@@ -540,7 +740,7 @@ export function model(v: Vals, req: Req) {
       return { why: 'this data must survive a node death, and durability is off by default' }
     if (req.access === 'point' && !st.pointFast)
       return { why: 'reads fetch one record, and a row here is spread across every column file' }
-    if (st.id === 'mem' && ramHosts > 8)
+    if (st.id === 'mem' && ramHosts > tune.memNodes)
       return {
         why: `the dataset is ${int(ramHosts)} nodes of pure RAM`,
         how: `${bytes(dbStorage)} of rows ÷ ${v.ram} GB per node`,
@@ -550,20 +750,25 @@ export function model(v: Vals, req: Req) {
        This is the load disqualifying a store rather than a requirement doing
        it — but it is still a disqualification, not a score: you cannot run one
        primary over ${'${n}'} shards, whatever the throughput says. */
-    if (st.dist === 'one primary + replicas' && shardsNeeded > 1)
+    const own = shardsFor(st)
+    if (st.dist === 'one primary + replicas' && own > 1)
       return {
-        why: `this data needs ${int(shardsNeeded)} shards — one primary is not on the table; the relational answer here is the sharded one`,
+        why: `this data needs ${int(own)} shards — one primary is not on the table; the relational answer here is the sharded one`,
+        /* the division shown has to be the one that WON the max — this dq once
+           said "needs 1,342 shards" beside 184 TB ÷ 10 TB, which yields 19 */
         how:
-          storageShards >= writeShardsNeeded
-            ? `${bytes(dbStorage)} of rows ÷ ${v.diskPerNode} TB per node`
-            : `${compact(dbWrites)} writes/s ÷ ${compact(writeCeiling)}/s per primary`,
-        ceil: storageShards >= writeShardsNeeded ? 'data' : 'writes',
+          ramShardsFor(st) >= Math.max(storageShards, writeShardsNeeded)
+            ? `${bytes(dbStorage)} of rows ÷ ${v.ram} GB of RAM per node — scattered inserts must keep the leaf page resident`
+            : storageShards >= writeShardsNeeded
+              ? `${bytes(dbStorage)} of rows ÷ ${v.diskPerNode} TB per node`
+              : `${compact(dbWrites)} writes/s ÷ ${compact(writeCeiling)}/s per primary`,
+        ceil: storageShards >= writeShardsNeeded || ramShardsFor(st) > 1 ? 'data' : 'writes',
       }
     return null
   }
   /** the log is store-independent: if peaks force one, every store consumes sustained */
   const writeUtil = peakWrites / writeCeiling
-  const logNeed = writeUtil > 0.5 && v.peak >= 2
+  const logNeed = writeUtil > tune.logAt && v.peak >= 2
   /** behind a log the database consumes at the daily average, not the worst minute */
   const dbWrites = logNeed ? peakWrites / v.peak : peakWrites
   /* Two independent reasons to split, and the larger wins. This lives in the
@@ -571,7 +776,23 @@ export function model(v: Vals, req: Req) {
      it: recommending "single-primary SQL" while simultaneously reporting 185
      shards is not a trade-off, it is a contradiction. */
   const writeShardsNeeded = Math.max(1, Math.ceil(dbWrites / writeCeiling))
-  const shardsNeeded = Math.max(storageShards, writeShardsNeeded)
+  /* A THIRD reason to split, and — unlike the first two — it is PER STORE: it
+     only exists for a B-tree taking scattered inserts, which must shard until a
+     node's slice fits its RAM so the leaf page it is about to write is resident
+     again. This is not a throughput fix, it is the escape route from the
+     buffer-pool cliff below — and it is a real one, taken in production: Slack
+     shards messages by channel ID across THOUSANDS of MySQL shards, the same
+     key Discord handed to a ring of a few dozen nodes. That count — 1,342
+     pieces against 19 for the same chat workload — IS the Slack-vs-Discord
+     argument, and a single global `shardsNeeded` erased it: the page charged
+     the B-tree's split to every column and printed the ring's bill wrong by
+     ~70× (a node holds ~70× more disk than RAM). The in-memory store's split
+     is RAM-bound by definition, whatever the key looks like. */
+  const ramShardsFor = (st: Store) =>
+    st.id === 'mem' || (st.sets.writeReadsFirst && req.keyShape === 'scattered')
+      ? Math.max(1, ramHosts)
+      : 1
+  const shardsFor = (st: Store) => Math.max(storageShards, writeShardsNeeded, ramShardsFor(st))
   /* How often the split has to be redone. Storage grows with the workload, so
      the shard count doubles on the same clock the data does — no invented
      constant, just the growth rate the reader set. */
@@ -593,7 +814,7 @@ export function model(v: Vals, req: Req) {
      pays its own amplification, but on the same surviving reads as everyone
      else. What each store then forces on its own is a RECOMMENDATION, computed
      downstream in consequences() from the store you actually chose. */
-  const cacheAbsorbs = readSide / diskReadCeiling > 0.3
+  const cacheAbsorbs = readSide / diskReadCeiling > tune.cacheAt
   /** Each store is judged on the load that would REACH it in the system built
    *  around it: if its own read pressure forces a cache, its reads become the
    *  misses; if the peak forces a log, its writes become the sustained rate;
@@ -605,32 +826,115 @@ export function model(v: Vals, req: Req) {
     const rawRU = readAmp === 0 ? 0 : (readSide * readAmp) / diskReadCeiling
     const colCache = readAmp !== 0 && cacheAbsorbs
     const colReads = colCache ? readSide * (1 - v.cacheHit / 100) : readSide
-    const rU = readAmp === 0 ? 0 : (colReads * readAmp) / diskReadCeiling
+    /* THE BUFFER-POOL CLIFF — the only place this model knows the difference
+       between the two engines' WRITE paths, rather than just their byte counts.
+
+       A B-tree puts a new row where it belongs, so before it can write it must
+       READ the leaf page that position sits on. That read is free while the
+       page is resident, and it is a disk seek when it is not. TWO conditions
+       have to hold for it to cost anything:
+
+         · the insert point is unpredictable (`keyShape: scattered`) — an
+           ordered id lands at the right-hand edge every time, and that one leaf
+           page is always in memory however large the table gets; and
+         · a node's slice has outgrown that node's RAM.
+
+       Both matter. Charging the penalty on size alone makes this page answer
+       "LSM" to every workload above 128 GB, which is not true and was the first
+       attempt at this.
+
+       An LSM pays it at no size: it appends to a sorted buffer in memory and
+       puts the row where it belongs later, during compaction, sequentially.
+       THIS is why write-heavy stores end up on LSMs — the amplification
+       constants (×3 vs ×1) flatter the B-tree, because they price the bytes
+       written and not the seek that has to happen first.
+
+       Measured PER NODE, after sharding, so the model states the real choice:
+       shard until a node's slice fits RAM, or run an engine whose writes read
+       nothing. Sharding rarely wins it outright — a node holds ~70x more disk
+       than memory, so a store sharded to fit its disk is still far past this
+       line. */
+    const ramShards = ramShardsFor(e)
+    const shards = shardsFor(e)
+    const nodeBytes = dbStorage / Math.max(1, e.dist === 'one primary + replicas' ? 1 : shards)
+    const poolMisses =
+      e.sets.writeReadsFirst && req.keyShape === 'scattered' && nodeBytes > ramBytes ? dbWrites : 0
+    const rU = readAmp === 0 ? 0 : (colReads * readAmp + poolMisses) / diskReadCeiling
     const bw = dbWrites * dbBytesW * e.sets.writeAmp
     const bwU = e.id === 'mem' ? 0 : bw / seqWriteBps
     /** in-memory pays CPU per op instead of disk: all ops against one core */
     const worst = e.id === 'mem' ? (readSide + dbWrites) / cacheCeiling : Math.max(bwU, rU)
     /** the ceiling that is NOT binding — headroom, and the tie-break */
     const next = e.id === 'mem' ? 0 : Math.min(bwU, rU)
-    const worstName = e.id === 'mem' ? ('ops on one core' as const) : bwU >= rU ? ('the write stream' as const) : ('read pressure' as const)
+    /* Naming this wall honestly matters more than usual: "read pressure" on a
+       store whose reads are fine and whose INSERTS are doing the seeking sends
+       the reader off to add a cache, which does nothing at all for writes. */
+    const worstName =
+      e.id === 'mem'
+        ? ('ops on one core' as const)
+        : bwU >= rU
+          ? ('the write stream' as const)
+          : poolMisses > colReads * readAmp
+            ? ('the buffer-pool cliff' as const)
+            : ('read pressure' as const)
     const d = disqualify(e)
     return {
-      id: e.id, rawRU, colCache, colReads, rU, bw, bwU, worst, next, worstName,
+      id: e.id, rawRU, colCache, colReads, poolMisses, nodeBytes, shards, ramShards, rU, bw, bwU, worst, next, worstName,
       dq: d ? d.why : null, dqHow: d?.how ?? null, dqCeil: d?.ceil ?? null, store: e,
     }
   })
   const alive = eCols.filter((c) => !c.dq)
-  /** lowest worst-case wins; strict < keeps the earlier (simpler) machine on ties.
-   *  STORES is ordered simplest-first for exactly this reason. */
-  /* Lowest binding ceiling wins. When two stores bind at the same ceiling —
-     which happens whenever reads dominate and they read alike — the one with
-     more headroom on the OTHER axis wins. Falling back to list order there
-     would report the order I happened to type the stores in as a finding. */
-  const engineWin = alive.reduce((best, c) => {
-    if (c.worst < best.worst * 0.95) return c
-    if (best.worst < c.worst * 0.95) return best
-    return c.next < best.next ? c : best
-  }, alive[0]).id
+  /* TWO FILTERS, THEN ONE OF TWO SORTS.
+     Said plainly because the code used to hide it: `band[0]` meant "the
+     simplest survivor" only if you already knew STORES was declared
+     simplest-first AND that filter preserves order, and the winner came out of
+     a reduce, which is a min-by wearing a fold's clothes. A reader asked what
+     band[0] was and then said it felt like a sort. It is; now it says so. */
+
+  /** Which machine you would rather be woken up by. STORES is declared in this
+   *  order for this reason, and it is the last tiebreak in the other sort too,
+   *  so simplicity never quite leaves the argument. */
+  const simplerToRun = (a: EngineCol, b: EngineCol) => STORES.indexOf(a.store) - STORES.indexOf(b.store)
+
+  /* What a tie actually costs to operate. FEWEST SHARDS first, because 1,342
+     hand-run primaries against 19 ring nodes is the real difference between two
+     stores whose utilisations match to the third decimal — the Slack-vs-Discord
+     axis, and it used to be invisible here: the old tiebreak handed the win to
+     whichever store had more headroom on an axis sitting at 1%, which is a coin
+     flip wearing a percentage. Then headroom on the wall that is not binding,
+     then simplicity. */
+  const cheaperToOperate = (a: EngineCol, b: EngineCol) =>
+    a.shards - b.shards || a.next - b.next || simplerToRun(a, b)
+
+  /** Stores whose first wall is within a whisker of the lowest. Inside this
+   *  band throughput has said everything it has to say. */
+  const minWorst = Math.min(...alive.map((c) => c.worst))
+  const band = alive.filter((c) => c.worst <= minWorst * (1 + tune.tieBand) + 1e-9)
+  const simplest = [...band].sort(simplerToRun)[0]
+  const onThroughput = [...band].sort(cheaperToOperate)[0]
+  /* NOTHING BINDS → TAKE THE SIMPLEST MACHINE.
+     The shard tie-break is an honest one when the load is real. When every
+     survivor sits at a fraction of a percent of its wall AND the simplest
+     machine in the band needs no meaningful split, the arithmetic has
+     separated nothing, and answering "a leaderless ring" to a chat app with
+     ten thousand users is a wrong answer with a confident percentage beside
+     it — which is exactly what this page did until someone dragged the slider
+     to the bottom.
+
+     Gated on BOTH conditions, because either alone is misleading. Load with no
+     pressure but a thousand shards is not simple — at that point who runs the
+     split is the entire question, and that is the ring's argument, not an
+     objection to it (Discord's move happens on the far side of this line).
+     Pressure with no shards still has to be decided on throughput.
+
+     Applied only INSIDE the tie band, and that limit is load-bearing: a first
+     attempt overrode every store and took in-memory's wins away from it. A
+     rebuildable dataset small enough to hold in RAM is the one case where the
+     specialist genuinely beats the general answer on the arithmetic, not on a
+     tie. */
+  const nothingBinds =
+    Math.max(...alive.map((c) => c.worst)) < tune.quietFloor && simplest.shards <= tune.simpleShards
+  const engineWin = nothingBinds && band.length > 1 ? simplest.id : onThroughput.id
   const winner = alive.find((c) => c.id === engineWin)!
   /* Stores within a few percent of the winner are not really beaten — the
      arithmetic simply does not separate them, and saying "SQL wins" because it
@@ -639,7 +943,7 @@ export function model(v: Vals, req: Req) {
      points at what actually decides: at a high shard count, who does the
      sharding costs more than per-node efficiency. */
   const engineTie = alive
-    .filter((c) => c.worst <= winner.worst * 1.05 + 1e-9)
+    .filter((c) => c.worst <= winner.worst * (1 + tune.tieBand) + 1e-9)
     .map((c) => c.id)
 
   /* AMDAHL'S LAW, applied to ceilings. Hennessy & Patterson's oldest rule is
@@ -664,38 +968,76 @@ export function model(v: Vals, req: Req) {
     writeCeiling, diskReadCeiling, cacheCeiling, seqWriteBps, seqReadBps, ramBytes, ramHosts, scanSeconds,
     heldConns, egressFor, tCols, transportWin,
     writeUtil, logNeed, dbWrites, blobNeed, dbBytesW, eCols, engineWin, engineTie, cacheOnWritePath,
-    writeShardsNeeded, shardsNeeded, monthsToDouble, amdahl, cacheAbsorbs,
+    writeShardsNeeded, monthsToDouble, amdahl, cacheAbsorbs, tune,
   }
 }
 
 export type Model = ReturnType<typeof model>
 
 /** consequences of the chosen shape — uses v's (possibly hand-tuned) synced
- *  constants plus the effective transport's holds flag */
-export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
+ *  constants plus the effective transport's holds flag.
+ *  `storeId` names the store these consequences are for — the shard bill is
+ *  per store now, so "shard the database" has to bill the store the reader
+ *  actually chose, not a global maximum. Defaults to the arithmetic's winner. */
+export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean, storeId?: string) {
+  const chosen = m.eCols.find((x) => x.id === (storeId ?? m.engineWin)) ?? m.eCols.find((x) => x.id === m.engineWin)!
   const connections = effTHolds ? m.heldConns : 0
   const connHosts = effTHolds ? Math.ceil(connections / v.connsPerHost) : 0
   const egressGbps = m.egressFor(v.overhead)
   const diskWriteBytes = m.peakWrites * m.bytesW * v.writeAmp
   const webInstances = Math.max(1, Math.ceil((m.peakQps * (v.lat / 1000)) / v.slots))
   const originHosts = Math.max(1, Math.ceil(egressGbps / v.nic))
-  const cacheNodes = Math.max(1, Math.ceil(m.readSide / m.cacheCeiling))
+  /* WHAT THE CACHE HAS TO ABSORB. Reads always. Writes too, whenever the reads
+     must be current: an asynchronous copy is behind by definition, so the only
+     cache that is safe to answer from is one every write updates or
+     invalidates in the same breath. That is not free — it puts the write path
+     through the cache tier, and the tier has to be sized for it.
+     This page has said that sentence in prose since it shipped while sizing the
+     tier from reads alone, so the sentence was true and the arithmetic printed
+     next to it was not. */
+  /* WHAT ONE FULL SCAN COSTS, as a share of a day. `scanSeconds` has always
+     been computed and shown in the ceilings table, but the requirement that
+     depends on it — "someone will also analyse this" — was a bare boolean
+     beside it, so the page asserted the scan had to move without ever pricing
+     it. This is the price: one pass over the rows, against one node's whole
+     sequential-read day. It is the arithmetic behind "do not run analytics on
+     the primary", and it is also why the answer is a columnar copy rather
+     than a bigger disk — a column store reads only the columns the query
+     touches, compressed. */
+  const scanDayShare = m.scanSeconds / 86400
+
+  const cacheOps = m.readSide + (m.cacheOnWritePath ? m.dbWrites : 0)
+  const cacheNodes = Math.max(1, Math.ceil(cacheOps / m.cacheCeiling))
   const readUtil = v.readAmp === 0 ? 0 : (m.readSide * v.readAmp) / m.diskReadCeiling
 
   // ---------- the chain: each forced addition transforms the load downstream ----------
   const cdnNeed = originHosts > 1
   const originAfter = cdnNeed ? egressGbps * (1 - v.cdnHit / 100) : egressGbps
   const originHostsAfter = Math.max(1, Math.ceil(originAfter / v.nic))
-  const cacheNeed = readUtil > 0.3
+  const cacheNeed = readUtil > m.tune.cacheAt
   const missReads = cacheNeed ? m.readSide * (1 - v.cacheHit / 100) : m.readSide
   const readUtilAfter = v.readAmp === 0 ? 0 : (missReads * v.readAmp) / m.diskReadCeiling
   const writeUtilAfter = m.dbWrites / m.writeCeiling
   /** two independent reasons to split: the write rate, or the sheer data size */
   const writeShards = m.writeShardsNeeded
-  const shardNeed = m.shardsNeeded > 1
-  const shards = m.shardsNeeded
-  const shardBy: 'writes' | 'storage' | 'both' =
-    writeUtilAfter > 1 && m.storageShards > 1 ? 'both' : writeUtilAfter > 1 ? 'writes' : 'storage'
+  const shardNeed = chosen.shards > 1
+  const shards = chosen.shards
+  /* WHICH DIVISION PRODUCED THE SHARD COUNT. The page prints the count and the
+     arithmetic behind it side by side, so this has to name the reason that
+     actually won `Math.max` — not a plausible-sounding one. Memory is the
+     third reason, and it is per store: only a B-tree taking scattered inserts
+     (or the in-memory store, by definition) has to keep a node's slice inside
+     its RAM — and when it does, it dominates by an order of magnitude, since a
+     node holds ~70x more disk than memory. Reporting that count as "storage"
+     would print "1,342 shards" beside a division that yields 19. */
+  const shardBy: 'writes' | 'storage' | 'memory' | 'both' =
+    chosen.ramShards >= Math.max(m.storageShards, m.writeShardsNeeded) && chosen.ramShards > 1
+      ? 'memory'
+      : writeUtilAfter > 1 && m.storageShards > 1
+        ? 'both'
+        : writeUtilAfter > 1
+          ? 'writes'
+          : 'storage'
 
   const g = v.growth / 100
   const monthsToWall =
@@ -718,7 +1060,7 @@ export function consequences(v: Vals, req: Req, m: Model, effTHolds: boolean) {
   return {
     connections, connHosts, egressGbps, diskWriteBytes, webInstances, originHosts, cacheNodes, readUtil,
     cdnNeed, originAfter, originHostsAfter, cacheNeed, missReads, readUtilAfter,
-    writeUtilAfter, writeShards, shardNeed, shards, shardBy,
+    writeUtilAfter, writeShards, shardNeed, shards, shardBy, cacheOps, scanDayShare,
     monthsToWall, needs,
   }
 }
@@ -764,8 +1106,8 @@ export const NEED_LABEL: Record<keyof Consequences['needs'], string> = {
 /** run the whole page for one set of constants, resolved self-consistently:
  *  the store the arithmetic picks writes its own amplification back in before
  *  the consequences are computed, exactly as the UI does. */
-export function outcome(v: Vals, req: Req): Outcome {
-  const m = model(v, req)
+export function outcome(v: Vals, req: Req, tune: Tuning = TUNING): Outcome {
+  const m = model(v, req, tune)
   const win = STORES.find((s) => s.id === m.engineWin)!
   const t = PROTOCOLS.find((p) => p.id === m.transportWin)!
   const c = consequences({ ...v, ...t.sets, ...storeConstants(win, req.access) }, req, m, t.holds)
@@ -804,6 +1146,61 @@ function diffOutcome(a: Outcome, b: Outcome): string[] {
   return out
 }
 
+/** The requirement axes, and the two values each can take. */
+const REQ_AXES: Record<string, [string, string]> = {
+  fresh: ['pull', 'push'],
+  txn: ['single', 'multi'],
+  loss: ['keep', 'rebuild'],
+  analytics: ['no', 'yes'],
+  access: ['point', 'range'],
+  recency: ['stale', 'current'],
+  keyShape: ['monotonic', 'scattered'],
+}
+
+/** Everything a requirement could plausibly move, as one comparable string. */
+function outcomeSig(v: Vals, r: Req): string {
+  const m = model(v, r)
+  const t = m.tCols.find((x) => x.id === m.transportWin)!
+  const c = consequences(v, r, m, t.holds)
+  const needs = Object.entries(c.needs)
+    .filter(([, on]) => on)
+    .map(([k]) => k)
+    .sort()
+    .join(',')
+  /* The SURVIVORS belong in the signature, not just the winner. "Atomic across
+     keys" eliminates four of the six stores; if the winner happens to be the
+     same either way, dropping the candidate set would report that requirement
+     as deciding nothing — while the comparison table the reader is looking at
+     lost two thirds of its columns. Narrowing the field is a consequence. */
+  const alive = m.eCols.filter((x) => !x.dq).map((x) => x.id).join('+')
+  return [m.engineWin, m.transportWin, alive, needs, c.shards, c.cacheNodes, c.connHosts, c.webInstances].join('|')
+}
+
+/**
+ * Which requirements currently decide nothing.
+ *
+ * A requirement can be inert for two very different reasons, and both are
+ * worth showing rather than hiding. Either something else already settled it
+ * — "atomic across keys" eliminates every store whose read cost the access
+ * pattern would have changed, so the access pattern stops mattering — or the
+ * workload has not reached the size where it starts to bite, which is the case
+ * for key shape until a node holds more rows than it has RAM.
+ *
+ * The alternative design was to grey out or prune "impossible" combinations.
+ * None are impossible (a test sweeps all 128 and the candidate list never
+ * empties), and hiding a control decides for the reader instead of telling
+ * them why it went quiet — which is the more useful half of the answer.
+ */
+export function inertRequirements(v: Vals, req: Req): string[] {
+  const here = outcomeSig(v, req)
+  return Object.entries(REQ_AXES)
+    .filter(([axis, [a, b]]) => {
+      const other = req[axis as keyof Req] === a ? b : a
+      return outcomeSig(v, { ...req, [axis]: other }) === here
+    })
+    .map(([axis]) => axis)
+}
+
 export function sensitivity(v: Vals, req: Req): Flip[] {
   const base = outcome(v, req)
   const flips: Flip[] = []
@@ -816,6 +1213,25 @@ export function sensitivity(v: Vals, req: Req): Flip[] {
       const changes = diffOutcome(base, outcome({ ...v, [h.id]: h.steps[j] }, req))
       if (changes.length)
         flips.push({ id: h.id, label: h.label, src: h.src, from: h.fmt(v[h.id]), to: h.fmt(h.steps[j]), dir, changes })
+    }
+  }
+  /* THE THRESHOLDS GET SWEPT TOO. They were exempt for no better reason than
+     that they lived as bare numbers inside the function rather than as sliders
+     beside it — which is the worst possible reason, because it is precisely
+     the constants nobody can see that nobody challenges. A page that reports
+     "the answer rests on this assumption" while three assumptions sit outside
+     the report is reporting on the wrong set. */
+  for (const t of THRESHOLDS) {
+    const i = t.steps.indexOf(TUNING[t.k])
+    if (i < 0) continue
+    for (const [j, dir] of [[i - 1, 'down'], [i + 1, 'up']] as const) {
+      if (j < 0 || j >= t.steps.length) continue
+      const changes = diffOutcome(base, outcome(v, req, { ...TUNING, [t.k]: t.steps[j] }))
+      if (changes.length)
+        flips.push({
+          id: t.k, label: t.label, src: 'assume',
+          from: t.fmt(TUNING[t.k]), to: t.fmt(t.steps[j]), dir, changes,
+        })
     }
   }
   /* Assumptions first: a measured constant being load-bearing is a fact about
