@@ -97,6 +97,10 @@ export const ROUTES = {
     title: 'MapReduce: the Pattern, Not the Product',
     desc: 'The famous half was borrowed from Lisp. The half that mattered was the restriction — work out what a program must give up before a framework can recover it for you.',
   },
+  '/papers/rum': {
+    title: 'Interlude: The RUM Triangle',
+    desc: 'Reads, updates, space — hold two down and the third goes up. The axis every storage argument in this book runs along, named once so the rest can stop re-arguing it.',
+  },
   '/papers/chubby': {
     title: 'The Lock Everyone Was Secretly Holding',
     desc: 'Every system in Act I has one master and none of the papers say who appoints it. Work out who does — then find out why the contribution was the packaging, not the algorithm.',

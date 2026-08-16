@@ -77,22 +77,29 @@ export default function ChapterView({ chapter }: { chapter: Chapter }) {
           <div className="gn-tags">
             <span className="gn-tag">Reading time · {chapter.minutes} min</span>
             <span className="gn-tag">{chapter.paperNo}</span>
-            <span className="gn-tag">
-              {chapter.paper.venue} {chapter.paper.year}
-            </span>
+            {chapter.paper && (
+              <span className="gn-tag">
+                {chapter.paper.venue} {chapter.paper.year}
+              </span>
+            )}
           </div>
         </header>
 
-        {/* the citation card — the answer key, displayed like one */}
-        <aside className="gn-cite box" data-obs>
-          <div className="cl">The paper</div>
-          <a className="ct" href={chapter.paper.url} target="_blank" rel="noreferrer">
-            {chapter.paper.title}
-          </a>
-          <div className="ca">
-            {chapter.paper.authors} — {chapter.paper.venue} {chapter.paper.year}
-          </div>
-        </aside>
+        {/* The citation card — the answer key, displayed like one. An interlude
+            has no answer key: it names a pattern the chapters around it keep
+            using rather than re-deriving one paper, so the card is absent and
+            the cold open starts immediately. */}
+        {chapter.paper && (
+          <aside className="gn-cite box" data-obs>
+            <div className="cl">The paper</div>
+            <a className="ct" href={chapter.paper.url} target="_blank" rel="noreferrer">
+              {chapter.paper.title}
+            </a>
+            <div className="ca">
+              {chapter.paper.authors} — {chapter.paper.venue} {chapter.paper.year}
+            </div>
+          </aside>
+        )}
 
         <main className="gn-page">
           <section className="gn-caption" data-obs>

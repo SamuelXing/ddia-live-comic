@@ -190,6 +190,61 @@ owns *how the engine executes*. It sits underneath all of them, which is also th
 argument for its chapter order — it should be readable by someone who has read none
 of the rest.
 
+### The one with a different format: the GPU book
+
+**Programming Massively Parallel Processors**, Hwu, Kirk & El Hajj. Note the timing
+before buying anything: the **5th edition shipped 27 February 2026**, adding wavefront
+algorithms, a multi-GPU chapter and advanced matrix-multiply optimisation. That is the
+one.
+
+Chosen over CSAPP and over a compiler book, and the reasoning is the same shape as
+the architecture pick above. **CSAPP overlaps two books already on this list** — its
+OS half is Book F and its concurrency half is Book E, and three books arguing over
+one territory is how a shelf turns into a pile. **A compiler book's best half already
+lives inside Book C**, which covers vectorised-versus-compiled execution and a
+Cascades optimiser; the other half wants a code editor and an IR view, which is a
+different application rather than a different chapter. PMPP is the only one of the
+three that is simultaneously a real textbook and a hands-on course, where every
+chapter is a kernel you write and then measure.
+
+**This is the first book on the shelf whose format has to break.** Every other book
+says *read the idea, then push on it until it breaks* — a slider, a trace, a
+recomputed verdict. That is the wrong verb here. A GPU book has to say **write the
+kernel, run it on your own hardware, and watch the roofline move.**
+
+Which is now possible in a page: **WebGPU compute shaders**. Not CUDA, but the model
+maps almost one-to-one — workgroup for block, workgroup storage for shared memory —
+and coalescing, tiling and occupancy behave the same way. Naive matrix multiply, then
+tiled, then measure the speedup, **on the reader's own GPU**. No other book here can
+say the numbers on screen are the reader's own machine. Per-chapter escape hatch to a
+Colab notebook for the real CUDA version, because some things genuinely need a T4.
+
+Two things to design around rather than discover later:
+
+- **WebGPU is not universal.** Chrome and Edge are fine, Safari from 26, Firefox
+  partial. Needs a static fallback that still teaches the chapter, not an error.
+- **Browser GPU timings are noisy and sandboxed.** So the receipts have to be
+  **ratios and shapes** — this kernel is 6× that one, the curve flattens here — and
+  never absolute GFLOP/s. The same discipline the cost calculator needs, arrived at
+  from a completely different direction, which is mild evidence the house rule is
+  right.
+
+**What it deliberately does not cover:** NVIDIA as a *product* ecosystem. No TensorRT,
+no Triton Inference Server, no NCCL topology, no Hopper-era TMA. Pair the book with
+primary sources for that — the CUDA C++ Programming Guide and the architecture
+whitepapers — and note the boundary with **Book D**, which already owns the
+inference-serving end (FlashAttention, vLLM, PagedAttention). Book G owns *why the
+hardware makes that slow*; this one owns *how to make a throughput machine actually
+go fast*; Book D owns *what people run on it*.
+
+**The honest cost, because it is the most expensive prospectus here.** Every other
+book on this list inherits a finished machine — `ChapterView`, `DesignIt`,
+`TracePlayer`, the geometry lint, the card renderer — and is therefore mostly
+writing. This one needs a WebGPU runner, a kernel editor, and a benchmark harness
+whose numbers are trustworthy enough to print. That is a new interactive surface, not
+a new skin on an existing one, and it should be planned as such rather than
+discovered in chapter two.
+
 ### Still on the shelf as prospectuses
 
 - **Book C — "The Analytical Engine"**: single-node engine internals, scaffolded on
@@ -213,6 +268,13 @@ not, so the failure mode is six books at three chapters each. Whatever the answe
 is, it should be a rule about *when a book is allowed to start*, not a ranking of
 which is most interesting — every one of these is the most interesting on the day
 you start it.
+
+One input to that rule, now that there are two entries above rather than one: the
+books split cleanly into **the cheap ones and the one that isn't.** C, D, E, F and G
+all inherit the finished machine and are therefore writing plus a few SVGs. The GPU
+book needs a new interactive surface built first. That is not an argument against it
+— it is the argument for deciding *when*, deliberately, rather than starting it on an
+enthusiastic afternoon and discovering the cost in chapter two.
 
 ## Shipped
 
