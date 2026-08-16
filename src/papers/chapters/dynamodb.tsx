@@ -4,7 +4,7 @@ import DesignIt from '../DesignIt'
 import { RetreatDiagram, ThroughputDilutionDiagram, MetadataLoadDiagram } from '../diagrams'
 import { dynamodbTrace } from './dynamodb-trace'
 
-/* The epilogue. Chapter 6's closing step already says the argument ended in a
+/* The epilogue. Chapter 5's closing step already says the argument ended in a
    draw, so this chapter cannot just be "and here is the retreat" — that is a
    paragraph, and it has been written.
 
@@ -31,7 +31,7 @@ export const dynamodb: Chapter = {
     url: 'https://www.usenix.org/system/files/atc22-elhemali.pdf',
   },
   caption:
-    'Chapter 6 opened with a shopping cart that was not allowed to refuse a write, and Amazon paid an enormous price to keep that promise: no leader, sloppy quorums, and versions the application had to reconcile itself. Fifteen years later the same company published a paper about the system that carries the name, and it runs an elected leader per partition, refuses writes when the quorum is gone, and will sell you a strongly consistent read. **Nobody published a retraction.** But before you read this as a defeat, notice where the retreat actually started — and it was not in an argument about consistency. It was that Amazon’s own engineers stopped choosing Dynamo.',
+    'Chapter 5 opened with a shopping cart that was not allowed to refuse a write, and Amazon paid an enormous price to keep that promise: no leader, sloppy quorums, and versions the application had to reconcile itself. Fifteen years later the same company published a paper about the system that carries the name, and it runs an elected leader per partition, refuses writes when the quorum is gone, and will sell you a strongly consistent read. **Nobody published a retraction.** But before you read this as a defeat, notice where the retreat actually started — and it was not in an argument about consistency. It was that Amazon’s own engineers stopped choosing Dynamo.',
   steps: [
     {
       n: 'Step 01',
@@ -40,7 +40,7 @@ export const dynamodb: Chapter = {
       rung: 'Rung 1 · The constraint',
       body: [
         'Here is the sentence in the history section that reframes everything after it. Amazon launched other data services in the years after Dynamo — S3 and SimpleDB — that were **managed and elastic**, and Amazon engineers began preferring those *“even though the functionality of Dynamo was often better aligned with their applications’ needs.”* The better-fitting database lost. It lost to services that fitted worse and that nobody had to operate.',
-        'Dynamo was **single-tenant**. Every team that wanted one ran its own installation, which meant every team had to grow experts in gossip, quorums, anti-entropy and ring topology — and the paper is blunt that this operational complexity *“became a barrier to adoption.”* Chapter 6 measured the price of availability in siblings and merge functions, and that accounting was right as far as it went. It just left out the largest line item, which was people.',
+        'Dynamo was **single-tenant**. Every team that wanted one ran its own installation, which meant every team had to grow experts in gossip, quorums, anti-entropy and ring topology — and the paper is blunt that this operational complexity *“became a barrier to adoption.”* Chapter 5 measured the price of availability in siblings and merge functions, and that accounting was right as far as it went. It just left out the largest line item, which was people.',
         'SimpleDB, the fully managed alternative, had its own problems that are worth knowing because DynamoDB was built to fix exactly them. Tables were capped at **10 GB** and at a modest request rate, so customers split their data across several tables by hand. And because *every attribute was indexed*, every write updated every index, which made latency unpredictable in a way nobody could plan around. **Two ways of making the customer do the database’s job**, and both had to go.',
         'So the goal was stated as a combination rather than an improvement: the incremental scalability and predictable performance of Dynamo, plus the administration model of a cloud service and a richer data model than a pure key-value store. That is the brief. Read the rest of this chapter as the answer to it, and hold one number in your head as the scale it now runs at — during the 66-hour Prime Day of 2021, Amazon’s own systems peaked at **89.2 million requests per second** against it.',
       ],
@@ -71,12 +71,12 @@ export const dynamodb: Chapter = {
                   {
                     label: 'Elect one per partition, with Paxos and a lease — it takes the writes and the consistent reads',
                     verdict: 'move',
-                    why: 'This is the retreat, and it is worth being exact about the trade. What it buys is a single place where the order of writes is settled, which is what turns a strongly consistent read into a read rather than a negotiation — and it removes siblings from the customer’s life entirely. What it costs is the property Chapter 6 was built for: a write now needs a live leader and a quorum, so a partition can genuinely be unavailable for writes in a way the ring could not be. **The thing that makes that survivable is not the leader, it is the size of the unit.** A Region runs millions of these groups, so losing one is a partial outage rather than an outage. *The 2007 design made every key equally available; this one makes availability granular.*',
+                    why: 'This is the retreat, and it is worth being exact about the trade. What it buys is a single place where the order of writes is settled, which is what turns a strongly consistent read into a read rather than a negotiation — and it removes siblings from the customer’s life entirely. What it costs is the property Chapter 5 was built for: a write now needs a live leader and a quorum, so a partition can genuinely be unavailable for writes in a way the ring could not be. **The thing that makes that survivable is not the leader, it is the size of the unit.** A Region runs millions of these groups, so losing one is a partial outage rather than an outage. *The 2007 design made every key equally available; this one makes availability granular.*',
                   },
                   {
                     label: 'Stay leaderless and get consistency from the quorum arithmetic instead',
                     verdict: 'dead',
-                    why: 'The inequality only holds when the readers and the writers are drawing from the *same* set of nodes — and Chapter 6’s sloppy quorum deliberately breaks that, by writing to whichever nodes are healthy rather than whichever nodes own the key. That is precisely what kept it available, and precisely what makes the arithmetic a heuristic. You would also still be handing siblings back to the caller, which is the part customers most wanted to stop doing.',
+                    why: 'The inequality only holds when the readers and the writers are drawing from the *same* set of nodes — and Chapter 5’s sloppy quorum deliberately breaks that, by writing to whichever nodes are healthy rather than whichever nodes own the key. That is precisely what kept it available, and precisely what makes the arithmetic a heuristic. You would also still be handing siblings back to the caller, which is the part customers most wanted to stop doing.',
                   },
                   {
                     label: 'Stay leaderless, but resolve conflicts on the server with last-write-wins',
@@ -160,7 +160,7 @@ export const dynamodb: Chapter = {
       rung: 'Rung 3 · The reveal',
       span: 2,
       body: [
-        'Hold Chapter 6’s picture next to this one. There, a write went to whichever node picked it up and the reader was left holding the reconciliation. Here it is metered before it is stored, ordered by an elected leader, acknowledged by two replicas in two buildings, and then checked against a copy of itself for as long as the table exists.',
+        'Hold Chapter 5’s picture next to this one. There, a write went to whichever node picked it up and the reader was left holding the reconciliation. Here it is metered before it is stored, ordered by an elected leader, acknowledged by two replicas in two buildings, and then checked against a copy of itself for as long as the table exists.',
         'Step 4 is the repair trick worth stealing, step 5 is the failure mode that is worse than a dead machine, and step 7 is the sentence the authors say they would keep above all the others.',
       ],
       diagram: (
@@ -226,7 +226,7 @@ export const dynamodb: Chapter = {
       accent: 'terra',
       rung: 'Rung 6 · What the retreat costs',
       body: [
-        '**A partition can be unavailable, and Chapter 6’s could not.** Writes need a live leader and a quorum of two replicas in different zones. Lose the quorum and that slice of the table stops accepting writes — a thing the 2007 ring was specifically built never to do. The service is designed for **99.99 percent** availability for Regional tables and **99.999 percent** for global ones, measured as the share of requests that succeed in each five-minute window, which is an honest way to state it and is not the same as a promise that no request fails.',
+        '**A partition can be unavailable, and Chapter 5’s could not.** Writes need a live leader and a quorum of two replicas in different zones. Lose the quorum and that slice of the table stops accepting writes — a thing the 2007 ring was specifically built never to do. The service is designed for **99.99 percent** availability for Regional tables and **99.999 percent** for global ones, measured as the share of requests that succeed in each five-minute window, which is an honest way to state it and is not the same as a promise that no request fails.',
         '**A leader change costs a couple of seconds, even when it is unnecessary.** A newly elected leader must wait out the old leader’s lease before serving anything. That is fine when the old leader is genuinely dead and a pure loss when it was a gray failure — which is why the peer-consultation fix exists, and why it is worth remembering that the failure detector is now a small distributed protocol of its own with its own failure modes.',
         '**Some hot keys cannot be split at all.** Splitting for consumption works by dividing a key range, so a partition receiving heavy traffic to a *single item* has nothing to divide. The paper says outright that such workloads cannot benefit, and that the system detects them and does not try. **The most extreme skew is precisely the case the mechanism cannot help**, and the application still has to solve it — with a cache, or by spreading the value across keys itself.',
         '**Sequential access defeats it too.** A partition whose key range is being walked in order has no stable hot region to split around; the heat moves as fast as the split does. Between these two, the answer to “what if my access pattern is pathological?” is still, in the end, *change your access pattern* — the managed service absorbed most of that problem, not all of it.',
@@ -243,7 +243,7 @@ export const dynamodb: Chapter = {
       title: 'Where it stands in 2026 — and what Season 1 was about',
       rung: 'Rung 7 · The draw',
       body: [
-        '**The argument ended in a draw, and both sides walked.** This chapter is one half of it: the leaderless side grew a leader, a quorum, and consistent reads on request. The other half happened quietly on the leader-based side, and Chapters 11 and 14 are the evidence — Spanner and Aurora spent the same decade learning the availability engineering that Chapter 6’s authors invented because they had no alternative. Nobody conceded. **The industry stopped wanting the choice per database and started wanting it per request**, which is why every serious store in this book now offers both a fast read and a correct one and charges differently for them.',
+        '**The argument ended in a draw, and both sides walked.** This chapter is one half of it: the leaderless side grew a leader, a quorum, and consistent reads on request. The other half happened quietly on the leader-based side, and Chapters 11 and 14 are the evidence — Spanner and Aurora spent the same decade learning the availability engineering that Chapter 5’s authors invented because they had no alternative. Nobody conceded. **The industry stopped wanting the choice per database and started wanting it per request**, which is why every serious store in this book now offers both a fast read and a correct one and charges differently for them.',
         '**Managed became the default, and that turned out to be the bigger story.** The thing that beat Dynamo inside Amazon in 2010 — a service somebody else operates — has beaten almost everything since. It is why the systems in Acts V and VI are described by their APIs rather than their clusters, and why an engineer starting today may never see a `nodetool` command or a repair schedule. That is a genuine gain and it has a cost this book has tried to keep visible: **the mechanisms did not disappear, they moved behind a wall**, and the person on call is still the one who has to know what is on the other side of it.',
         '**What this season has been about.** Seventeen chapters so far, one shape repeated: a limit is hit, somebody gives up a guarantee to get past it, and then spends the next decade buying it back at a price they can afford. Act I gave up the single machine. Act II gave up the master. Act III worked out what agreement really costs. Act IV bought transactions back, twice, with different currencies. Act V made the log the primary artifact. Act VI split analytics off and then rented the machines to do it. And the epilogue is the same move once more — *give up the leaderless write, buy back the operator.*',
         '**And the thing that dates fastest is not the mechanism.** The papers in this book were right about their problems and are being steadily contradicted about their conclusions, which is what a healthy field looks like from the inside. Read them for the pressure that forced the design, not for the design — the pressures come back, and the answers are made of whatever hardware and economics happened to exist that year. *Season 2 is about what happens when the data stops sitting still.*',
@@ -327,7 +327,7 @@ export const dynamodb: Chapter = {
       year: '2007',
       title: 'Dynamo: Amazon’s Highly Available Key-value Store — DeCandia et al. (SOSP)',
       url: 'https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf',
-      note: 'Chapter 6, and the other half of this one. Read the two back to back in a single sitting — it takes an evening and it is the best available lesson in how a design ages. Notice that almost nothing in the 2007 paper is *refuted* by the 2022 one. The premises simply changed underneath it, and the conclusions went with them.',
+      note: 'Chapter 5, and the other half of this one. Read the two back to back in a single sitting — it takes an evening and it is the best available lesson in how a design ages. Notice that almost nothing in the 2007 paper is *refuted* by the 2022 one. The premises simply changed underneath it, and the conclusions went with them.',
     },
     {
       year: '2015',
@@ -349,14 +349,14 @@ export const dynamodb: Chapter = {
     },
   ],
   seenIn: [
-    { label: 'The Cart That Must Not Close — Ch 6', to: '/papers/dynamo', live: true },
+    { label: 'The Cart That Must Not Close — Ch 5', to: '/papers/dynamo', live: true },
     { label: 'Interlude: CAP', to: '/papers/cap', live: true },
     { label: 'Paying for Time with Hardware — Ch 11', to: '/papers/spanner', live: true },
     { label: 'Leaderless & quorums — the comic', to: '/ddia/read/replication-quorum', live: true },
   ],
   finale: {
-    title: 'Seventeen papers, one move',
-    body: 'The arc started with a company that could not fit its data on one machine and ends with one that could not fit its database in its engineers’ heads. In between, the same move made over and over: hit a wall, give up a guarantee to get past it, then spend a decade buying it back in a cheaper currency. What this last chapter adds is a correction to how the rest of it reads. The arguments the field remembers — leaders against no leaders, consistency against availability, the theorem everybody misquotes — are settled in half a page here, and the remaining fourteen pages are about hot keys, silent corruption, whether a cache is lying to you about how much capacity you need, and how to undo a deployment at three in the morning. That is not a lesser subject. It is what running any of this actually consists of, and it is the part no paper had written down until somebody had done it for fifteen years. One chapter of Season 1 is still unwritten, and it is the first one — the thirty years when a single machine was enough, where every promise this book spends gets made.',
+    title: 'The arguments the operators were having',
+    body: 'The arc started with a company that could not fit its data on one machine and ends with one that could not fit its database in its engineers’ heads. What this last chapter adds is a correction to how the rest of the season reads. The arguments the field remembers — leaders against no leaders, consistency against availability, the theorem everybody misquotes — are settled in half a page here, and the remaining fourteen are about hot keys, silent corruption, whether a cache is lying to you about how much capacity you would need without it, and how to undo a deployment at three in the morning. That is not a lesser subject. It is what running any of this actually consists of, and it is the part no paper had written down until somebody had done it for fifteen years. One page left, and it is not a paper: the whole season on one, and what all of it adds up to.',
   },
-  next: { title: 'One Machine Was Enough — the Prologue', unwritten: true },
+  next: { title: 'The Season, in One Page', slug: 'season-1' },
 }

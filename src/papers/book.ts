@@ -23,6 +23,12 @@ export interface TocEntry {
   slug?: string
   /** an interlude is a half-chapter — comic-style, no paper to read */
   interlude?: boolean
+  /**
+   * What to print where the paper would go, for a live row that has no paper.
+   * Without it the contents label every paperless page "interlude", which is
+   * right for the RUM triangle and wrong for the season close.
+   */
+  note?: string
 }
 
 export interface TocAct {
@@ -67,11 +73,18 @@ export const seasonProgress = () => {
  * line someone later reads as an off-by-one and helpfully breaks.
  */
 
-/** e.g. "2 of 18 chapters live" */
-export const progressLabel = () => {
-  const { live, total } = seasonProgress()
-  return `${live} of ${total} chapters live`
-}
+/**
+ * "17 chapters live" — deliberately no longer a fraction.
+ *
+ * It used to read "17 of 18", which is arithmetically right and reads as an
+ * off-by-one to everybody, because the chapters are numbered from Ch 0 and the
+ * last one is Ch 17. A reader counts the highest number they can see and finds
+ * the total one larger. The fraction was answering a question nobody asked; the
+ * useful facts are how much there is to read, and what is still missing — so
+ * those are now two separate labels that say what they mean.
+ */
+export const progressLabel = () => `${seasonProgress().live} chapters live`
+
 
 export const TOC: TocAct[] = [
   {
@@ -160,6 +173,15 @@ export const TOC: TocAct[] = [
     summary:
       'DynamoDB in 2022 shares a name with the 2007 paper and not much else. The ring that was proud of having no leader now runs one per partition group, watches for heat and splits ranges under load, and will sell you a strongly consistent read if you ask. Meanwhile the range-partitioned side spent the same decade growing the availability tricks it once refused. Nobody announced it, but the argument that started in Act II ended in a draw.',
     next: 'That is Season 1. Season 2 is what happens when the data stops sitting still.',
-    entries: [{ no: 'Ch 17', title: 'The Retreat', paper: 'DynamoDB — USENIX ATC 2022', slug: 'dynamodb' }],
+    entries: [
+      { no: 'Ch 17', title: 'The Retreat', paper: 'DynamoDB — USENIX ATC 2022', slug: 'dynamodb' },
+      {
+        no: '—',
+        title: 'The Season, in One Page',
+        interlude: true,
+        note: 'the close · no new paper',
+        slug: 'season-1',
+      },
+    ],
   },
 ]

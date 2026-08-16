@@ -3,6 +3,7 @@ import { isValidElement } from 'react'
 import type { ReactElement } from 'react'
 import { COMICS } from './comics'
 import { CHAPTERS } from '../papers/chapters'
+import { THREADS, SEASON_NEXT } from '../papers/season'
 import type { DesignItSpec } from '../papers/DesignIt'
 import type { Step } from './types'
 
@@ -72,6 +73,11 @@ function allProse(): Array<{ where: string; text: string }> {
     add(`paper:${c.slug}`, (c.sources ?? []).map((s) => s.note))
   }
   out.push(...designItProse())
+  /* The season close renders its prose through rich() like every chapter does,
+     so it belongs in the same sweep. It is easy to forget precisely because it
+     lives outside the chapter registry. */
+  THREADS.forEach((t) => out.push({ where: `season:${t.name}`, text: t.body }))
+  out.push({ where: 'season:next', text: SEASON_NEXT.body })
   return out
 }
 

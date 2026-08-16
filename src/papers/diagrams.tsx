@@ -1923,3 +1923,54 @@ export function MetadataLoadDiagram() {
     </svg>
   )
 }
+
+/** The close — the season's whole argument as three steps and a loop. Terra on
+ *  the guarantee that gets sold and on the bill, denim on what gets built back:
+ *  the same two accents the chapters use, so the shape is recognisable before
+ *  the words are read. The loop is the point — the bill is the next act's wall,
+ *  which is why the book has six acts instead of one. */
+export function OneMoveDiagram() {
+  const box = (x: number, w: number, n: string, top: string, sub: string, accent: string) => (
+    <>
+      <rect x={x} y="46" width={w} height="38" fill="none" stroke={accent} strokeWidth="1.6" />
+      <text x={x + 6} y="40" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {n}
+      </text>
+      <text x={x + 6} y="62" fontFamily={MONO} fontSize="7" fill={accent}>
+        {top}
+      </text>
+      <text x={x + 6} y="76" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {sub}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 172"
+      role="img"
+      aria-label="Every act of the season makes the same three moves: it hits a limit, gives up a guarantee to get past it, and then spends years buying that guarantee back in a cheaper form. The cost of the last step becomes the wall the next act runs into."
+    >
+      <text x="12" y="18" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        seventeen papers, the same three steps
+      </text>
+
+      {box(12, 96, '01', 'hit a wall', 'the world says no', INK)}
+      <line x1="112" y1="65" x2="122" y2="65" stroke={INK} strokeWidth="1.2" />
+      {box(126, 96, '02', 'sell a guarantee', 'to get past it', TERRA)}
+      <line x1="226" y1="65" x2="236" y2="65" stroke={INK} strokeWidth="1.2" />
+      {box(240, 92, '03', 'buy it back', 'cheaper, years later', DENIM)}
+
+      <path d="M286 88 L286 108 L58 108 L58 90" fill="none" stroke={TERRA} strokeWidth="1.2" strokeDasharray="3 3" />
+      <text x="72" y="122" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        and what step 3 costs is the next act’s wall
+      </text>
+      <line x1="12" y1="136" x2="332" y2="136" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="152" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        which is why there are six acts and not one
+      </text>
+      <text x="12" y="166" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        nobody in this book solved it; they moved the bill somewhere payable
+      </text>
+    </svg>
+  )
+}

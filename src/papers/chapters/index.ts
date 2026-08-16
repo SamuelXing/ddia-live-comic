@@ -18,10 +18,11 @@ import { aurora } from './aurora'
 import { columnar } from './columnar'
 import { snowflake } from './snowflake'
 import { dynamodb } from './dynamodb'
+import { season1 } from './season-1'
 
 /** Chapters that exist, in reading order — interludes included, since they are
  *  pages a reader walks through. The season's full map, including everything
  *  unwritten, lives in book.ts (TOC); this is only what is live. */
-export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb]
+export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb, season1]
 
 export const CHAPTER_BY_SLUG: Record<string, Chapter> = Object.fromEntries(CHAPTERS.map((c) => [c.slug, c]))

@@ -1,7 +1,7 @@
 import type { TraceSpec } from '../../components/TracePlayer'
 import { VIZ } from '../../styles/viz'
 
-/* One write into DynamoDB in 2022, drawn so that Chapter 6's picture can be
+/* One write into DynamoDB in 2022, drawn so that Chapter 5's picture can be
    held next to it. In 2007 the same write went to whichever node happened to
    pick it up, and the reader was left holding the reconciliation. Here it is
    metered at the door, ordered by an elected leader, acknowledged by two of
@@ -11,7 +11,7 @@ import { VIZ } from '../../styles/viz'
    coordination machinery, and the whole point of this chapter is that the
    machinery came back. Green for the storage replicas and the archive, because
    they hold the bytes. Violet for the log replica: it is replication with no
-   storage, which is exactly the category violet has carried since Chapter 8.
+   storage, which is the category violet has carried throughout this book.
    Blue for the front door. Red only where something is actually wrong.
 
    Admission control is deliberately NOT a node. The GAC service vends tokens
@@ -65,14 +65,14 @@ export const dynamodbTrace: TraceSpec = {
     {
       title: 'And here is the whole retreat, in one arrow',
       prose:
-        'The write goes to <b>the leader</b>. Not to a coordinator that happens to be nearby, not to the first healthy nodes on a ring — to the one replica that has won a Multi-Paxos election and is holding a lease on it. <em>Only the leader may accept a write, and only the leader may serve a strongly consistent read.</em> Chapter 6 spent its entire length on how to avoid needing this. Fifteen years later the same organisation put it back, and the paper says so plainly: DynamoDB shares most of the name of the earlier system <b>and little of its architecture</b>.',
+        'The write goes to <b>the leader</b>. Not to a coordinator that happens to be nearby, not to the first healthy nodes on a ring — to the one replica that has won a Multi-Paxos election and is holding a lease on it. <em>Only the leader may accept a write, and only the leader may serve a strongly consistent read.</em> Chapter 5 spent its entire length on how to avoid needing this. Fifteen years later the same organisation put it back, and the paper says so plainly: DynamoDB shares most of the name of the earlier system <b>and little of its architecture</b>.',
       focus: ['rtr', 'lead'],
       particles: [{ from: 'rtr', to: 'lead', color: C.door }],
     },
     {
       title: 'Two out of three, in different buildings',
       prose:
-        'The leader writes a log record and sends it to its peers. The write is acknowledged to the application <b>once a quorum has it durably</b> — and a healthy write quorum here means two of the three replicas, each in a different Availability Zone. Notice what is not happening: no version vector, no sibling, nothing for the caller to reconcile. <em>The order was decided in one place, so there is only ever one answer.</em> That is what the leader is for, and it is the entire difference between this picture and Chapter 6’s.',
+        'The leader writes a log record and sends it to its peers. The write is acknowledged to the application <b>once a quorum has it durably</b> — and a healthy write quorum here means two of the three replicas, each in a different Availability Zone. Notice what is not happening: no version vector, no sibling, nothing for the caller to reconcile. <em>The order was decided in one place, so there is only ever one answer.</em> That is what the leader is for, and it is the entire difference between this picture and Chapter 5’s.',
       focus: ['lead', 'f1', 'f2', 'app'],
       particles: [
         { from: 'lead', to: 'f1', color: C.leader },

@@ -157,6 +157,10 @@ export const ROUTES = {
     title: 'Elasticity as the Product',
     desc: 'Build the analytical half again for a world where machines are rented by the second — and find out that the thing customers are buying is not the query engine.',
   },
+  '/papers/season-1': {
+    title: 'The Season, in One Page',
+    desc: 'Seventeen papers, and the same three moves under all of them. What the acts add up to, and the ideas that cross every one of them without getting a chapter of their own.',
+  },
   '/papers/dynamodb': {
     title: 'The Retreat',
     desc: 'The same building, the same name, and almost none of the same architecture. What Amazon walked back after a decade of running it \u2014 and the thing that turned out to matter more than any of it.',

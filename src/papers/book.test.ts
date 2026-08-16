@@ -80,12 +80,15 @@ describe('the season’s progress counter', () => {
     expect(rows.some((e) => e.interlude)).toBe(true) // or the line above proves nothing
   })
 
-  it('reads as a sentence, with both numbers in it', () => {
-    const { live, total } = seasonProgress()
-    expect(progressLabel()).toBe(`${live} of ${total} chapters live`)
+  it('states what there is to read, without a fraction', () => {
+    /* The fraction read as an off-by-one, because the chapters start at Ch 0 —
+       a reader counts to Ch 17 and is told there are 18. */
+    const { live } = seasonProgress()
+    expect(progressLabel()).toBe(`${live} chapters live`)
     expect(live).toBeGreaterThan(0)
-    expect(total).toBeGreaterThan(live)
+    expect(progressLabel()).not.toMatch(/ of /)
   })
+
 })
 
 describe('the chain of “next” teasers at the foot of every chapter', () => {
@@ -131,10 +134,45 @@ describe('the chain of “next” teasers at the foot of every chapter', () => {
   })
 
   it('leaves the last live chapter teasing something unwritten', () => {
-    /* The book is being drawn in public; the foot of the last page has to say
-       so rather than dead-ending. */
+    /* There is no next chapter to name and the foot of the last page is still
+       the most-clicked link on it, so it has to say the book is unfinished
+       rather than dead-end in silence. */
     const last = CHAPTERS[CHAPTERS.length - 1]
     expect(last.next?.unwritten).toBe(true)
     expect(last.next?.slug).toBeUndefined()
+  })
+})
+
+describe('the chapter numbers written into cross-links', () => {
+  /* Chapter numbers are typed by hand into `seenIn` labels — "The Cart That
+     Must Not Close — Ch 6" — and the number lives in exactly one other place,
+     the TOC row. Writing the epilogue I got Dynamo's number wrong in a label
+     and in ten sentences of prose, because I had it as Ch 6 in my head and
+     nothing in the repo disagreed with me.
+
+     Prose is not checkable. A label next to the link it labels is: the `to`
+     says which chapter is meant, so the number in the text has to match the
+     number the TOC gives that chapter. That is the half of the mistake a test
+     can hold, and it is the half a reader clicks. */
+  const numberBySlug: Record<string, string> = {}
+  for (const act of TOC)
+    for (const e of act.entries) if (e.slug && /^Ch \d+$/.test(e.no)) numberBySlug[e.slug] = e.no
+
+  it('has chapter numbers to check', () => {
+    expect(Object.keys(numberBySlug).length).toBeGreaterThan(10)
+  })
+
+  it('gives every labelled cross-link the number the TOC gives that chapter', () => {
+    const wrong: string[] = []
+    for (const c of CHAPTERS)
+      for (const s of c.seenIn) {
+        const m = /^\/papers\/([\w-]+)$/.exec(s.to ?? '')
+        const label = /\bCh (\d+)\b/.exec(s.label)
+        if (!m || !label) continue
+        const expected = numberBySlug[m[1]]
+        if (expected && expected !== `Ch ${label[1]}`)
+          wrong.push(`${c.slug}: “${s.label}” points at ${m[1]}, which is ${expected}`)
+      }
+    expect(wrong).toEqual([])
   })
 })
