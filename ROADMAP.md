@@ -1,8 +1,15 @@
-# DDIA, as a live comic — Roadmap
+# systems comic — Roadmap
 
 Where the project is headed. **The plan is this first section**; everything from
 `Shipped` down is the record of what is already built, kept because the reasoning
 behind each decision is worth more than the summary of it.
+
+**Note on the shape of this file.** Most of it was written when the site was one
+book, and the sequencing argument below still reasons about a one-book site. The
+site is now a shelf: `/ddia` is book one, `/papers` is book two, the calculator
+stands alone. That argument wants rewriting against how the two books are actually
+being weighted, which is a decision, not an edit — so it is flagged rather than
+guessed at. Everything else here has been brought back in line with what shipped.
 
 ## Next up
 
@@ -10,10 +17,33 @@ Roughly the order I would do them in. The three long menus further down — app 
 paper-driven components, the composer — are the longer game, and the sequencing note
 at the end of this section says why they are not first.
 
-**The comprehension track, the calculator-correctness track and the sims' engine fork are
-done** (#30, #32–#38, #43, #45); what they found and what shipped is in `Shipped`. What is
-left here is the cost calculator, one unfinished half of sharing, and one rejected
+**The comprehension track, the calculator-correctness track, the sims' engine fork,
+sharing and the launch checklist are all done** (#30, #32–#48, #50–#61). What is left
+here is the cost calculator, the papers book's remaining chapters, and one rejected
 experiment kept as a warning.
+
+### The papers book — writing it
+
+Three chapters live of eighteen (GFS, MapReduce, Bigtable — #60, #61, and the
+Bigtable chapter that proved the format). The season map has been on the page since
+day one, so the shape is public and the gaps are visible; the counter that says how
+far along it is derives itself now, after **four** hand-typed tallies in this repo
+went stale.
+
+Next unit is **Ch 4, Chubby**, which closes Act I — and closes it on the right note,
+since Act I's whole method is *appoint someone and notice when they stop answering*,
+and Chubby is where that gets a name. After that the book crosses into Act II and
+the argument changes: Amazon refuses the master that Act I was built on.
+
+Two things learned writing Ch 1 and Ch 2, worth not re-deriving:
+
+- **A half-chapter is a real unit and should look like one.** Ch 2 is two decisions,
+  five steps, nine minutes, no animated trace — because the thing worth animating in
+  it (the shuffle) is already animated in the other book. A "short chapter" that is
+  just a full chapter with less in it reads as unfinished; a half-chapter with its
+  own shape does not.
+- **Never draw a figure the other book already draws.** Cross-link instead. The two
+  books share a skin and a vocabulary precisely so this is cheap.
 
 ### A third calculator: cost
 
@@ -51,19 +81,6 @@ paper already cited on the web deep-dive. A second win: `estCostUSD` in the
 observability sim is currently `~$0.10/GB` with no source — the weakest number on the
 site — and would import from a real model the way the latency page imports from
 capacity instead of restating constants.
-
-### Sharing — one half left
-
-State-in-the-URL and per-route metadata shipped (#39, #42). The share **buttons** were
-built (#40) and then removed at Sam's call (#41) — see the `Shipped` entry, which
-records both what was built and the process mistake that produced it. One item remains:
-
-- **Per-page OG images**, so the preview *picture* varies with the page. The words
-  already do: 24 routes carry their own title and description, but all 24 sit on the
-  same picture. The renderer already exists — headless Chrome over an HTML template —
-  it just produces one card today. **Not obviously worth 24 renders**: the words are
-  what a reader reads in a chat client, and this is the half that only changes the
-  thumbnail.
 
 ### The calculator's basic view — built, rejected
 
@@ -110,12 +127,92 @@ composer stays the exception, because it is the synthesis rather than more of th
 
 ### Loose ends
 
-- **Cloudflare toggles** — Always Use HTTPS (`http://systemscomic.com` currently
-  serves plaintext with no redirect) and a `www` CNAME plus redirect rule
-  (`www.systemscomic.com` does not resolve).
+- **`/ddia/read`'s attribution sits below the fold.** The kicker above it says
+  *"inspired by DDIA, 1st edition"* — the vaguest available phrasing, and the one
+  that reads most like it is avoiding the question — while *unofficial* and *not
+  affiliated* appear only in the footer. That page is the one a link points at.
 - **`calc-basic-view`** is the one branch still on the remote — the basic-view
   experiment above, kept because the code and its 26 tests are there if it is ever
   wanted. The three merged branches this line used to list are gone.
+
+---
+
+## The shelf beyond Season 1
+
+The site is a library now, so this is the list of books, not features. All of these
+are prospectuses — nothing below is started, and the gate they were waiting on has
+passed: the format is proven, three chapters of book two are live, and the machinery
+(`DesignIt`, `ChapterView`, `TracePlayer`, the geometry lint, the card renderer) is
+shared rather than per-book.
+
+**The library-wide theme, stated once so each book can stop restating it:
+hardware physics forces design.** Sequential beats random, the memory hierarchy is a
+cliff, the network is scarcer than the disk, and every architecture in every book is
+somebody paying one of those tolls.
+
+### The next book: *Computer Architecture: A Quantitative Approach*
+
+Hennessy & Patterson, over CSAPP and over a compiler book. Working title
+**"Why Your Code Is Slow"** — a placeholder, on the same terms the papers book's
+title was a placeholder until it wasn't.
+
+**Why this one, out of the three.** It is not a new method for this site — *it is
+where this site's method came from, made explicit.* Two habits were lifted from it
+already and are load-bearing on pages that have shipped: **Amdahl's law on the
+ceilings** (each store binds on one wall while another idles, so the verdict prints
+the distance to the first wall *and* the ratio to the second), and **report the
+sensitivity, not just the estimate** (move each constant one rung, re-run, list only
+what changes an answer — which caught a live ranking bug). The capacity calculator
+is already a quantitative-approach instrument built by someone who had read the
+book. A book about the book would put a name on what the rest of the shelf is
+quietly doing.
+
+It also has the best interactive surface of the three, and that is not a small
+point. Caches, branch prediction, pipeline depth, the roofline model, the memory
+hierarchy — every one of them is a **slider against a ceiling with a meter on it**,
+which is the exact widget vocabulary this site already owns. Nothing new would need
+inventing to make the first chapter interactive.
+
+**Why not the other two.**
+
+- **CSAPP** overlaps two books that are already on this list. Its OS half is Book F
+  (xv6, which reads source rather than papers) and its concurrency half is Book E.
+  Three books arguing over the same territory is how a shelf turns into a pile.
+- **A compiler book** is a real book and its natural home is *inside* Book C — the
+  analytical engine already covers vectorized-versus-compiled execution and a
+  Cascades optimizer, which is the half of compilers this audience came for. The
+  other half wants a code editor and an IR view, which is a different application,
+  not a different chapter.
+
+**Boundary rule, so it does not eat the others:** this book owns *why the hardware
+makes that slow*. Book B owns *why the system exists and what it traded*. Book C
+owns *how the engine executes*. It sits underneath all of them, which is also the
+argument for its chapter order — it should be readable by someone who has read none
+of the rest.
+
+### Still on the shelf as prospectuses
+
+- **Book C — "The Analytical Engine"**: single-node engine internals, scaffolded on
+  CMU 15-721. Layout → vectorized vs compiled → morsel scheduling → Cascades →
+  Snowflake/Photon/Velox/DuckDB. *"You are the engine designer"*, with in-browser
+  benchmarks as the receipts.
+- **Book D — the AI storybook**: the ideas line (perceptron → Transformer → GPT-3 →
+  RLHF) with the system moments woven in, then the machinery (Megatron/ZeRO/FSDP,
+  FlashAttention, vLLM/PagedAttention, quantization).
+- **Book E — concurrency**: Dijkstra → Hoare → Hewitt → Lamport → Herlihy → memory
+  models → Go/Erlang/async → Rust `Send`/`Sync`. The actor act doubles as the bridge
+  into Book B, via Akka and Orleans' virtual actors.
+- **Book F — the OS storybook, on xv6**: a different format, reading *source* rather
+  than papers. The machine's illusions built one at a time. It is the root book —
+  WAL, buffer cache, page tables and the scheduler all start here and every other
+  book borrows them.
+
+**Sequencing across books, which is the part that needs deciding rather than
+writing:** shipping chapter one of a new book is cheap now and finishing a book is
+not, so the failure mode is six books at three chapters each. Whatever the answer
+is, it should be a rule about *when a book is allowed to start*, not a ranking of
+which is most interesting — every one of these is the most interesting on the day
+you start it.
 
 ## Shipped
 
@@ -258,6 +355,29 @@ composer stays the exception, because it is the synthesis rather than more of th
   about. It immediately found one: a break-it-then-fix-it mission whose payoff goal was
   **already ticked on arrival**. Separately, sparse stages drew a handful of nodes
   adrift in a large canvas; both engines now compute a zoom in `layout()`.
+- ✅ **The launch checklist, closed** (#54–#58). Per-page social cards: 31 now, for
+  60 routes — legacy aliases share their canonical's by object identity, and the
+  build *fails* if a route has no card. Putting all of them on one contact sheet is
+  what caught `/ddia/read` still describing itself as "Eleven ideas", the third
+  hand-maintained tally in this repo to go stale. Cloudflare: HTTPS enforced, `www`
+  resolving and redirecting, query strings preserved — verified against the live
+  domain rather than the dashboard, after I read a cached 301 and reported a
+  redirect as broken when it had been fixed. The repo became `systems-comic` and the
+  README lost 79 lines, including two sections that argued for the site instead of
+  pointing at it.
+- ✅ **The papers book, Act I** (#60, #61). GFS and MapReduce, either side of the
+  Bigtable chapter that had been carrying the book alone — and Bigtable's premise is
+  that it is *the database GFS deserved*, so Act I only worked if you already knew
+  the paper underneath it. Three findings outlived the chapters. **The geometry lint
+  had never looked at the papers book**: it walked a hand-written array of comic
+  slugs, so Bigtable's figures had never once been measured; it reads the route
+  table now, 65 diagrams across 12 comics → 70 across 15 pages. **`DesignIt` renders
+  option labels raw** while the question and the answer go through `rich()`, so
+  `only *what*` printed its asterisks — invisible in the source, obvious in a
+  screenshot, and now four tests. And **"1 of 18 chapters live" was typed by hand in
+  three places**, all wrong the moment Ch 1 shipped; derived now, with the check that
+  matters running in both directions, because a chapter can be finished, registered
+  and routed while its TOC row still says unwritten.
 - ✅ **Sharing, and one thing I got wrong about how to take a request** (#39–#42).
   Calculator state now lives in the URL, so a dialled-in scenario is a link — the model
   is a pure function of its inputs, and that claim was unusable while the inputs could
