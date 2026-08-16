@@ -3,16 +3,19 @@
  * finally chosen; everything (nav brand, masthead, document titles) reads it
  * from here.
  *
- * Season 1 table of contents. The reviewed plan (notes/2026-08-11-wide-column-
- * retro.md §11): history as the spine, one forcing event per chapter, papers
- * as answer keys. Chapters ship one at a time; `slug` appears when a chapter
- * goes live, and the index renders the rest as the season's map — the reader
- * should see the shape of the whole story from day one.
+ * Chapters ship one at a time; `slug` appears when a chapter goes live, and the
+ * index renders the rest as the map — the reader should see the shape of the
+ * whole story from day one, holes included.
+ *
+ * Seasons are LATER ACTS OF THE SAME BOOK, not new books, which is why chapter
+ * numbers run straight on: Season 2 opens at Ch 18. Restarting at Ch 1 would
+ * read better on a poster and make "Chapter 5" mean two things — and this book
+ * cross-references bare chapter numbers in prose constantly, where a wrong one
+ * is invisible to every tool. It has already happened once.
  */
 export const BOOK = {
   title: 'The Papers That Broke the Database',
   short: 'The Papers',
-  season: 'Season 1 · Where Data Lives',
   dek: 'Follow the history of distributed systems, and dig deep into the papers that made it.',
 }
 
@@ -29,6 +32,20 @@ export interface TocEntry {
    * right for the RUM triangle and wrong for the season close.
    */
   note?: string
+}
+
+/**
+ * A season: a run of acts with one question under them. The label is what a
+ * chapter prints above its title, so it has to read as a place in the book
+ * rather than as a marketing tier.
+ */
+export interface Season {
+  n: number
+  /** e.g. "Season 1 · Where Data Lives" */
+  label: string
+  /** the season's own question, in a sentence, above its acts on the index */
+  dek: string
+  acts: TocAct[]
 }
 
 export interface TocAct {
@@ -92,7 +109,7 @@ export const seasonProgress = () => {
 export const progressLabel = () => `${seasonProgress().live} chapters live`
 
 
-export const TOC: TocAct[] = [
+const SEASON_1_ACTS: TocAct[] = [
   {
     act: 'Prologue',
     figure: 'prologue',
@@ -194,3 +211,102 @@ export const TOC: TocAct[] = [
     ],
   },
 ]
+
+const SEASON_2_ACTS: TocAct[] = [
+  {
+    act: 'Act I · Nobody Wants to Wait Until Morning',
+    figure: 's2i',
+    summary:
+      'The batch job is correct and it takes six hours, and it takes six hours again tomorrow for a day that differs by one per cent. Worse, anything iterative — and most useful analysis is iterative — writes the whole intermediate result to disk and reads it back on every pass, because the only thing the machinery trusts is a file. This act is about keeping the middle of the computation in memory without giving up the one property that made batch worth having: that a machine can die and nobody has to care.',
+    next: 'Next: the answers arrive in seconds now, and some of the events they were counting arrive after them.',
+    entries: [
+      { no: 'Ch 18', title: 'The Cost of Starting Over', paper: 'Spark / RDDs — NSDI 2012' },
+      { no: 'Ch 19', title: 'One Engine, Both Shapes', paper: 'Naiad — SOSP 2013' },
+      { no: 'Ch 20', title: 'The Same Query, Twice a Second', paper: 'Structured Streaming — SIGMOD 2018' },
+    ],
+  },
+  {
+    act: 'Act II · Time Is Not When It Arrived',
+    figure: 's2ii',
+    summary:
+      'A phone was in a tunnel. The purchase happened at 09:14 and reaches you at 13:40, long after you published the total for the morning and told everyone it was final. Every system so far has quietly assumed that the order things arrive in is the order they happened in, and at this speed that assumption stops being harmless. The act is about the gap between those two clocks: how long you wait for stragglers, what you promise before they arrive, and what you owe anyone you already answered.',
+    next: 'Next: the answer is a few seconds old, and somebody asks why it is recomputed at all.',
+    entries: [
+      { no: 'Ch 21', title: 'One Record at a Time, Forever', paper: 'MillWheel — VLDB 2013' },
+      { no: '—', title: 'Interlude: The Three Times', interlude: true },
+      { no: 'Ch 22', title: 'When It Happened, and When You Heard', paper: 'The Dataflow Model — VLDB 2015' },
+      { no: 'Ch 23', title: 'A Photograph of a Moving System', paper: 'Flink snapshots — 2015' },
+    ],
+  },
+  {
+    act: 'Act III · The Answer That Maintains Itself',
+    figure: 's2iii',
+    summary:
+      'Ten thousand people load the same dashboard and the same query runs ten thousand times over data that barely moved. The whole industry answers this with caches and a prayer about invalidation, which Chapter 12 already showed is the hard part. This act takes the other road: treat a change as the thing being computed, so the result is updated rather than recomputed, and reads become a lookup into an answer that was already maintained for you.',
+    next: 'Next: all of it assumes there is a network. Not everyone has one.',
+    entries: [
+      { no: 'Ch 24', title: 'Change as the Unit of Work', paper: 'Differential Dataflow — CIDR 2013' },
+      { no: 'Ch 25', title: 'The Read Path as a Graph', paper: 'Noria — OSDI 2018' },
+      { no: 'Ch 26', title: 'Incremental by Construction', paper: 'DBSP — VLDB 2023' },
+    ],
+  },
+  {
+    act: 'Act IV · Everybody’s Copy Is Live',
+    figure: 's2iv',
+    summary:
+      'Two people edit the same document on a train with no signal. Nothing in this book so far can help: there is no quorum to reach, no leader to ask, and the writes are already committed on the devices that made them. Chapter 5 asked who writes the merge function and handed the question to the application. This act answers it properly — pick data types whose merge is forced by the shape of the data, and convergence stops being anybody’s judgement call.',
+    next: 'Next: look at what you have assembled across four acts, and notice what it is.',
+    entries: [
+      { no: 'Ch 27', title: 'Who Writes the Merge Function', paper: 'CRDTs — SSS 2011' },
+      { no: 'Ch 28', title: 'The Network Is Optional', paper: 'Local-First — Onward! 2019 · a half-chapter' },
+    ],
+  },
+  {
+    act: 'Epilogue · What You Were Building All Along',
+    figure: 's2epi',
+    summary:
+      'Two endings that pull in opposite directions, which is the honest state of the argument. One puts a single storage layer under batch, streaming and interactive queries, and quietly undoes the split Act VI spent a whole act creating. The other says the pieces were never meant to be reassembled at all — that a log, an index, a cache and a query engine, wired together by hand, are a database with the lid off, and that you have been building one for four acts without being told.',
+    next: 'And then Season 3, if there is one — which nobody has decided.',
+    entries: [
+      { no: 'Ch 29', title: 'Sewing It Back Together', paper: 'Delta Lake — VLDB 2020' },
+      { no: 'Ch 30', title: 'The Database, With the Lid Off', paper: 'Kafka, Samza & the Unix Philosophy — 2015' },
+    ],
+  },
+]
+
+/**
+ * The book, in seasons. Both are visible from day one for the same reason the
+ * unwritten chapters are: the shape of the argument is the thing worth seeing
+ * first, and a map with holes in it is more honest than no map.
+ */
+export const SEASONS: Season[] = [
+  {
+    n: 1,
+    label: 'Season 1 · Where Data Lives',
+    dek: 'Seventeen papers on where the bytes sit, how many copies of them exist, and who is allowed to decide what happened. It starts with a company that cannot fit its data on one machine and ends with one that could not fit its database in its engineers’ heads — and in between, the same move over and over: **hit a wall, give up a guarantee to get past it, then spend a decade buying it back in a currency you can afford.**',
+    acts: SEASON_1_ACTS,
+  },
+  {
+    n: 2,
+    label: 'Season 2 · When the Data Stops Sitting Still',
+    dek: 'Season 1 asked where data lives, and every answer assumed the data is at rest and a query comes to visit it. **This one turns that around: the query holds still and the data moves through it.** The thing being traded stops being consistency against availability and becomes *freshness* — against cost, against being right about events that arrive late, against how much state you are willing to keep hot. Most of the machinery is already in this book. It gets pointed the other way.',
+    acts: SEASON_2_ACTS,
+  },
+]
+
+/** Every act in the book, in reading order. What most callers want. */
+export const TOC: TocAct[] = SEASONS.flatMap((s) => s.acts)
+
+/**
+ * Where a season's contents page lives. Season 1 keeps the bare `/papers`
+ * because it is the book's front door — it is in the nav, on the shelf card,
+ * in social cards and in cross-links from chapters, and redirecting it away to
+ * make the URLs symmetrical would be tidiness paid for by every one of those.
+ * `routes.test.ts` pins these against the route table.
+ */
+export const seasonPath = (n: number) => (n === 1 ? '/papers' : `/papers/season/${n}`)
+
+/** Which season an act belongs to. Act names are unique across the book, and
+ *  `book.test.ts` keeps them that way — this lookup is why. */
+export const seasonOfAct = (act: string): Season | undefined =>
+  SEASONS.find((s) => s.acts.some((a) => a.act === act))

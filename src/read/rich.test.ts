@@ -3,7 +3,8 @@ import { isValidElement } from 'react'
 import type { ReactElement } from 'react'
 import { COMICS } from './comics'
 import { CHAPTERS } from '../papers/chapters'
-import { THREADS, SEASON_NEXT } from '../papers/season'
+import { THREADS } from '../papers/season'
+import { SEASONS } from '../papers/book'
 import type { DesignItSpec } from '../papers/DesignIt'
 import type { Step } from './types'
 
@@ -73,11 +74,11 @@ function allProse(): Array<{ where: string; text: string }> {
     add(`paper:${c.slug}`, (c.sources ?? []).map((s) => s.note))
   }
   out.push(...designItProse())
-  /* The season close renders its prose through rich() like every chapter does,
-     so it belongs in the same sweep. It is easy to forget precisely because it
-     lives outside the chapter registry. */
+  /* Prose that renders through rich() but lives outside the chapter registry,
+     which is exactly the prose a sweep forgets: the close's through-lines, and
+     each season's own introduction on the contents page. */
   THREADS.forEach((t) => out.push({ where: `season:${t.name}`, text: t.body }))
-  out.push({ where: 'season:next', text: SEASON_NEXT.body })
+  SEASONS.forEach((s) => out.push({ where: `season:${s.n}`, text: s.dek }))
   return out
 }
 

@@ -3,6 +3,7 @@ import { ROUTES, cardFor, cards } from '../scripts/routes.mjs'
 import type { RouteMeta } from '../scripts/routes.mjs'
 import { COMICS } from './read/comics'
 import { CHAPTERS } from './papers/chapters'
+import { SEASONS, seasonPath } from './papers/book'
 import { titleForPath } from './routeTitle'
 // Vite's ?raw, not node:fs — the app tsconfig has no node types, and pulling
 // them in for one test would widen the app project's ambient types.
@@ -33,11 +34,15 @@ describe('the route table still matches the site', () => {
   it('every papers chapter has an entry with its own title, and none is invented', () => {
     /* Same drift guard as the comics: the .mjs table duplicates chapter titles
        because the emitter cannot import JSX modules. */
-    const chapterPaths = CHAPTERS.map((c) => `/papers/${c.slug}`).sort()
+    /* Paths under /papers/ that are not chapters, listed by hand on purpose:
+       the point of this assertion is that a path nobody meant to add fails it,
+       so exceptions have to be typed out rather than pattern-matched away. */
+    const notChapters = ['/papers/season/2']
+    const expected = [...CHAPTERS.map((c) => `/papers/${c.slug}`), ...notChapters].sort()
     const tablePaths = Object.keys(ROUTES)
       .filter((p) => p.startsWith('/papers/'))
       .sort()
-    expect(tablePaths).toEqual(chapterPaths)
+    expect(tablePaths).toEqual(expected)
     const wrong: string[] = []
     CHAPTERS.forEach((c) => {
       const entry = ROUTES[`/papers/${c.slug}`]
@@ -53,18 +58,39 @@ describe('the route table still matches the site', () => {
     expect(missing).toEqual([])
   })
 
+  it('gives every season a page — in the route table and in the router', () => {
+    /* Adding a season is three edits in three files: SEASONS, the route table,
+       and App.tsx. Miss the second and the season previews as the homepage;
+       miss the third and every link to it renders the chapter 404, because
+       /papers/season/3 falls through to the :slug catch-all. Neither failure
+       shows up until somebody clicks the hand-off at the foot of season 2. */
+    const paths = SEASONS.map((s) => seasonPath(s.n))
+    expect(paths.length).toBeGreaterThan(1)
+    expect(paths.filter((p) => !(p in ROUTES))).toEqual([])
+    const routed = [...appSource.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1])
+    expect(paths.filter((p) => !routed.includes(p))).toEqual([])
+  })
+
   it('every route the app can render has an entry', () => {
     /* Parsed from App.tsx rather than hand-listed: a route added there without
        a description would otherwise ship previewing as the homepage, which is
        the exact bug this whole mechanism exists to fix. */
-    const paths = [...appSource.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1])
-    const missing = paths.filter(
-      (p) =>
-        p !== '*' &&
-        !p.includes(':') && // /read/:slug is covered by the comic entries above
-        p !== '/calculator' && // redirects to /calculator/capacity
-        !(p in ROUTES),
-    )
+    /* A route whose element is <Navigate> renders nothing and needs no
+       description — it hands the reader to a path that has one. That used to
+       be a hand-listed exception for /calculator, which is the kind of list
+       that grows quietly: three season redirects arrived at once. Read the
+       element instead of naming the paths. */
+    const routes = [...appSource.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<(\w+)/g)]
+    expect(routes.length, 'the Route regex stopped matching App.tsx').toBeGreaterThan(20)
+    const missing = routes
+      .filter(([, , el]) => el !== 'Navigate')
+      .map(([, p]) => p)
+      .filter(
+        (p) =>
+          p !== '*' &&
+          !p.includes(':') && // /read/:slug is covered by the comic entries above
+          !(p in ROUTES),
+      )
     expect(missing).toEqual([])
   })
 })

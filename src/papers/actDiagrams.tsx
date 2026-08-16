@@ -575,6 +575,246 @@ export function SeasonShapes() {
   )
 }
 
+/* ---------------------------------------------------------------------------
+   Season 2. The world changes: Season 1 drew TOPOLOGY, because its question was
+   where the bytes sit. Season 2's question is how old the answer is, so the
+   recurring shape is a TIME AXIS with an event at one end and somebody reading
+   the answer at the other — and each act shortens the distance between them.
+
+   Same colour grammar, so the reader does not have to learn a second one.
+   --------------------------------------------------------------------------- */
+
+/** Act I — the job that reruns from zero, and the disk it goes back to on every
+ *  pass. The pain is the loop, not the length. */
+function ActS2I() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="A batch job drawn as a long bar that restarts from the beginning every night, with each iteration writing to disk and reading it back. Below it, the same work with the intermediate result held in memory instead."
+    >
+      <C x={12} y={16}>
+        the six-hour job, every night
+      </C>
+      <rect x={12} y={26} width={300} height={16} fill="#ffffff" stroke={MUTED} strokeWidth={1} />
+      {[0, 1, 2, 3, 4].map((i) => (
+        <g key={i}>
+          <line x1={12 + (i + 1) * 50} y1={26} x2={12 + (i + 1) * 50} y2={42} stroke={MUTED} strokeWidth={0.8} />
+          <A x1={12 + (i + 1) * 50} y1={48} x2={12 + (i + 1) * 50} y2={58} tone="pain" />
+        </g>
+      ))}
+      <rect x={12} y={58} width={300} height={12} fill={T.pain.f} stroke={TERRA} strokeWidth={1.2} />
+      <C x={162} y={67} mid tone="pain" size={6}>
+        every pass goes back to disk
+      </C>
+      <A x1={312} y1={90} x2={16} y2={90} tone="pain" dash />
+      <C x={162} y={104} mid tone="pain" size={6}>
+        and tomorrow it starts from nothing again
+      </C>
+
+      <C x={12} y={128} tone="new">
+        keep the middle in memory
+      </C>
+      <rect x={12} y={136} width={300} height={16} fill={T.new.f} stroke={DENIM} strokeWidth={1.8} />
+      <C x={162} y={147} mid tone="new" size={6}>
+        and remember how to rebuild it instead of copying it
+      </C>
+      <C x={12} y={170} size={6}>
+        the answer arrives in minutes, and a dead machine still costs nothing
+      </C>
+    </svg>
+  )
+}
+
+/** Act II — the two clocks. One axis is when it happened, the other is when you
+ *  found out, and the gap between them is the whole act. */
+function ActS2II() {
+  const x0 = 46
+  const y0 = 128
+  const x1 = 250
+  const y1 = 34
+  const pt = (ex: number, py: number, tone: Tone) => (
+    <circle cx={ex} cy={py} r="3.6" fill={T[tone].f} stroke={T[tone].s} strokeWidth={1.4} />
+  )
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="Two axes: when an event happened, against when it arrived. Most records sit near the diagonal, but one sat in a tunnel and lands hours late, after the window that should have counted it was already closed and reported."
+    >
+      <C x={12} y={16}>
+        the two clocks nobody separated
+      </C>
+      <line x1={x0} y1={y1} x2={x0} y2={y0} stroke={MUTED} strokeWidth={1} />
+      <line x1={x0} y1={y0} x2={x1 + 40} y2={y0} stroke={MUTED} strokeWidth={1} />
+      <C x={12} y={y1 - 6} size={5.8}>
+        when you heard about it
+      </C>
+      <C x={x1 + 44} y={y0 + 12} end size={5.8}>
+        when it happened
+      </C>
+
+      <line x1={x0} y1={y0} x2={x1} y2={y1} stroke={MUTED} strokeWidth={0.8} strokeDasharray="3 3" />
+      {pt(96, 108, 'past')}
+      {pt(132, 88, 'past')}
+      {pt(178, 66, 'past')}
+      {pt(214, 50, 'past')}
+      <C x={228} y={80} size={5.8}>
+        most arrive
+      </C>
+      <C x={228} y={90} size={5.8}>
+        about when
+      </C>
+      <C x={228} y={100} size={5.8}>
+        they happened
+      </C>
+
+      {pt(110, 44, 'pain')}
+      <A x1={110} y1={104} x2={110} y2={52} tone="pain" dash />
+      <C x={116} y={40} tone="pain" size={5.8}>
+        this one was in a tunnel
+      </C>
+
+      <line x1={x0} y1={62} x2={x1 + 40} y2={62} stroke={DENIM} strokeWidth={1.4} />
+      <C x={x1 + 44} y={60} end tone="new" size={5.8}>
+        you already answered
+      </C>
+      <C x={12} y={158} tone="pain" size={6.2}>
+        it belongs in a total you published two hours ago
+      </C>
+      <C x={12} y={172} size={6}>
+        so: how long do you wait, and what do you owe the people you told
+      </C>
+    </svg>
+  )
+}
+
+/** Act III — the same query run ten thousand times over data that barely moved,
+ *  against one answer kept up to date by the changes themselves. */
+function ActS2III() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="On top, the same query recomputed from the whole dataset for every reader. Below, one maintained answer that each change updates in place, so a read is a lookup."
+    >
+      <C x={12} y={16}>
+        ten thousand readers, one dashboard
+      </C>
+      <B x={12} y={26} w={70} h={28} label="the data" sub="barely moved" />
+      {[0, 1, 2].map((i) => (
+        <A key={i} x1={84} y1={32 + i * 8} x2={126} y2={32 + i * 8} tone="pain" />
+      ))}
+      <B x={128} y={26} w={92} h={28} tone="pain" label="the same query" sub="run again. and again." />
+      {[0, 1, 2].map((i) => (
+        <A key={i} x1={222} y1={32 + i * 8} x2={262} y2={32 + i * 8} tone="pain" />
+      ))}
+      <B x={264} y={26} w={66} h={28} label="an answer" sub="seconds old" />
+      <C x={12} y={70} tone="pain" size={6}>
+        all of that work happened because somebody looked
+      </C>
+
+      <L x1={12} y1={86} x2={332} y2={86} />
+
+      <C x={12} y={104} tone="new">
+        or: compute the change, not the answer
+      </C>
+      <B x={12} y={114} w={70} h={26} label="a change" sub="one row moved" />
+      <A x1={84} y1={127} x2={126} y2={127} tone="new" />
+      <B x={128} y={114} w={92} h={26} tone="new" label="update in place" sub="only what moved" />
+      <A x1={222} y1={127} x2={262} y2={127} tone="new" />
+      <B x={264} y={114} w={66} h={26} tone="new" label="already there" />
+      <C x={12} y={158} size={6}>
+        now a read is a lookup, and nobody pays for the ten thousandth one
+      </C>
+      <C x={12} y={172} tone="pain" size={6}>
+        the price is that the state has to be kept, and kept correct
+      </C>
+    </svg>
+  )
+}
+
+/** Act IV — two devices, both writing, and deliberately no line between them.
+ *  The missing line is the figure. */
+function ActS2IV() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="Two devices editing the same document with no network between them, both accepting writes. Later the two versions meet and merge without anyone deciding which one won."
+    >
+      <C x={12} y={16}>
+        same document, no signal
+      </C>
+      <B x={22} y={30} w={104} h={34} label="a laptop on a train" sub="writing anyway" />
+      <B x={218} y={30} w={104} h={34} label="a phone in a café" sub="writing anyway" />
+      <line x1={130} y1={47} x2={214} y2={47} stroke={TERRA} strokeWidth={1.2} strokeDasharray="4 4" />
+      <line x1={165} y1={38} x2={179} y2={56} stroke={TERRA} strokeWidth={1.8} />
+      <line x1={179} y1={38} x2={165} y2={56} stroke={TERRA} strokeWidth={1.8} />
+      <C x={172} y={74} mid tone="pain" size={6}>
+        no quorum to reach, no leader to ask
+      </C>
+      <C x={172} y={86} mid tone="pain" size={6}>
+        and both writes are already committed
+      </C>
+
+      <A x1={74} y1={100} x2={150} y2={124} tone="new" />
+      <A x1={270} y1={100} x2={194} y2={124} tone="new" />
+      <B x={116} y={126} w={112} h={30} tone="new" label="they merge" sub="and nobody chose" />
+      <C x={12} y={172} size={6}>
+        pick types whose merge is forced, and convergence stops being a judgement call
+      </C>
+    </svg>
+  )
+}
+
+/** Epilogue — the four jobs, drawn apart, with the box that was always around
+ *  them drawn last. */
+function ActS2Epi() {
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="A log, an index, a cache and a query engine drawn as four separate systems wired together by hand, with a dashed outline drawn around all four labelled: this is a database."
+    >
+      <C x={12} y={16}>
+        four things you wired together yourself
+      </C>
+      <B x={26} y={40} w={64} h={26} label="a log" sub="what happened" />
+      <B x={104} y={40} w={64} h={26} label="an index" sub="to look it up" />
+      <B x={182} y={40} w={64} h={26} label="a cache" sub="to keep it hot" />
+      <B x={260} y={40} w={64} h={26} label="a query" sub="to ask things" />
+      {[0, 1, 2].map((i) => (
+        <L key={i} x1={90 + i * 78} y1={53} x2={104 + i * 78} y2={53} />
+      ))}
+
+      <rect
+        x={16}
+        y={30}
+        width={314}
+        height={48}
+        fill="none"
+        stroke={DENIM}
+        strokeWidth={1.8}
+        strokeDasharray="5 4"
+      />
+      <C x={173} y={94} mid tone="new">
+        that is a database
+      </C>
+      <L x1={12} y1={110} x2={332} y2={110} />
+      <C x={12} y={128} size={6.2}>
+        one ending says put a single storage layer under all of it again
+      </C>
+      <C x={12} y={144} size={6.2}>
+        the other says it was never meant to be one box in the first place
+      </C>
+      <C x={12} y={166} tone="pain" size={6}>
+        both are live arguments, and this book does not get to settle them
+      </C>
+    </svg>
+  )
+}
+
 /** Act key (from `TOC`) → its figure. Kept as a lookup rather than a field on
  *  TOC itself because book.ts is plain data with no JSX. A test asserts the
  *  two stay in step. */
@@ -587,4 +827,9 @@ export const ACT_FIGURES: Record<string, () => ReactElement> = {
   v: ActV,
   vi: ActVI,
   epilogue: ActEpilogue,
+  s2i: ActS2I,
+  s2ii: ActS2II,
+  s2iii: ActS2III,
+  s2iv: ActS2IV,
+  s2epi: ActS2Epi,
 }

@@ -23,9 +23,14 @@ const BASE=process.env.BASE_URL||'http://localhost:5173';
    remembered to add it here — and the papers book, whose chapters carry SVG
    figures of exactly the same kind, was never measured at all. routes.mjs is
    the right source because a test already pins it to COMICS and CHAPTERS, so a
-   page cannot exist without appearing here. */
-const pages=Object.keys(ROUTES)
-  .filter(p=>p.startsWith('/ddia/read/')||p.startsWith('/papers/'))
+   page cannot exist without appearing here.
+
+   '/papers' is listed on its own because the filters below want a trailing
+   slash and the contents page has none — which is how thirteen act figures,
+   drawn with the same hand-placed SVG text as every chapter figure, went
+   unmeasured for the whole of season one. */
+const pages=[...new Set(['/papers', ...Object.keys(ROUTES)
+  .filter(p=>p.startsWith('/ddia/read/')||p.startsWith('/papers/'))])]
   .sort();
 if(pages.length<13){console.error(`Only ${pages.length} pages resolved from the route table — expected every comic and chapter.`);process.exit(1)}
 const all=[];
@@ -49,7 +54,7 @@ for (const s of pages){
     const inside=(t,r)=>t.x>=r.x-P&&t.y>=r.y-P&&t.x+t.width<=r.x+r.width+P&&t.y+t.height<=r.y+r.height+P;
     // .gn-wild-fig too: a figure attached to an in-the-wild bullet is exactly
     // as unable to lay out its own text as a panel diagram is.
-    document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg').forEach((svg,si)=>{
+    document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg, .pb-actsum .fig svg').forEach((svg,si)=>{
       const [vx,vy,vw,vh]=svg.getAttribute('viewBox').split(/\s+/).map(Number);
       const rects=[...svg.querySelectorAll('rect')].map(box);
       const circles=[...svg.querySelectorAll('circle')].map(c=>({
@@ -83,7 +88,7 @@ for (const s of pages){
             if(!shielded) out.push(`[LINE-THROUGH-TEXT] "${hit.s}"`); break; }
         }
       });
-    }); return {out,seen:document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg').length};
+    }); return {out,seen:document.querySelectorAll('.gn-diagram svg, .gn-wild-fig svg, .gn-deeper-fig svg, .pb-actsum .fig svg').length};
   });
   [...new Set(issues.out)].forEach(i=>all.push(`${s} ${i}`));
   /* A geometry lint that measures nothing reports the same "OK" as one that

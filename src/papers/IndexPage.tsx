@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, TOC } from './book'
+import { BOOK, SEASONS, seasonPath } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
-import { CHAPTER_LINES, SEASON_NEXT } from './season'
+import { CHAPTER_LINES } from './season'
 import { rich } from '../read/rich'
 import { SITE_TITLE } from '../routeTitle'
 
@@ -22,10 +22,20 @@ import { SITE_TITLE } from '../routeTitle'
    would be scenery rather than something anybody chose to read.
    ============================================================ */
 
-export default function PapersIndexPage() {
+/* One season at a time, and one nav item — the same split the two calculators
+   use, for the same reason. Thirteen acts on one page is a scroll nobody
+   finishes, and the two seasons ask different questions; putting them
+   side by side made the page long without making it clearer. */
+export default function PapersIndexPage({ season: seasonN }: { season: number }) {
+  const season = SEASONS.find((s) => s.n === seasonN) ?? SEASONS[0]
+  /* The season after this one, if there is one. Splitting the seasons onto
+     separate pages made the foot of each one a dead end — the tab that crosses
+     over is at the very top, which is the wrong end of a page somebody has just
+     finished reading. Derived, so a third season needs no code here. */
+  const next = SEASONS.find((s) => s.n === season.n + 1)
   useEffect(() => {
-    document.title = `${BOOK.title} · ${SITE_TITLE}`
-  }, [])
+    document.title = `${season.label} · ${BOOK.title} · ${SITE_TITLE}`
+  }, [season])
 
   /* reveal-on-scroll for the [data-obs] panels — same contract as the other
      .gn index pages: without this the panels stay at opacity 0 forever */
@@ -58,13 +68,27 @@ export default function PapersIndexPage() {
       <SiteNav />
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">{BOOK.season}</div>
+          <div className="gn-kicker">{season.label}</div>
           <h1>{BOOK.title}</h1>
-          <p className="dek">{BOOK.dek}</p>
+          <p className="dek">{rich(season.dek)}</p>
         </header>
 
+        <nav className="pb-tabs" aria-label="Which season">
+          {SEASONS.map((s) => (
+            <NavLink
+              key={s.n}
+              end
+              to={seasonPath(s.n)}
+              className={({ isActive }) => 'pb-tab' + (isActive ? ' on' : '')}
+            >
+              Season {s.n}
+              <span>{s.label.split(' · ')[1]}</span>
+            </NavLink>
+          ))}
+        </nav>
+
         <div className="pb-toc">
-          {TOC.map((act) => {
+          {season.acts.map((act) => {
             /* the same world, redrawn under each act's new pressure — the
                shape change carries the plot for anyone who only looks */
             const Figure = act.figure ? ACT_FIGURES[act.figure] : undefined
@@ -105,11 +129,13 @@ export default function PapersIndexPage() {
             )
           })}
 
-          <section className="gn-finale box" data-obs>
-            <div className="k">next</div>
-            <h3>{SEASON_NEXT.title}</h3>
-            <p>{rich(SEASON_NEXT.body)}</p>
-          </section>
+          {next && (
+            <Link className="gn-finale box pb-onward" to={seasonPath(next.n)} data-obs>
+              <div className="k">next</div>
+              <h3>{next.label} →</h3>
+              <p>{rich(next.dek)}</p>
+            </Link>
+          )}
         </div>
       </div>
     </div>

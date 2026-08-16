@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TOC, seasonProgress, progressLabel } from './book'
+import { TOC, SEASONS, seasonOfAct, seasonProgress, progressLabel } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTERS, CHAPTER_BY_SLUG } from './chapters'
 
@@ -188,5 +188,48 @@ describe('the chapter numbers written into cross-links', () => {
           wrong.push(`${c.slug}: “${s.label}” points at ${m[1]}, which is ${expected}`)
       }
     expect(wrong).toEqual([])
+  })
+})
+
+describe('the book in seasons', () => {
+  /* Two seasons now, and both of these were free while there was one. An act
+     name is the join between a chapter and its season (`seasonOfAct`), and a
+     chapter number is the join between prose and the contents — "Chapter 13"
+     appears in sentences no tool can check, so the least the contents can do
+     is guarantee the number means exactly one thing. */
+
+  it('gives every season a label, a question and some acts', () => {
+    for (const s of SEASONS) {
+      expect(s.label, `season ${s.n} has no label`).toMatch(/^Season \d+ · /)
+      expect(s.dek.length, `season ${s.n} has no dek`).toBeGreaterThan(80)
+      expect(s.acts.length, `season ${s.n} has no acts`).toBeGreaterThan(0)
+    }
+  })
+
+  it('never gives two acts the same name', () => {
+    /* seasonOfAct() finds an act by name across every season. Two acts sharing
+       one — a second "Epilogue", say — would silently put a chapter in the
+       wrong season's masthead. */
+    const names = TOC.map((a) => a.act)
+    expect(names.length).toBe(new Set(names).size)
+  })
+
+  it('resolves every act back to the season it is in', () => {
+    const orphaned = TOC.filter((a) => !seasonOfAct(a.act)).map((a) => a.act)
+    expect(orphaned).toEqual([])
+  })
+
+  it('numbers chapters straight through the book, with no gaps or repeats', () => {
+    /* Seasons are later acts of the same book, so Season 2 opens at Ch 18.
+       Restarting would make "Chapter 5" mean two things, and this book
+       cross-references bare chapter numbers in prose constantly. */
+    const nums = TOC.flatMap((a) => a.entries)
+      .map((e) => /^Ch (\d+)$/.exec(e.no)?.[1])
+      .filter((n): n is string => !!n)
+      .map(Number)
+    expect(nums.length).toBeGreaterThan(20)
+    expect(nums).toEqual([...nums].sort((a, b) => a - b))
+    expect(nums.length).toBe(new Set(nums).size)
+    expect(nums).toEqual(nums.map((_, i) => nums[0] + i))
   })
 })
