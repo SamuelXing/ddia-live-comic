@@ -6,8 +6,9 @@
  * as the trade each one made, and the ideas that cross acts without ever
  * owning a chapter. CHAPTER_LINES goes somewhere else entirely — one line
  * under each row of the table of contents, so the map says what a chapter
- * claims and not only what it is called. SEASON_NEXT is the forward-look at
- * the foot of the contents.
+ * claims and not only what it is called. The forward-look that used to sit at the
+ * foot of the contents is gone: Season 2 has its own header there now, which
+ * says the same thing in the place a reader is already looking.
  *
  * All of it is plain data keyed by chapter slug, so `season.test.ts` can pin
  * both directions: every live page has a line here, and every line here names
@@ -147,8 +148,3 @@ export const THREADS: Thread[] = [
     chapters: ['snowflake', 'dynamodb'],
   },
 ]
-
-export const SEASON_NEXT = {
-  title: 'Season 2 — when the data stops sitting still',
-  body: 'Season 1 asked where data lives, and every answer assumed the data is at rest and the query comes to visit it. Season 2 turns that around: the query holds still and the data moves through it. That means opening the papers this season kept pointing at and walking past — the one that fixed the wound at the end of Chapter 2, where every iteration went back to disk; the one that worked out that “when did this happen” and “when did we hear about it” are different questions and that most stream processing is wrong about it; and the ones where an answer maintains itself instead of being recomputed on request. Most of the machinery is already in this book. It just gets pointed the other way.',
-}

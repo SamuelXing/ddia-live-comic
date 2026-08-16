@@ -609,3 +609,18 @@ a.pb-row.pb-line { align-items: start; }
   margin-top: 3px; border: none; max-width: 68ch; }
 a.pb-row.pb-line .tt { border-bottom: none; }
 a.pb-row.pb-line:hover .tt em { color: var(--ink); }
+
+/* ---------- seasons on the contents page ----------
+   The book runs two seasons and will run more. Each gets a header that states
+   its question before its acts, so a reader who lands mid-page can tell which
+   argument they are inside. The header is quieter than an act box on purpose:
+   it introduces, it is not a thing you read. */
+.pb-season { display: grid; gap: 18px; }
+.pb-season + .pb-season { margin-top: 10px; }
+.gn .pb-season-head { border: 2px solid var(--ink-line); background: var(--ink);
+  box-shadow: 3px 3px 0 var(--denim); padding: 18px 20px; }
+.pb-season-head .sh { font-family: var(--gn-mono); font-size: 12px; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--paper); margin-bottom: 8px; }
+.pb-season-head p { margin: 0; font-size: 14.5px; line-height: 1.62; color: #d8d3c8; max-width: 74ch; }
+.pb-season-head p b { color: var(--paper); font-weight: 600; }
+.pb-season-head p i, .pb-season-head p em { color: #efe9dc; }

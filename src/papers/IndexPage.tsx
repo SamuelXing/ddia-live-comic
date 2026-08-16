@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, TOC } from './book'
+import { BOOK, SEASONS } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
-import { CHAPTER_LINES, SEASON_NEXT } from './season'
+import { CHAPTER_LINES } from './season'
 import { rich } from '../read/rich'
 import { SITE_TITLE } from '../routeTitle'
 
@@ -58,13 +58,19 @@ export default function PapersIndexPage() {
       <SiteNav />
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">{BOOK.season}</div>
+          <div className="gn-kicker">Two seasons · one argument</div>
           <h1>{BOOK.title}</h1>
           <p className="dek">{BOOK.dek}</p>
         </header>
 
         <div className="pb-toc">
-          {TOC.map((act) => {
+          {SEASONS.map((season) => (
+          <div className="pb-season" key={season.n}>
+            <div className="pb-season-head box" data-obs>
+              <div className="sh">{season.label}</div>
+              <p>{rich(season.dek)}</p>
+            </div>
+          {season.acts.map((act) => {
             /* the same world, redrawn under each act's new pressure — the
                shape change carries the plot for anyone who only looks */
             const Figure = act.figure ? ACT_FIGURES[act.figure] : undefined
@@ -104,12 +110,8 @@ export default function PapersIndexPage() {
             </section>
             )
           })}
-
-          <section className="gn-finale box" data-obs>
-            <div className="k">next</div>
-            <h3>{SEASON_NEXT.title}</h3>
-            <p>{rich(SEASON_NEXT.body)}</p>
-          </section>
+          </div>
+          ))}
         </div>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import type { Chapter } from './types'
-import { BOOK } from './book'
+import { BOOK, seasonOfAct } from './book'
 import { Panel } from '../read/Comic'
 import { rich } from '../read/rich'
 import SiteNav from '../components/SiteNav'
@@ -15,6 +15,10 @@ import SiteNav from '../components/SiteNav'
    ============================================================ */
 
 export default function ChapterView({ chapter }: { chapter: Chapter }) {
+  /* Derived, never stored on the chapter: a season is a property of the act,
+     and a chapter that carried its own copy could disagree with the contents
+     page about which season it is in. */
+  const season = seasonOfAct(chapter.act)
   useEffect(() => {
     document.title = `${chapter.title} · ${chapter.paperNo} · ${BOOK.title}`
   }, [chapter])
@@ -70,7 +74,7 @@ export default function ChapterView({ chapter }: { chapter: Chapter }) {
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
           <div className="gn-kicker">
-            {BOOK.season} · {chapter.act}
+            {season?.label ?? BOOK.title} · {chapter.act}
           </div>
           <h1>{chapter.title}</h1>
           <p className="dek">{chapter.dek}</p>
@@ -219,7 +223,7 @@ export default function ChapterView({ chapter }: { chapter: Chapter }) {
 
           <div className="gn-next">
             <span>
-              {BOOK.title} — {BOOK.season}
+              {BOOK.title} — {season?.label}
             </span>
             {chapter.next &&
               (chapter.next.slug ? (
