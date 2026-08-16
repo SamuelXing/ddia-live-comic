@@ -2,9 +2,10 @@ import type { Chapter } from '../types'
 import { gfs } from './gfs'
 import { mapreduce } from './mapreduce'
 import { bigtable } from './bigtable'
+import { chubby } from './chubby'
 
 /** Chapters that exist, in reading order. The season's full map — including
  *  everything unwritten — lives in book.ts (TOC); this is only what is live. */
-export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable]
+export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, chubby]
 
 export const CHAPTER_BY_SLUG: Record<string, Chapter> = Object.fromEntries(CHAPTERS.map((c) => [c.slug, c]))
