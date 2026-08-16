@@ -634,3 +634,22 @@ a.pb-row.pb-line:hover .tt em { color: var(--ink); }
 .gn .pb-onward { display: block; text-decoration: none; }
 .gn .pb-onward h3 { color: var(--denim-ink); }
 .gn .pb-onward:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--denim); }
+
+/* the shelf card's season list — the papers book has two, and a card that
+   summarised it with one season's name beside the whole book's chapter count
+   was claiming something about neither. Rows, not links: the card is itself a
+   link, and an anchor inside an anchor is not valid. Uses the shelf's own
+   tokens (--terra-ink, --gn-mono) rather than the dark instrument palette. */
+.bs-seasons { margin: 14px 0 12px; border-top: 1px solid var(--rule); }
+.bs-seasons .row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px solid var(--rule);
+}
+.bs-seasons .sn { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--terra-ink); }
+.bs-seasons .ss { font-family: var(--gn-body); font-size: 14.5px; color: var(--ink); }
+.bs-seasons .sc { font-family: var(--gn-mono); font-size: 11px; color: var(--ink-3); white-space: nowrap; }
+@media (max-width: 560px) {
+  .bs-seasons .row { grid-template-columns: auto 1fr; row-gap: 2px; }
+  .bs-seasons .sc { grid-column: 2; }
+}

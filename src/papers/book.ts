@@ -89,6 +89,17 @@ export const seasonProgress = () => {
 }
 
 /**
+ * The same count for one season, so the shelf can list them separately. The
+ * rule lives here rather than at the call site because it has one subtlety —
+ * interludes are pages and are not chapters — and a second copy of that rule
+ * somewhere else is a second place for it to drift.
+ */
+export const progressOf = (s: Season) => {
+  const chapters = s.acts.flatMap((a) => a.entries).filter((e) => !e.interlude)
+  return { live: chapters.filter((e) => e.slug).length, total: chapters.length }
+}
+
+/**
  * Interludes are pages, and they are deliberately *not* chapters. They carry a
  * slug like any other live page, and counting them would make "4 of 18" drift
  * away from a table of contents that plainly numbers eighteen chapters. So both
@@ -107,6 +118,16 @@ export const seasonProgress = () => {
  * those are now two separate labels that say what they mean.
  */
 export const progressLabel = () => `${seasonProgress().live} chapters live`
+
+/**
+ * The other half of that pair: what is still missing. Kept as its own label
+ * for the reason above — "23 of 31" invites arithmetic and reads as an
+ * off-by-one; two plain statements do not.
+ */
+export const remainingLabel = () => {
+  const { live, total } = seasonProgress()
+  return `${total - live} still to write`
+}
 
 
 const SEASON_1_ACTS: TocAct[] = [

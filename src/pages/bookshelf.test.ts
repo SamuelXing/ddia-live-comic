@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SEASONS, progressLabel } from '../papers/book'
+import { SEASONS, progressLabel, remainingLabel, seasonProgress } from '../papers/book'
 // Vite's ?raw, not node:fs — same reason routes.test.ts gives: the app
 // tsconfig has no node types, and adding them for one test widens the
 // app project's ambient types.
@@ -30,6 +30,17 @@ describe('the shelf card summarises the whole book', () => {
     expect(hardcoded).toEqual([])
   })
 
+  it('derives the season rows rather than typing them', () => {
+    /* The other half of the same rule. The name check above stops somebody
+       writing a season's name on the card; this stops them adding a row by
+       hand with a name that happens not to match one — a hand-typed "Season 3"
+       would pass the first test and still go stale on the day season 3 gets
+       its real subtitle. Between them, the only way to list a season here is
+       to read it off SEASONS. */
+    expect(code).toContain('SEASONS.map(')
+    expect(code).toContain('progressOf(')
+  })
+
   it('reports a count that covers every season', () => {
     const live = SEASONS.flatMap((s) => s.acts)
       .flatMap((a) => a.entries)
@@ -40,5 +51,15 @@ describe('the shelf card summarises the whole book', () => {
       (s) => s.acts.flatMap((a) => a.entries).filter((e) => !e.interlude && e.slug).length,
     )
     expect(perSeason.filter((n) => n > 0).length).toBeGreaterThan(1)
+  })
+
+  it('states what is live and what is missing as two separate facts', () => {
+    /* Not "23 of 31". The masthead made this call first: a fraction invites
+       arithmetic and reads as an off-by-one, because the chapters are numbered
+       from Ch 0 and the highest one a reader can see is one less than the
+       total. Two plain statements do not have that problem. */
+    const { live, total } = seasonProgress()
+    expect(remainingLabel()).toBe(`${total - live} still to write`)
+    expect(`${progressLabel()} · ${remainingLabel()}`).not.toMatch(/ of /)
   })
 })
