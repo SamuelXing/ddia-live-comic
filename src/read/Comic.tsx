@@ -234,11 +234,17 @@ export default function ComicView({ comic }: { comic: Comic }) {
             </div>
           )}
 
+          {/* Bubble bodies go through rich(), like every other prose field.
+              The nesting sweep in rich.test.ts already treated them as prose;
+              the renderer did not — the same shape as the sources[].note bug,
+              a field that was prose in practice long before it was prose in
+              code. Nothing already written used markup here, so this changed
+              no existing page; it changed what the next author can write. */}
           {comic.bubbles && comic.bubbles.length > 0 && (
             <aside className="gn-bubbles gn-span2" data-obs>
               {comic.bubbles.map((b, i) => (
                 <div className="gn-bubble" key={i}>
-                  <span className="term">{b.term}</span> {b.body}
+                  <span className="term">{b.term}</span> {rich(b.body)}
                 </div>
               ))}
             </aside>

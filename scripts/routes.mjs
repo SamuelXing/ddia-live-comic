@@ -129,6 +129,14 @@ export const ROUTES = {
     title: 'The Cart That Must Not Close',
     desc: 'Amazon will not let a shopping cart refuse a write, so the master goes. Design the store that falls out of that — then find out who has to decide which of two carts is real.',
   },
+  '/papers/percolator': {
+    title: 'Transactions, Hand-Rolled',
+    desc: 'You need a transaction across five rows. The store gives you one row and will not be changed. Work out where the commit point can possibly live — then read the 2010 paper.',
+  },
+  '/papers/spanner': {
+    title: 'Paying for Time with Hardware',
+    desc: 'Chapter 7 proved you cannot observe a global order of events. This paper agrees, then buys one — with a clock that admits how wrong it is, and a database willing to wait that long.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',

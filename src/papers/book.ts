@@ -127,8 +127,8 @@ export const TOC: TocAct[] = [
       'Act I gave up transactions across rows because there was nobody in the building who could coordinate them. Now there is. This act is two attempts at putting the promise back on top of a system that never offered it. The first does it in software, in a client library, on machines nobody upgraded. The second gives up on software and buys hardware — clocks good enough that a database can know how wrong it is and simply wait that long.',
     next: 'Next: both of them are really just being careful about the order writes happened in. What if the order were the database?',
     entries: [
-      { no: 'Ch 10', title: 'Transactions, Hand-Rolled', paper: 'Percolator — OSDI 2010' },
-      { no: 'Ch 11', title: 'Paying for Time with Hardware', paper: 'Spanner — OSDI 2012' },
+      { no: 'Ch 10', title: 'Transactions, Hand-Rolled', paper: 'Percolator — OSDI 2010', slug: 'percolator' },
+      { no: 'Ch 11', title: 'Paying for Time with Hardware', paper: 'Spanner — OSDI 2012', slug: 'spanner' },
     ],
   },
   {

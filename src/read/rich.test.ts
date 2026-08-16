@@ -60,6 +60,7 @@ function allProse(): Array<{ where: string; text: string }> {
     add(`comic:${c.slug}`, (c.inTheWild?.points ?? []).map((p) => (typeof p === 'string' ? p : p.t)))
     add(`comic:${c.slug}`, (c.tradeoffs?.rows ?? []).flatMap((r) => [r.choose, r.when]))
     add(`comic:${c.slug}`, [c.misconception?.think, c.misconception?.actually])
+    add(`comic:${c.slug}`, (c.bubbles ?? []).map((b) => b.body))
     add(`comic:${c.slug}`, (c.sources ?? []).map((s) => s.note))
   }
   for (const c of CHAPTERS) {
