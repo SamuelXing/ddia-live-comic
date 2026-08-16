@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "DDIA, as a live comic \u2014 an unofficial illustrated companion to Designing Data-Intensive Applications",
+  "description": "DDIA, as a live comic — an unofficial illustrated companion to Designing Data-Intensive Applications",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/emit-routes.mjs",
@@ -11,7 +11,8 @@
     "typecheck": "tsc -b --noEmit",
     "check:diagrams": "node scripts/check-diagrams.mjs",
     "test": "vitest run",
-    "og": "node scripts/render-og.mjs"
+    "og": "node scripts/render-og.mjs",
+    "check:links": "node scripts/check-links.mjs"
   },
   "dependencies": {
     "@fontsource/comic-neue": "^5.3.0",

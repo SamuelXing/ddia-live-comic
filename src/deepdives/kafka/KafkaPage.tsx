@@ -307,10 +307,10 @@ export default function KafkaPage() {
               </div>
               <div className="src">
                 <div className="s-k">The essay</div>
-                <a href="https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying" target="_blank" rel="noreferrer">
-                  Jay Kreps — “The Log: What every software engineer should know…” (2013)
+                <a href="https://www.oreilly.com/library/view/i-heart-logs/9781491909379/" target="_blank" rel="noreferrer">
+                  Jay Kreps — “I Heart Logs” (O’Reilly, 2014)
                 </a>
-                <p>The philosophical companion: why the log is the unifying abstraction for replication, messaging, and stream processing. Arguably the best systems essay of its decade.</p>
+                <p>The philosophical companion: why the log is the unifying abstraction for replication, messaging, and stream processing. This is the book form of the 2013 essay, which LinkedIn has since taken down — arguably the best systems essay of its decade, and now only readable as a book.</p>
               </div>
               <div className="src">
                 <div className="s-k">The design docs</div>

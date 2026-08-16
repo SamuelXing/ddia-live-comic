@@ -160,5 +160,5 @@ export const cap: Chapter = {
     title: 'A small true thing, carrying a great deal it was never asked to',
     body: 'What you should take out of this page is a habit rather than a letter pair. When someone tells you a system is AP or CP, ask them the two questions the theorem does not: what happens to a write when the quorum is gone, and how much coordination does an ordinary read pay when nothing at all is wrong. Next, back to Act II, and the system that took Dynamo’s ring, put Bigtable’s data model on top of it, and became the thing the rest of the industry actually deployed.',
   },
-  next: { title: 'A Marriage of Two Papers', unwritten: true },
+  next: { title: 'A Marriage of Two Papers', slug: 'cassandra' },
 }

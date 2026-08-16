@@ -358,7 +358,7 @@ export const STORES: Store[] = [
     chooseFor:
       'Speed on data you can afford to lose, or rebuild from somewhere else. It stops being a candidate the moment the data must survive a node death.',
     examples: 'Redis · Memcached · Valkey',
-    sources: [{ label: 'Scaling Memcache at Facebook', href: 'https://pdos.lcs.mit.edu/6.824/notes/l-memcached.txt' }],
+    sources: [{ label: 'Scaling Memcache at Facebook', href: 'https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf' }],
     wild: 'Facebook’s memcache fleet — the largest ever measured — ran at roughly a 99% hit rate in front of the databases that actually held the data.',
     info: 'Redis, Memcached. No disk on the read path, so the ceilings become CPU per operation and RAM. Durability is optional, and turning it on buys back the fsync you were avoiding.',
   },
