@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, progressLabel } from '../papers/book'
+import { BOOK, SEASONS, progressLabel } from '../papers/book'
 
 /* ============================================================
    The bookshelf — the front door of systemscomic.com.
@@ -24,7 +24,13 @@ const LIVE_BOOKS = [
     kicker: 'Book two · being written',
     title: BOOK.title,
     dek: BOOK.dek,
-    meta: `${progressLabel()} · Season 1 · Where Data Lives`,
+    /* Both halves derived. This line used to read "· Season 1 · Where Data
+       Lives" beside a count of every live chapter in the book, which was fine
+       while there was one season and became a lie the moment there were two —
+       23 chapters live, sitting next to the name of the season that holds 17
+       of them. A shelf card summarises a book, so both facts have to be about
+       the whole book. `bookshelf.test.ts` keeps a season name out of here. */
+    meta: `${progressLabel()} · ${SEASONS.length} seasons`,
   },
 ]
 
