@@ -229,6 +229,15 @@ export const ROUTES = {
     desc: 'Seven things you want from the software you make things in. Files get six and cannot collaborate; web apps get collaboration and nothing else. One swap returns the rest.',
   },
 
+  '/papers/delta': {
+    title: 'Sewing It Back Together',
+    desc: 'The cheapest storage on earth is a key-value store, so a table on it is forty objects and no atomicity. Demote the objects to candidates and let a log say which ones count.',
+  },
+  '/papers/unbundling': {
+    title: 'The Database, With the Lid Off',
+    desc: 'Nobody is going to ship the one database, because the workloads want different layouts. The other ending: standardise the seam between systems instead of merging them.',
+  },
+
   '/ddia/components': {
     title: 'Component deep-dives',
     desc: 'Six pieces of infrastructure taken apart: animated request traces, a hardware envelope you can drag, failure cascades, and the papers behind each one.',

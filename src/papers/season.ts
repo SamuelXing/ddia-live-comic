@@ -118,6 +118,8 @@ export const CHAPTER_LINES: Record<string, string> = {
   dbsp: 'Forty years of one algorithm per class of query, replaced by five mechanical steps — and semi-naive evaluation falls out of them as a corollary nobody designed.',
   crdt: 'Chapter 5 handed the merge function to the application and it was wrong in public. Make the data type such that no reconciliation is expressible, and it cannot be.',
   'local-first': 'The server holds the primary copy, so an edit that has not reached it did not happen. Swap that, and six properties you gave up for collaboration come back.',
+  delta: 'Half of one company’s support escalations were people asking how to undo a crashed job. Demote the data objects to candidates and let a log say which of them count.',
+  unbundling: 'Nobody is going to ship the one database, because the workloads want different layouts. So standardise the seam between the systems instead of merging them.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */
