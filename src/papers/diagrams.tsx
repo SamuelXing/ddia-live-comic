@@ -2932,3 +2932,689 @@ export function SnapshotCostDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   SEASON 2 · ACT III — the answer that maintains itself.
+   Act II's figures drew two clocks and the gap between them.
+   These draw work: how much of it a change actually implies,
+   where the state that saves you re-doing it has to live, and
+   what it costs to keep an answer standing rather than build
+   it again. The recurring shape is a quantity collapsing by
+   orders of magnitude, which is why three of them are log.
+   ============================================================ */
+
+/** Ch 24 — Figure 1, the whole argument as one picture. Work per iteration of
+ *  connected components on a day of Twitter mentions, four ways. The y axis is
+ *  log, so the distance between the top line and the bottom one is five orders
+ *  of magnitude and not a nice improvement. Values are read off the figure. */
+export function WorkPerIterationDiagram() {
+  /* log10(records in difference) → y. 1e7 at the top, 1e0 at the axis. */
+  const y = (n: number) => 116 - (Math.log10(n) / 7) * 84
+  const x = (i: number) => 40 + (i / 22) * 250
+  const line = (pts: Array<[number, number]>, colour: string, dash?: string) => (
+    <path
+      d={pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0])} ${y(p[1])}`).join(' ')}
+      fill="none"
+      stroke={colour}
+      strokeWidth="1.6"
+      strokeDasharray={dash}
+    />
+  )
+  const stateless: Array<[number, number]> = [
+    [1, 3.2e6], [5, 3.2e6], [10, 3.2e6], [16, 3.2e6], [22, 3.2e6],
+  ]
+  const incremental: Array<[number, number]> = [
+    [1, 3.2e6], [4, 1.6e6], [8, 9e5], [11, 8e4], [14, 5e3], [17, 300], [20, 30], [22, 8],
+  ]
+  const prioritized: Array<[number, number]> = [
+    [1, 6e5], [4, 1.4e5], [8, 2e4], [11, 2e3], [14, 200], [17, 25], [20, 6], [22, 2],
+  ]
+  const differential: Array<[number, number]> = [
+    [1, 40], [3, 12], [6, 20], [9, 6], [12, 9], [15, 3], [18, 4], [22, 1],
+  ]
+  /* Keyed BELOW the axis, in two columns. The first draft put the key inside
+     the plot on the right, where the flat "recompute it all" series runs at
+     exactly its y — so the line went through its own label. There is nowhere
+     inside a plot with one horizontal series that is safe. */
+  const key = (kx: number, ky: number, colour: string, label: string, dash?: string) => (
+    <>
+      <line x1={kx} y1={ky} x2={kx + 14} y2={ky} stroke={colour} strokeWidth="1.8" strokeDasharray={dash} />
+      <text x={kx + 19} y={ky + 2.5} fontFamily={MONO} fontSize="5.6" fill={colour}>
+        {label}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 212"
+      role="img"
+      aria-label="Records in difference per iteration of connected components over a 24-hour window of Twitter mentions, on a log scale. Recomputing from scratch does the same large amount of work every iteration. Keeping state between iterations decays exponentially once labels start converging. Introducing labels in priority order is cheaper again. Updating for one further second of tweets sits near the bottom of the chart throughout, and in several iterations there is no work at all."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        how much work each iteration actually implies
+      </text>
+      <line x1="40" y1="116" x2="322" y2="116" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="40" y1="28" x2="40" y2="116" stroke={MUTED} strokeWidth="0.8" />
+      <text x="36" y="34" textAnchor="end" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        10M
+      </text>
+      <text x="36" y="76" textAnchor="end" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        1,000
+      </text>
+      <text x="36" y="117" textAnchor="end" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        1
+      </text>
+      {line(stateless, MUTED, '4 3')}
+      {line(incremental, TERRA)}
+      {line(prioritized, INK)}
+      {line(differential, DENIM)}
+      <text x="40" y="128" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        iteration 1
+      </text>
+      <text x="322" y="128" textAnchor="end" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        23
+      </text>
+      {key(14, 142, MUTED, 'recompute it all', '4 3')}
+      {key(176, 142, TERRA, 'keep state per iteration')}
+      {key(14, 154, INK, 'introduce labels in order')}
+      {key(176, 154, DENIM, 'one more second of tweets')}
+      <line x1="14" y1="166" x2="330" y2="166" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the blue line is a whole day of graph, updated by one second of it
+      </text>
+      <text x="14" y="194" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        67 differences, and several iterations with nothing to do at all
+      </text>
+      <text x="14" y="208" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        log scale, values read off the paper’s figure — shape, not decimals
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 24 — why the versions cannot be a sequence. A collection varies with the
+ *  round of input AND the iteration of the loop, so its versions form a grid.
+ *  Neither (0,1) nor (1,0) precedes the other, and that independence is the
+ *  entire trick: the correction at (1,1) starts from both of them. */
+export function VersionLatticeDiagram() {
+  const gx = (i: number) => 60 + i * 62
+  const gy = (j: number) => 46 + j * 34
+  const cell = (i: number, j: number, on: boolean) => (
+    <>
+      <rect
+        x={gx(i) - 22}
+        y={gy(j) - 11}
+        width="44"
+        height="22"
+        fill={on ? '#eae3d7' : 'none'}
+        stroke={on ? DENIM : MUTED}
+        strokeWidth={on ? 1.6 : 0.9}
+      />
+      <text
+        x={gx(i)}
+        y={gy(j) + 2.5}
+        textAnchor="middle"
+        fontFamily={MONO}
+        fontSize="6.4"
+        fill={on ? DENIM : MUTED}
+      >
+        {`(${i},${j})`}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="Versions of a collection indexed by round of input across and loop iteration down. Because neither the version at round 0 iteration 1 nor the one at round 1 iteration 0 comes before the other, the difference at round 1 iteration 1 can be taken with respect to both of them at once. A total order would force one of the two to come first and throw the other away."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one collection, changing for two unrelated reasons
+      </text>
+      <text x="60" y="30" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={INK}>
+        round 0
+      </text>
+      <text x="122" y="30" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={INK}>
+        round 1
+      </text>
+      <text x="14" y="49" fontFamily={MONO} fontSize="6" fill={INK}>
+        iter 0
+      </text>
+      <text x="14" y="83" fontFamily={MONO} fontSize="6" fill={INK}>
+        iter 1
+      </text>
+      <text x="14" y="117" fontFamily={MONO} fontSize="6" fill={INK}>
+        iter 2
+      </text>
+      {cell(0, 0, true)}
+      {cell(1, 0, true)}
+      {cell(0, 1, true)}
+      {cell(1, 1, true)}
+      {cell(0, 2, false)}
+      {cell(1, 2, false)}
+      {/* both predecessors feed the corner */}
+      <path d="M104 46 L118 68" fill="none" stroke={DENIM} strokeWidth="1.3" />
+      <path d="M60 57 L100 74" fill="none" stroke={DENIM} strokeWidth="1.3" />
+      <text x="176" y="66" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        the correction at (1,1) is taken
+      </text>
+      <text x="176" y="76" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        against both of them at once
+      </text>
+      <text x="176" y="94" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and is very often empty
+      </text>
+
+      <line x1="14" y1="140" x2="330" y2="140" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="156" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        neither (0,1) nor (1,0) comes before the other — so neither has to
+      </text>
+      <text x="14" y="168" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        subtract out the other’s work
+      </text>
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        put them in a line and one of them is thrown away
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 24 — the other half of the model, and the one that costs memory. An
+ *  incremental system folds each difference into the current value and drops
+ *  it. A differential one keeps every difference, indexed by version, because
+ *  a later version may need a different subset of them. */
+export function KeptNotConsolidatedDiagram() {
+  const box = (x: number, y: number, w: number, t: string, colour: string, faded?: boolean) => (
+    <>
+      <rect x={x} y={y} width={w} height="18" fill="none" stroke={colour} strokeWidth={faded ? 0.8 : 1.5} strokeDasharray={faded ? '3 3' : undefined} />
+      <text x={x + w / 2} y={y + 12} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={colour}>
+        {t}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="An incremental system adds each difference into the current collection and discards the difference, so only the latest value survives. A differential system keeps every difference in an index keyed by version, so any version can be reassembled from whichever subset of differences actually precedes it."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what happens to a difference once it has been used
+      </text>
+
+      <text x="14" y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        incremental — fold it in, throw it away
+      </text>
+      {box(14, 42, 54, 'δ1', MUTED, true)}
+      {box(76, 42, 54, 'δ2', MUTED, true)}
+      {box(138, 42, 54, 'δ3', MUTED, true)}
+      <path d="M100 60 L100 72 L220 72 L220 62" fill="none" stroke={TERRA} strokeWidth="1.2" />
+      {box(196, 42, 96, 'the current value', TERRA)}
+      <text x="298" y="55" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        one row
+      </text>
+
+      <text x="14" y="98" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        differential — keep it, indexed by version
+      </text>
+      {box(14, 106, 54, 'δ(0,0)', DENIM)}
+      {box(76, 106, 54, 'δ(0,1)', DENIM)}
+      {box(138, 106, 54, 'δ(1,0)', DENIM)}
+      {box(200, 106, 54, 'δ(1,1)', DENIM)}
+      <text x="262" y="119" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        … all of them
+      </text>
+
+      <line x1="14" y1="140" x2="330" y2="140" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="156" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the index is what lets a version start from the right predecessors
+      </text>
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        on a day of Twitter it came to 1.5% more than the labels themselves
+      </text>
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        and it is resident, deserialized, in memory — that is the bill
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 25 — where the work goes in the three backends, the paper's Figure 1
+ *  compressed. The point is not that one is better; it is that the first two
+ *  put the expensive part on the read, which is the request a user waits for
+ *  and by far the most common one. */
+export function ThreeBackendsDiagram() {
+  const col = (x: number, title: string, colour: string, rows: string[], where: string) => (
+    <>
+      <text x={x} y="34" fontFamily={MONO} fontSize="6.4" fill={colour}>
+        {title}
+      </text>
+      <rect x={x} y="42" width="94" height="62" fill="none" stroke={MUTED} strokeWidth="0.9" />
+      {rows.map((r, i) => (
+        <text key={i} x={x + 7} y={58 + i * 13} fontFamily={MONO} fontSize="5.8" fill={INK}>
+          {r}
+        </text>
+      ))}
+      <text x={x} y="118" fontFamily={MONO} fontSize="6" fill={colour}>
+        {where}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 192"
+      role="img"
+      aria-label="A classic database computes the aggregation on every read. A two-tier stack with a cache avoids that on a hit, but the application has to invalidate entries on every write and refill them on every miss. A data-flow backend streams each write through the operators and keeps the answer standing, so a read is a key lookup."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        who does the expensive part, and on which request
+      </text>
+      {col(14, 'the database', TERRA, ['read: join, count,', 'group, sort', '', 'write: one row'], 'expensive on read')}
+      {col(126, 'database + cache', TERRA, ['read: hit, or miss', 'then all of the above', '', 'write: and invalidate'], 'expensive on the miss')}
+      {col(238, 'the data-flow', DENIM, ['read: look up a key', '', '', 'write: through the graph'], 'expensive on write')}
+
+      <line x1="14" y1="132" x2="330" y2="132" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="148" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        across a month of two real sites, 88–97% of queries were reads
+      </text>
+      <text x="14" y="162" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        and on one of them reads were 88% of all execution time
+      </text>
+      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        the middle column is not a compromise — it is both bills
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 25 — the distinction the whole paper turns on, and the one most readers
+ *  arrive with the wrong model of. Windowed state bounds memory by TIME and
+ *  makes old data unanswerable. Partial state bounds it by DEMAND and makes
+ *  old data slow. A website needs the second. */
+export function PartialNotWindowedDiagram() {
+  const strip = (y: number, kept: boolean[], colour: string) =>
+    kept.map((k, i) => (
+      <rect
+        key={i}
+        x={56 + i * 26}
+        y={y}
+        width="22"
+        height="16"
+        fill={k ? '#eae3d7' : 'none'}
+        stroke={k ? colour : MUTED}
+        strokeWidth={k ? 1.5 : 0.8}
+        strokeDasharray={k ? undefined : '2 2'}
+      />
+    ))
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="Windowed state keeps the most recent records and cannot answer a question about an old one at all. Partial state keeps whatever has actually been asked for, wherever it sits in history, and answers a question about anything else by deriving it from upstream."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        two ways to stop state growing forever
+      </text>
+      <text x="14" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        older
+      </text>
+      <text x="330" y="32" textAnchor="end" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        newer
+      </text>
+
+      <text x="14" y="52" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        windowed
+      </text>
+      {strip(40, [false, false, false, false, false, true, true, true, true, true], TERRA)}
+      <text x="14" y="70" fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        an old story is not slow — it is unanswerable
+      </text>
+
+      <text x="14" y="100" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        partial
+      </text>
+      {strip(88, [false, true, false, false, true, false, true, true, false, true], DENIM)}
+      <text x="14" y="118" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+        whatever somebody actually asked for, wherever it sits
+      </text>
+
+      <line x1="14" y1="136" x2="330" y2="136" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="152" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        bound by time, and the shape of the bound is a policy nobody picked
+      </text>
+      <text x="14" y="166" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        bound by demand, and a miss costs a trip upstream rather than a 404
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        an operator starts fully evicted and fills up as it is read
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 25 — the state bill for the whole Lobsters application, which is the
+ *  measurement that decides whether any of this is practical. The number that
+ *  matters is the smallest one: what Noria cannot evict even in principle. */
+export function StateBillDiagram() {
+  /* Notes live in a fixed column rather than after each bar. Trailing the bar
+     put the longest one — which belongs to the longest bar — off the right of
+     the frame entirely, which is a bug you only get on the widest value. */
+  const bar = (y: number, mb: number, label: string, note: string, colour: string) => (
+    <>
+      <rect x="96" y={y} width={(mb / 789) * 148} height="15" fill="#eae3d7" stroke={colour} strokeWidth="1.4" />
+      <text x="92" y={y + 11} textAnchor="end" fontFamily={MONO} fontSize="6" fill={INK}>
+        {label}
+      </text>
+      <text x="252" y={y + 11} fontFamily={MONO} fontSize="5.4" fill={colour}>
+        {note}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="For the Lobsters application the base tables are 137 megabytes. Forcing every data-flow operator to keep full state needs 789 megabytes, eight times the base tables. The state that cannot be made partial is 73 megabytes, nine per cent of the total, so the other ninety-one per cent can be evicted and re-derived on demand. The working set that keeps reads fast is 525 megabytes."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one real application, and what its answers cost to keep standing
+      </text>
+      {bar(30, 789, 'all state, full', '789 MB — 8× the tables', TERRA)}
+      {bar(56, 525, 'working set', '525 MB, reads stay fast', INK)}
+      {bar(82, 137, 'base tables', '137 MB', MUTED)}
+      {bar(108, 73, 'cannot evict', '73 MB — 9% of it', DENIM)}
+
+      <line x1="14" y1="136" x2="330" y2="136" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="152" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the bottom bar is the real requirement — the rest is a cache
+      </text>
+      <text x="14" y="166" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        235 operators, 60 of them stateful, 35 of those able to go partial
+      </text>
+      <text x="14" y="184" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        the 25 that cannot are views with no key to look up — a front page
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 26 — the two operators the whole theory is built from, and the fact that
+ *  makes them a pair. Nothing here is about databases yet, which is the point:
+ *  it holds for any values you can add and subtract. */
+export function IntegrateDifferentiateDiagram() {
+  const op = (x: number, y: number, t: string, colour: string) => (
+    <>
+      <rect x={x} y={y} width="34" height="22" fill="none" stroke={colour} strokeWidth="1.6" />
+      <text x={x + 17} y={y + 15} textAnchor="middle" fontFamily={MONO} fontSize="8" fill={colour}>
+        {t}
+      </text>
+    </>
+  )
+  const arrow = (x1: number, x2: number, y: number, label?: string) => (
+    <>
+      <line x1={x1} y1={y} x2={x2} y2={y} stroke={INK} strokeWidth="1.2" />
+      <path d={`M${x2} ${y} l-4 -2.6 l0 5.2 z`} fill={INK} />
+      {label && (
+        <text x={(x1 + x2) / 2} y={y - 5} textAnchor="middle" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+          {label}
+        </text>
+      )}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="Integration adds up a stream of changes to give the stream of snapshots; differentiation subtracts each snapshot from the one before to give back the stream of changes. They are exact inverses, so a query over snapshots can be turned into a query over changes by wrapping it in one of each."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        two operators, and they undo each other exactly
+      </text>
+
+      <text x="14" y="40" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        changes
+      </text>
+      {arrow(58, 84, 36)}
+      {op(84, 25, 'I', DENIM)}
+      {arrow(118, 148, 36)}
+      {op(148, 25, 'D', DENIM)}
+      {arrow(182, 212, 36)}
+      <text x="216" y="40" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        the same changes
+      </text>
+      {/* under the wire, not on it — between the boxes there are 30 units and
+          the word needs 34, so on the wire it touches both */}
+      <text x="133" y="56" textAnchor="middle" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        snapshots
+      </text>
+
+      <text x="14" y="82" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        [ +2  −1  +5 ]
+      </text>
+      <text x="96" y="82" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        →
+      </text>
+      <text x="118" y="82" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        [ 2  1  6 ]
+      </text>
+      <text x="182" y="82" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        →
+      </text>
+      <text x="204" y="82" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        [ +2  −1  +5 ]
+      </text>
+
+      <line x1="14" y1="96" x2="330" y2="96" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="112" fontFamily={MONO} fontSize="7" fill={DENIM}>
+        so the incremental version of any query is just:
+      </text>
+      {arrow(14, 44, 134)}
+      {op(44, 123, 'I', MUTED)}
+      {arrow(78, 108, 134)}
+      {op(108, 123, 'Q', TERRA)}
+      {arrow(142, 172, 134)}
+      {op(172, 123, 'D', MUTED)}
+      {arrow(206, 236, 134)}
+      <text x="240" y="138" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        changes in,
+      </text>
+      <text x="240" y="148" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        changes out
+      </text>
+
+      <text x="14" y="172" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        which is a definition, not yet an implementation — as written it
+      </text>
+      <text x="14" y="184" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        rebuilds the whole database at every step
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 26 — the property that turns the definition into an algorithm. Because
+ *  incrementalizing a composition equals composing the incrementalized parts,
+ *  a compiler can walk a query plan and rewrite it operator by operator with
+ *  no heuristics and no cost model. */
+export function ChainRuleDiagram() {
+  const op = (x: number, y: number, w: number, t: string, colour: string) => (
+    <>
+      <rect x={x} y={y} width={w} height="20" fill="none" stroke={colour} strokeWidth="1.5" />
+      <text x={x + w / 2} y={y + 14} textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={colour}>
+        {t}
+      </text>
+    </>
+  )
+  const wire = (x1: number, x2: number, y: number) => (
+    <>
+      <line x1={x1} y1={y} x2={x2} y2={y} stroke={INK} strokeWidth="1.1" />
+      <path d={`M${x2} ${y} l-4 -2.4 l0 4.8 z`} fill={INK} />
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="Wrapping a whole pipeline of two queries in integrate and differentiate gives exactly the same answers as chaining the incremental version of each query directly. So incrementalizing a complex query reduces to incrementalizing each of its parts."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        incrementalize the whole thing, or each piece — same answers
+      </text>
+      {wire(14, 34, 44)}
+      {op(34, 34, 26, 'I', MUTED)}
+      {wire(60, 74, 44)}
+      {op(74, 34, 44, 'Q1', INK)}
+      {wire(118, 132, 44)}
+      {op(132, 34, 44, 'Q2', INK)}
+      {wire(176, 190, 44)}
+      {op(190, 34, 26, 'D', MUTED)}
+      {wire(216, 236, 44)}
+
+      <text x="256" y="48" fontFamily={MONO} fontSize="10" fill={DENIM}>
+        ≅
+      </text>
+
+      {wire(14, 44, 92)}
+      {op(44, 82, 60, 'Q1 delta', DENIM)}
+      {wire(104, 128, 92)}
+      {op(128, 82, 60, 'Q2 delta', DENIM)}
+      {wire(188, 216, 92)}
+
+      <line x1="14" y1="118" x2="330" y2="118" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="136" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        so a compiler walks the query plan and rewrites operator by operator
+      </text>
+      <text x="14" y="150" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        no cost model, no statistics, no heuristics, no special cases
+      </text>
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        and the same rule holds around a loop, which is where it gets strange
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 26 — the trick that makes relations fit. A row carries a weight, so a
+ *  deletion is a row with weight −1 and "apply a change" is addition. The
+ *  bookkeeping the last two chapters wrote by hand becomes arithmetic. */
+export function ZSetDiagram() {
+  const row = (x: number, y: number, name: string, w: string, colour: string) => (
+    <>
+      <rect x={x} y={y} width="88" height="16" fill="none" stroke={MUTED} strokeWidth="0.8" />
+      <text x={x + 7} y={y + 11} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {name}
+      </text>
+      <text x={x + 81} y={y + 11} textAnchor="end" fontFamily={MONO} fontSize="6.2" fill={colour}>
+        {w}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 192"
+      role="img"
+      aria-label="Every row carries an integer weight. A set is a table where every weight is one; a change is a table where an inserted row has weight plus one and a deleted row has weight minus one. Applying a change is adding the two tables, which means insertions and deletions are the same operation."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        every row carries a number, and it may be negative
+      </text>
+
+      <text x="14" y="34" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        the table
+      </text>
+      {row(14, 40, 'anne', '1', INK)}
+      {row(14, 58, 'joe', '1', INK)}
+      {row(14, 76, 'raj', '1', INK)}
+
+      <text x="128" y="62" fontFamily={MONO} fontSize="9" fill={DENIM}>
+        +
+      </text>
+
+      <text x="146" y="34" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        one change
+      </text>
+      {row(146, 40, 'joe', '−1', TERRA)}
+      {row(146, 58, 'mira', '+1', DENIM)}
+
+      <text x="238" y="62" fontFamily={MONO} fontSize="9" fill={DENIM}>
+        =
+      </text>
+
+      <text x="266" y="34" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        the table
+      </text>
+      {row(252, 40, 'anne', '1', INK)}
+      {row(252, 58, 'raj', '1', INK)}
+      {row(252, 76, 'mira', '1', INK)}
+
+      <line x1="14" y1="108" x2="330" y2="108" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="126" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        a deletion is not a different operation — it is a negative row
+      </text>
+      <text x="14" y="140" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        which is what makes “apply a change” into plain addition
+      </text>
+      <text x="14" y="160" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        Chapter 22 sent retractions downstream and called it a policy
+      </text>
+      <text x="14" y="174" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        here it is the only thing there is
+      </text>
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        and one operator has to force the weights back to 1 — that is distinct
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 26 — what each kind of operator actually costs once incrementalized.
+ *  The reason this matters is that the third row is the one everybody expects
+ *  to be the exception, and the paper shows it is not. */
+export function OperatorCostDiagram() {
+  const line = (y: number, kind: string, who: string, cost: string, space: string, colour: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={colour}>
+        {kind}
+      </text>
+      <text x="80" y={y} fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {who}
+      </text>
+      <text x="188" y={y} fontFamily={MONO} fontSize="6" fill={colour}>
+        {cost}
+      </text>
+      <text x="272" y={y} fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {space}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="Linear operators such as filter and project are their own incremental version, cost work proportional to the change and store nothing. Bilinear operators such as join cost the size of the database times the size of the change, a factor better than re-evaluating. Duplicate elimination is not linear, yet its incremental version still costs only the size of the change, because only rows that changed can appear in the output."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what an operator costs once it computes on changes
+      </text>
+      <line x1="14" y1="22" x2="330" y2="22" stroke={MUTED} strokeWidth="0.8" />
+      {line(38, 'linear', 'filter, project, +', 'the change', 'stores nothing', DENIM)}
+      {line(60, 'bilinear', 'join, product', 'db × change', 'stores both sides', INK)}
+      {line(82, 'neither', 'distinct', 'the change', 'stores the set', DENIM)}
+      {line(104, 'neither', 'min, max', 'the whole set', 'stores the set', TERRA)}
+
+      <line x1="14" y1="120" x2="330" y2="120" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="138" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the third row is the surprise: duplicate elimination is not linear and
+      </text>
+      <text x="14" y="150" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        is cheap anyway, because only a row that changed can change the output
+      </text>
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        the fourth is the honest one — a retracted minimum needs the runner-up
+      </text>
+      <text x="14" y="184" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        “db × change” beats re-evaluating by a factor of db ÷ change
+      </text>
+    </svg>
+  )
+}

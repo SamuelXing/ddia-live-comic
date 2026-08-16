@@ -266,9 +266,9 @@ const SEASON_2_ACTS: TocAct[] = [
       'Ten thousand people load the same dashboard and the same query runs ten thousand times over data that barely moved. The whole industry answers this with caches and a prayer about invalidation, which Chapter 12 already showed is the hard part. This act takes the other road: treat a change as the thing being computed, so the result is updated rather than recomputed, and reads become a lookup into an answer that was already maintained for you.',
     next: 'Next: all of it assumes there is a network. Not everyone has one.',
     entries: [
-      { no: 'Ch 24', title: 'Change as the Unit of Work', paper: 'Differential Dataflow — CIDR 2013' },
-      { no: 'Ch 25', title: 'The Read Path as a Graph', paper: 'Noria — OSDI 2018' },
-      { no: 'Ch 26', title: 'Incremental by Construction', paper: 'DBSP — VLDB 2023' },
+      { no: 'Ch 24', title: 'Change as the Unit of Work', paper: 'Differential Dataflow — CIDR 2013', slug: 'differential' },
+      { no: 'Ch 25', title: 'The Read Path as a Graph', paper: 'Noria — OSDI 2018', slug: 'noria' },
+      { no: 'Ch 26', title: 'Incremental by Construction', paper: 'DBSP — VLDB 2023', slug: 'dbsp' },
     ],
   },
   {

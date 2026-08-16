@@ -334,5 +334,5 @@ export const flinkSnapshots: Chapter = {
     title: 'The half of the algorithm you did not need',
     body: 'Three answers to one question now sit next to each other. Recompute from a recipe, which needs immutability and cannot help you here. Stop every worker in the cluster, which is correct and charges you in proportion to how often you want to be safe. Or push a marker through the running graph, let each operator block one input until its siblings catch up, and write nothing about the wires at all — because a fixed topology with ordered channels makes the wires a consequence rather than a fact. That last one is a thirty-year-old algorithm with its expensive half removed, and the removal is justified by properties the engine already had for other reasons. Act II is finished: the answers are now right about a world that arrives out of order, and they survive the machine that dies holding them. What none of it has questioned is why an answer is computed at all, rather than maintained — which is the next act.',
   },
-  next: { title: 'Change as the Unit of Work', unwritten: true },
+  next: { title: 'Change as the Unit of Work', slug: 'differential' },
 }
