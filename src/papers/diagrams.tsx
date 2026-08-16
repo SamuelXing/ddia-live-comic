@@ -1195,3 +1195,334 @@ export function CommitWaitDiagram() {
     </svg>
   )
 }
+
+/** Ch 12 — the thundering herd, priced. One popular key, heavy read and write
+ *  traffic, and every invalidation sends the whole fleet back to MySQL at once.
+ *  Two bars, one week of production data, and the ratio is the argument. */
+export function LeaseHerdDiagram() {
+  const bar = (y: number, label: string, w: number, value: string, accent: string) => (
+    <>
+      <text x="12" y={y + 4} fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        {label}
+      </text>
+      <rect x="118" y={y - 7} width={w} height="15" fill={accent} opacity="0.85" />
+      <text x={118 + w + 8} y={y + 4} fontFamily={MONO} fontSize="7" fill={accent}>
+        {value}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 160"
+      role="img"
+      aria-label="Peak database query rate for one week of cache misses on keys prone to thundering herds. Without leases, seventeen thousand queries a second. With leases, one thousand three hundred. A thirteenfold reduction in the peak the database must be provisioned for."
+    >
+      <text x="12" y="18" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        peak database queries/sec · one week, keys prone to herds
+      </text>
+      {bar(56, 'no leases', 150, '17,000/s', TERRA)}
+      {bar(96, 'with leases', 11, '1,300/s', DENIM)}
+      <text x="12" y="134" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        one token per key per 10 seconds — everybody else is told to wait
+      </text>
+      <text x="12" y="150" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and you provision the database for the peak, so this is the whole bill
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 12 — how stale is the cache, actually. The paper samples one delete in a
+ *  million and checks later whether the item is really gone. Two curves,
+ *  because distance from the master region is the variable that matters and
+ *  nobody's architecture diagram shows it. */
+export function InvalidationLatencyDiagram() {
+  // x: 1s .. 1d on a log scale across 44..320; y: reliability, 3 nines at the
+  // bottom of the useful range up to 5 nines at the top
+  const X: Record<string, number> = { '1s': 44, '10s': 100, '1m': 156, '10m': 212, '1h': 268, '1d': 320 }
+  const tick = (k: string) => (
+    <g key={k}>
+      <line x1={X[k]} y1="122" x2={X[k]} y2="126" stroke={MUTED} strokeWidth="0.8" />
+      <text x={X[k]} y="136" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {k}
+      </text>
+    </g>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 178"
+      role="img"
+      aria-label="Reliability of cache invalidation against how long you wait. Inside the master region, four nines of deletes have landed within one second and five nines within an hour. Between replica regions it is three nines within a second and four nines within ten minutes."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        share of deletes that have actually landed
+      </text>
+      <line x1="44" y1="122" x2="324" y2="122" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="44" y1="30" x2="44" y2="122" stroke={MUTED} strokeWidth="0.8" />
+      {Object.keys(X).map(tick)}
+      <text x="12" y="44" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        5 nines
+      </text>
+      <text x="12" y="98" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        3 nines
+      </text>
+
+      {/* master region: starts at four nines within a second */}
+      <path d="M44 66 L100 58 L156 52 L212 48 L268 44 L320 42" fill="none" stroke={DENIM} strokeWidth="1.8" />
+      <text x="150" y="40" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        inside the master region
+      </text>
+
+      {/* replica to replica: a decade of latency worse, all the way along */}
+      <path d="M44 98 L100 88 L156 78 L212 68 L268 62 L320 58" fill="none" stroke={TERRA} strokeWidth="1.8" />
+      <text x="150" y="110" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        replica region to replica region
+      </text>
+
+      <text x="12" y="158" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        a cache is a replica — and this is its replication lag, measured
+      </text>
+      <text x="12" y="172" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the tail is not machines failing, it is a delete that needed one retry
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 13 — Kreps' own analogy, drawn. A log of changes and a table of current
+ *  values are the same information; the log is the more fundamental one because
+ *  you can build any number of tables from it and not the other way round. */
+export function LogTableDiagram() {
+  const rows = [
+    ['+ 100  alice', 'alice   180'],
+    ['+  60  bob', 'bob      40'],
+    ['-  20  alice', ''],
+    ['+ 100  alice', ''],
+    ['-  20  bob', ''],
+  ]
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="On the left, a log of credits and debits in order. On the right, a table of current balances. The table is what you get by replaying the log; the log is what you cannot get back from the table."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same information, twice
+      </text>
+      <text x="16" y="36" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        the log — every change, in order
+      </text>
+      <text x="200" y="36" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        the table — where it ended
+      </text>
+      <line x1="16" y1="42" x2="168" y2="42" stroke={DENIM} strokeWidth="0.8" />
+      <line x1="200" y1="42" x2="330" y2="42" stroke={MUTED} strokeWidth="0.8" />
+      {rows.map(([l, r], i) => (
+        <g key={i}>
+          <text x="16" y={60 + i * 15} fontFamily={MONO} fontSize="6.6" fill={INK}>
+            {l}
+          </text>
+          {r && (
+            <text x="200" y={60 + i * 15} fontFamily={MONO} fontSize="6.6" fill={INK}>
+              {r}
+            </text>
+          )}
+        </g>
+      ))}
+      <text x="16" y="146" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        replay the log → you get the table, and every other table you want
+      </text>
+      <text x="16" y="162" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        read the table → the history is gone, and it is not coming back
+      </text>
+      <text x="16" y="180" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        so the log is the primary record and the table is a view of it
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 13 — the data-integration argument, which is the reason the blog post
+ *  mattered more than the paper. Point-to-point pipelines grow as the product
+ *  of the two sides; one log in the middle turns that into a sum. */
+export function IntegrationDiagram() {
+  const src = [30, 62, 94]
+  const dst = [30, 62, 94]
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="On the left, three sources each wired directly to three destinations: nine bespoke pipelines. On the right, the same six systems each connected once to a shared log: six connections. The count grows as a product on one side and a sum on the other."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        wiring six systems together, two ways
+      </text>
+
+      {/* left: every source to every sink */}
+      <text x="12" y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        point to point
+      </text>
+      {src.flatMap((y1) =>
+        dst.map((y2) => (
+          <line key={`${y1}-${y2}`} x1="34" y1={y1 + 22} x2="118" y2={y2 + 22} stroke={TERRA} strokeWidth="0.7" opacity="0.75" />
+        )),
+      )}
+      {src.map((y) => (
+        <circle key={`s${y}`} cx="34" cy={y + 22} r="4" fill={INK} />
+      ))}
+      {dst.map((y) => (
+        <circle key={`d${y}`} cx="118" cy={y + 22} r="4" fill={INK} />
+      ))}
+      <text x="12" y="150" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        9 pipelines, each
+      </text>
+      <text x="12" y="162" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        one somebody owns
+      </text>
+
+      {/* right: everything through one log */}
+      <text x="204" y="34" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        through one log
+      </text>
+      <rect x="248" y="46" width="18" height="76" fill={DENIM} opacity="0.2" stroke={DENIM} strokeWidth="1.4" />
+      {src.map((y) => (
+        <line key={`ls${y}`} x1="212" y1={y + 22} x2="248" y2={y + 22} stroke={DENIM} strokeWidth="1.2" />
+      ))}
+      {dst.map((y) => (
+        <line key={`ld${y}`} x1="266" y1={y + 22} x2="302" y2={y + 22} stroke={DENIM} strokeWidth="1.2" />
+      ))}
+      {src.map((y) => (
+        <circle key={`ls2${y}`} cx="212" cy={y + 22} r="4" fill={INK} />
+      ))}
+      {dst.map((y) => (
+        <circle key={`ld2${y}`} cx="302" cy={y + 22} r="4" fill={INK} />
+      ))}
+      <text x="204" y="150" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        6 connections, and
+      </text>
+      <text x="204" y="162" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        one contract to keep
+      </text>
+
+      <text x="12" y="192" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        add one more system: three new pipelines on the left, one on the right
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 14 — what actually crosses the network on a write. Five kinds of data in
+ *  the mirrored MySQL configuration, three of the steps sequential; one kind in
+ *  Aurora. The measured ratio is at the bottom and it is not subtle. */
+export function WriteAmplificationDiagram() {
+  const items = ['redo log', 'binlog → S3', 'data pages', 'double-write', 'FRM metadata']
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="A mirrored MySQL write puts five kinds of data on the network: redo log, binary log, data pages, a double write to avoid torn pages, and metadata files. Aurora puts one: redo log records. Measured over thirty minutes, that is 7.4 IOs per transaction against 0.95."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what crosses the network on one write
+      </text>
+
+      <text x="12" y="38" fontFamily={MONO} fontSize="6.6" fill={TERRA}>
+        mirrored MySQL
+      </text>
+      {items.map((t, i) => (
+        <g key={t}>
+          <rect x="16" y={48 + i * 17} width="130" height="13" fill={TERRA} opacity="0.18" stroke={TERRA} strokeWidth="1" />
+          <text x="22" y={57.5 + i * 17} fontFamily={MONO} fontSize="6.2" fill={INK}>
+            {t}
+          </text>
+        </g>
+      ))}
+      <text x="16" y="150" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        and three of the steps are
+      </text>
+      <text x="16" y="160" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        sequential — latency adds up
+      </text>
+
+      <text x="196" y="38" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        Aurora
+      </text>
+      <rect x="200" y="48" width="130" height="13" fill={DENIM} opacity="0.22" stroke={DENIM} strokeWidth="1" />
+      <text x="206" y="57.5" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        redo log records
+      </text>
+      <text x="200" y="82" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        no pages. not on eviction,
+      </text>
+      <text x="200" y="92" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        not on checkpoint, not ever.
+      </text>
+
+      <line x1="12" y1="174" x2="332" y2="174" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="192" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        measured over 30 min: 7.4 IOs/txn → 0.95, and 35× the transactions
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 14 — why three copies is not enough when one of the failures is an
+ *  entire availability zone. The point is that an AZ loss is a CORRELATED
+ *  failure, so it lands on top of the background noise rather than instead of
+ *  it, and that is what breaks a 2-of-3. */
+export function AzQuorumDiagram() {
+  const az = (x: number, name: string, dead: number[]) => (
+    <g key={name}>
+      <rect x={x} y="44" width="76" height="58" fill="none" stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
+      <text x={x + 38} y="38" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        {name}
+      </text>
+      {[0, 1].map((i) => (
+        <g key={i}>
+          <rect
+            x={x + 12}
+            y={56 + i * 24}
+            width="52"
+            height="16"
+            fill={dead.includes(i) ? TERRA : DENIM}
+            opacity={dead.includes(i) ? 0.28 : 0.85}
+            stroke={dead.includes(i) ? TERRA : DENIM}
+            strokeWidth="1.2"
+          />
+          {dead.includes(i) && (
+            <text x={x + 38} y={68 + i * 24} textAnchor="middle" fontFamily={MONO} fontSize="6" fill={TERRA}>
+              down
+            </text>
+          )}
+        </g>
+      ))}
+    </g>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="Six copies of a segment, two in each of three availability zones. A whole zone is lost and one further node has failed in the background. Three copies remain, which still satisfies a read quorum of three of six, so no data is lost."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        6 copies · 2 per zone · write 4 of 6 · read 3 of 6
+      </text>
+      {az(20, 'AZ A', [1])}
+      {az(134, 'AZ B', [])}
+      {az(248, 'AZ C — lost', [0, 1])}
+
+      <text x="12" y="128" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        a zone dies AND one node was already down: 3 copies left
+      </text>
+      <text x="12" y="144" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        3 of 6 still reads — nothing is lost, and writes resume once repaired
+      </text>
+      <text x="12" y="166" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        with 3 copies and 2-of-3 the same pair of events leaves one copy,
+      </text>
+      <text x="12" y="178" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and no way to tell whether that one is current
+      </text>
+    </svg>
+  )
+}

@@ -138,9 +138,9 @@ export const TOC: TocAct[] = [
       'Every system so far has a write-ahead log inside it, treated as plumbing — the boring file you replay after a crash. This act turns it around and makes the log the real record. The table, the cache, the search index become readers that have fallen behind by different amounts. Believe that and a cache is a derived copy with a staleness bug, a database is a log with a query engine bolted on the side, and the interesting question stops being where data lives and becomes how far behind it is.',
     next: 'Next: one of those readers does not want one row. It wants one column of a billion rows.',
     entries: [
-      { no: 'Ch 12', title: 'The Most Common Derived Copy', paper: 'Scaling Memcache — NSDI 2013' },
-      { no: 'Ch 13', title: 'Write Once, Replay Everywhere', paper: 'Kafka 2011 · "The Log" 2013' },
-      { no: 'Ch 14', title: 'The Log Made Literal', paper: 'Aurora — SIGMOD 2017' },
+      { no: 'Ch 12', title: 'The Most Common Derived Copy', paper: 'Scaling Memcache — NSDI 2013', slug: 'memcache' },
+      { no: 'Ch 13', title: 'Write Once, Replay Everywhere', paper: 'Kafka 2011 · "The Log" 2013', slug: 'kafka' },
+      { no: 'Ch 14', title: 'The Log Made Literal', paper: 'Aurora — SIGMOD 2017', slug: 'aurora' },
     ],
   },
   {
