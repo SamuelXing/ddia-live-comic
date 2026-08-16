@@ -278,8 +278,8 @@ const SEASON_2_ACTS: TocAct[] = [
       'Two people edit the same document on a train with no signal. Nothing in this book so far can help: there is no quorum to reach, no leader to ask, and the writes are already committed on the devices that made them. Chapter 5 asked who writes the merge function and handed the question to the application. This act answers it properly — pick data types whose merge is forced by the shape of the data, and convergence stops being anybody’s judgement call.',
     next: 'Next: look at what you have assembled across four acts, and notice what it is.',
     entries: [
-      { no: 'Ch 27', title: 'Who Writes the Merge Function', paper: 'CRDTs — SSS 2011' },
-      { no: 'Ch 28', title: 'The Network Is Optional', paper: 'Local-First — Onward! 2019 · a half-chapter' },
+      { no: 'Ch 27', title: 'Who Writes the Merge Function', paper: 'CRDTs — SSS 2011', slug: 'crdt' },
+      { no: 'Ch 28', title: 'The Network Is Optional', paper: 'Local-First — Onward! 2019 · a half-chapter', slug: 'local-first' },
     ],
   },
   {
