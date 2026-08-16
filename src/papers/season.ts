@@ -113,6 +113,9 @@ export const CHAPTER_LINES: Record<string, string> = {
   'three-times': 'Three clocks, and only one of them lets you compute the same answer twice from the same input. That is why event time is not a preference.',
   dataflow: 'Never rely on completeness. Split the decision into where data is grouped, when you speak, and what a later answer does to an earlier one.',
   'flink-snapshots': 'A thirty-year-old algorithm with its expensive half deleted — because in a dataflow graph, what is on the wires is a consequence rather than a fact.',
+  differential: 'Incremental computation stops at loops because versions were modelled as a line. Index them by a partial order and one edge leaving a day of Twitter costs 67 differences.',
+  noria: 'Compile every query into one running graph, so writes update the answers and reads are lookups. The state does not fit, so keep only what somebody asked for.',
+  dbsp: 'Forty years of one algorithm per class of query, replaced by five mechanical steps — and semi-naive evaluation falls out of them as a corollary nobody designed.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */

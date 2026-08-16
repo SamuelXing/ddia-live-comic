@@ -77,6 +77,21 @@ async function probe(url) {
   }
 }
 
+/**
+ * A 429 is throttling, and throttling hides everything behind it — including a
+ * 404. That is not hypothetical: a citation pointing into a GitHub repo that
+ * had since been renamed came back 429, was tolerated as "blocked", and was
+ * dead. Since the whole promise of this check is that no citation is invented,
+ * a rate-limited answer is not an answer. Back off once and ask again; if it is
+ * still throttling, report it as blocked and let a human look.
+ */
+async function probeWithBackoff(url) {
+  const first = await probe(url)
+  if (first !== 429) return first
+  await new Promise((r) => setTimeout(r, 3000))
+  return probe(url)
+}
+
 const dead = []
 const blocked = []
 let i = 0
@@ -86,7 +101,7 @@ await Promise.all(
   Array.from({ length: 6 }, async () => {
     while (queue.length) {
       const url = queue.shift()
-      const status = await probe(url)
+      const status = await probeWithBackoff(url)
       const where = [...found.get(url)].join(', ')
       i++
       if (status === 403 || status === 429 || status === 503) {

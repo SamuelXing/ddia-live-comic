@@ -207,6 +207,19 @@ export const ROUTES = {
     desc: 'Three chapters of machinery, all of it state, and a machine about to die holding it. The answer is a marker walking the graph \u2014 a thirty-year-old algorithm with its most expensive part removed.',
   },
 
+  '/papers/differential': {
+    title: 'Change as the Unit of Work',
+    desc: 'Incremental computation has stopped at loops since the eighties, and not for want of engineering: versions were modelled as a line. Index them by a partial order instead.',
+  },
+  '/papers/noria': {
+    title: 'The Read Path as a Graph',
+    desc: 'Nearly every request is a read, answered by running the same query over data that has not moved. What a backend looks like if the queries are left running instead.',
+  },
+  '/papers/dbsp': {
+    title: 'Incremental by Construction',
+    desc: 'Forty years of incremental view maintenance produced one algorithm per class of query. This one produces a procedure \u2014 and machine-checks the whole theory in five thousand lines.',
+  },
+
   '/ddia/components': {
     title: 'Component deep-dives',
     desc: 'Six pieces of infrastructure taken apart: animated request traces, a hardware envelope you can drag, failure cascades, and the papers behind each one.',
