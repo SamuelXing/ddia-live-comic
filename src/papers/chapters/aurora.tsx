@@ -339,5 +339,5 @@ export const aurora: Chapter = {
     title: 'Act V closes: the plumbing turned out to be the building',
     body: 'Three chapters, one promotion. The cache in Chapter 12 was a replica with no protocol, and the protocol it eventually needed came from a daemon reading a commit log. Chapter 13 took that log out of the basement and made it a service, then argued that a table is what you get by replaying one and a log is not what you get by reading a table. This chapter put the claim inside a relational database and took it completely literally: no pages on the wire, no checkpoint, no consensus round, and a crash recovery that finishes in ten seconds because it never stopped running. The through-line is the same each time — the sequence of changes is the primary record, and everything you query is a reader that has fallen behind. Next: one of those readers stops wanting a row. It wants one column of a billion rows, which every layout in this book gets wrong, and the fix will split the industry in two.',
   },
-  next: { title: 'Reading Sideways', unwritten: true },
+  next: { title: 'Reading Sideways', slug: 'columnar' },
 }
