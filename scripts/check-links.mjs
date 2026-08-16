@@ -15,7 +15,11 @@
  *
  * Exit codes: 1 if anything is genuinely missing (404/410/DNS/timeout).
  * A 403 is reported but tolerated — publishers block robots, and the link is
- * still correct for a human with a browser.
+ * still correct for a human with a browser. So is a 429 or 503: the host
+ * answered, it is simply rate-limiting us, which is what the Internet Archive
+ * does when a run probes it alongside forty other links. Treating throttling
+ * as death would make this guard flaky, and a flaky guard gets ignored — which
+ * is exactly how a fabricated URL would get back in.
  */
 import { readFileSync, readdirSync } from 'node:fs'
 
@@ -65,7 +69,7 @@ async function probe(url) {
         headers: { 'user-agent': UA, accept: '*/*' },
         signal: AbortSignal.timeout(TIMEOUT_MS),
       })
-      if (res.ok || res.status === 403) return res.status
+      if (res.ok || res.status === 403 || res.status === 429 || res.status === 503) return res.status
       if (method === 'GET') return res.status
     } catch (err) {
       if (method === 'GET') return err.name === 'TimeoutError' ? 'timeout' : `error: ${err.message}`
@@ -85,8 +89,8 @@ await Promise.all(
       const status = await probe(url)
       const where = [...found.get(url)].join(', ')
       i++
-      if (status === 403) {
-        blocked.push(`  ${url}\n    (${where})`)
+      if (status === 403 || status === 429 || status === 503) {
+        blocked.push(`  ${status}  ${url}\n    (${where})`)
       } else if (typeof status !== 'number' || status >= 400) {
         dead.push(`  ${status}  ${url}\n    cited in ${where}`)
       }
@@ -95,7 +99,7 @@ await Promise.all(
 )
 
 if (blocked.length) {
-  console.log(`Blocked to robots (${blocked.length}) — fine for a reader, not verifiable here:`)
+  console.log(`Blocked or throttled (${blocked.length}) — the host answered, so the link is fine for a reader:`)
   console.log(blocked.join('\n') + '\n')
 }
 if (dead.length) {
@@ -103,4 +107,4 @@ if (dead.length) {
   console.error(dead.join('\n'))
   process.exit(1)
 }
-console.log(`All ${i} links resolve (or are robot-blocked). No dead citations.`)
+console.log(`All ${i} links resolve (or are blocked/throttled). No dead citations.`)

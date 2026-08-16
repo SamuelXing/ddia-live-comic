@@ -137,6 +137,18 @@ export const ROUTES = {
     title: 'Paying for Time with Hardware',
     desc: 'Chapter 7 proved you cannot observe a global order of events. This paper agrees, then buys one — with a clock that admits how wrong it is, and a database willing to wait that long.',
   },
+  '/papers/memcache': {
+    title: 'The Most Common Derived Copy',
+    desc: 'You have a cache. It is a replica of your database with no replication protocol — work out what keeps it honest, then find out where the answer actually comes from.',
+  },
+  '/papers/kafka': {
+    title: 'Write Once, Replay Everywhere',
+    desc: 'A modest 2011 paper about a fast message queue, and a 2013 blog post that reframed the same system as the abstraction underneath everything else.',
+  },
+  '/papers/aurora': {
+    title: 'The Log Made Literal',
+    desc: 'Stop writing pages entirely, ship only the redo log, and let the storage tier work out what the pages should say. The paper’s own section heading: “The Log Is the Database.”',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',

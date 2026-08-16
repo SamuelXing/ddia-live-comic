@@ -138,3 +138,26 @@ describe('every route has a social card', () => {
     expect(cards().length).toBeGreaterThan(20)
   })
 })
+
+/* Every "seen in" rail is a set of internal links typed by hand, and a typo in
+   one is invisible: the rail renders, the link looks right, and it 404s only
+   when somebody clicks it. Four invented paths shipped into a draft of Act V
+   at once — /ddia/deepdive/kafka rather than /ddia/components/kafka, and a
+   caching comic that has never existed — which is the same failure the link
+   checker catches for external URLs, on the half of the links that checker
+   cannot see. */
+describe('every internal link points at a page that exists', () => {
+  const links = [
+    ...COMICS.flatMap((c) => c.seenIn.map((s) => ({ where: `comic:${c.slug}`, to: s.to }))),
+    ...CHAPTERS.flatMap((c) => c.seenIn.map((s) => ({ where: `paper:${c.slug}`, to: s.to }))),
+  ].filter((l): l is { where: string; to: string } => typeof l.to === 'string' && l.to.startsWith('/'))
+
+  it('finds the links to check', () => {
+    expect(links.length).toBeGreaterThan(30)
+  })
+
+  it('resolves every one against the route table', () => {
+    const bad = links.filter((l) => !(l.to.replace(/#.*$/, '') in ROUTES)).map((l) => `${l.where} → ${l.to}`)
+    expect(bad).toEqual([])
+  })
+})

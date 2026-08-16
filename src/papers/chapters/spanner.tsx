@@ -349,5 +349,5 @@ export const spanner: Chapter = {
     title: 'Act IV closes: both promises bought back, at very different prices',
     body: 'Two chapters, one demand, two currencies. Chapter 10 paid in software — a library, locks parked beside the data, a commit point hidden in one row, and cleanup left to strangers — and it worked because a web index will wait. This one paid in hardware and in patience, buying an honest error bar on the clock and then sitting still for its width on every write. What both of them really did was fix the order in which writes are allowed to have happened, and then defend that order with everything they had. Next: an act that stops treating the order as machinery in the basement. The log has been inside every system in this book, quietly, doing the actual work. What happens if you promote it — if the table, the cache and the index become readers of one sequence, each behind by a different amount?',
   },
-  next: { title: 'The Most Common Derived Copy', unwritten: true },
+  next: { title: 'The Most Common Derived Copy', slug: 'memcache' },
 }
