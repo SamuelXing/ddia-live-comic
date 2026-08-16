@@ -107,6 +107,101 @@ export function RumTradesDiagram() {
   )
 }
 
+/** Interlude — the CAP proof, which is one paragraph long and almost nobody
+ *  has read. Two servers, a lost message, and a node that has to answer a
+ *  question it cannot answer correctly. Drawn because the argument is short
+ *  enough to fit in a picture, and seeing that is most of the point. */
+export function CapProofDiagram() {
+  const server = (x: number, name: string, sub: string) => (
+    <>
+      <rect x={x} y="44" width="104" height="30" fill="#fff" stroke={INK} strokeWidth="1.6" />
+      <text x={x + 10} y="58" fontFamily={MONO} fontSize="7" fill={INK}>{name}</text>
+      <text x={x + 10} y="68" fontFamily={MONO} fontSize="6" fill={MUTED}>{sub}</text>
+    </>
+  )
+  const outcome = (x: number, head: string, what: string, lost: string) => (
+    <>
+      <rect x={x} y="112" width="140" height="42" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x={x + 10} y="126" fontFamily={MONO} fontSize="6.6" fill={TERRA}>{head}</text>
+      <text x={x + 10} y="137" fontFamily={MONO} fontSize="6" fill={INK}>{what}</text>
+      <text x={x + 10} y="148" fontFamily={MONO} fontSize="6" fill={TERRA}>{lost}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="Two servers separated by a partition. One took a write and acknowledged it; the other never heard. A read arriving at the second server can answer with the stale value, losing consistency, or wait forever, losing availability. There is no third option."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the whole proof, in one picture
+      </text>
+      <text x="172" y="34" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        every message between them is lost
+      </text>
+      {/* the partition itself: a gap the drawing leaves empty on purpose */}
+      <line x1="172" y1="40" x2="172" y2="92" stroke={TERRA} strokeWidth="1.6" strokeDasharray="4 4" />
+      {server(20, 'p1', 'took write v2, said ok')}
+      {server(220, 'p2', 'never heard about it')}
+
+      <line x1="14" y1="92" x2="330" y2="92" stroke={MUTED} strokeWidth="0.8" />
+      <text x="172" y="106" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        a read reaches p2. It has two options, and no third
+      </text>
+      {outcome(20, 'ANSWER', 'hands back the old v1', 'consistency is gone')}
+      {outcome(184, 'WAIT FOR p1', 'the read never returns', 'availability is gone')}
+
+      <text x="172" y="176" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        that is the entire theorem — the rest is what you do about it
+      </text>
+    </svg>
+  )
+}
+
+/** Interlude — PACELC. CAP describes the rare case and says nothing about the
+ *  common one; the else-clause is where a system spends almost all of its life.
+ *  Classifications are Abadi's own, from the 2012 paper, not my reading. */
+export function PacelcDiagram() {
+  const row = (y: number, name: string, p: string, e: string, code: string, accent: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={INK}>{name}</text>
+      <text x="132" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{p}</text>
+      <text x="214" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{e}</text>
+      <text x="286" y={y} fontFamily={MONO} fontSize="6.4" fill={MUTED}>{code}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="PACELC: if partitioned, a system keeps availability or consistency; else it keeps latency or consistency. Dynamo and Cassandra keep availability then latency; Bigtable and HBase keep consistency in both cases; MongoDB keeps availability under partition and consistency otherwise."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the question CAP forgets to ask
+      </text>
+      <text x="14" y="30" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        if Partitioned: A or C. Else: Latency or C.
+      </text>
+      <text x="132" y="48" fontFamily={MONO} fontSize="6" fill={MUTED}>partitioned</text>
+      <text x="214" y="48" fontFamily={MONO} fontSize="6" fill={MUTED}>otherwise</text>
+      <line x1="14" y1="54" x2="330" y2="54" stroke={MUTED} strokeWidth="0.8" />
+      {row(72, 'Dynamo', 'available', 'fast', 'PA/EL', TERRA)}
+      {row(90, 'Cassandra', 'available', 'fast', 'PA/EL', TERRA)}
+      {row(108, 'Bigtable / HBase', 'consistent', 'consistent', 'PC/EC', DENIM)}
+      {row(126, 'MongoDB', 'available', 'consistent', 'PA/EC', INK)}
+      <text x="14" y="158" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        CAP describes only the first column
+      </text>
+      <text x="14" y="172" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        the second is where your system spends its life
+      </text>
+      <text x="14" y="188" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        classifications from Abadi 2012
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 1 — why 64 MB. The same petabyte catalogued at two block sizes, priced
  *  in the only currency that mattered: the master's RAM. */
 export function ChunkBudgetDiagram() {

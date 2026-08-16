@@ -104,7 +104,7 @@ export const TOC: TocAct[] = [
     next: 'Next: two nodes accepted the same cart. Which one happened later? Nobody in this act can say.',
     entries: [
       { no: 'Ch 5', title: 'The Cart That Must Not Close', paper: 'Dynamo — SOSP 2007', slug: 'dynamo' },
-      { no: '—', title: 'Interlude: CAP', interlude: true },
+      { no: '—', title: 'Interlude: CAP', interlude: true, slug: 'cap' },
       { no: 'Ch 6', title: 'A Marriage of Two Papers', paper: 'Cassandra — 2008' },
     ],
   },

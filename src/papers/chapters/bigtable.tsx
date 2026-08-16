@@ -51,7 +51,7 @@ export const bigtable: Chapter = {
       span: 2,
       body: [
         'Set the scene properly before you touch anything. It is 2004. You have **GFS** (last chapter) holding files across thousands of machines, and **MapReduce** (the half-chapter before this) sweeping them. What you do *not* have is anywhere to put **structured** data: every database on the market wants a file system it can edit in place, assumes one big machine, and tops out orders of magnitude below the web.',
-        'The system you must design serves two masters at once. **Serving** asks for one row by key — *the current copy of this URL, in milliseconds*, because a user is waiting behind it. **Analysis** asks for ordered sweeps — *everything under `com.cnn.`, in key order* — because MapReduce eats contiguous ranges. Hundreds of terabytes are already there; the crawl behind them never stops; and other teams — Analytics, Earth, Finance — are queued up behind the crawl with structured data of their own.',
+        'The system you must design serves two masters at once. **Serving** asks for one row by key — *the current copy of this URL, in milliseconds*, because a user is waiting behind it. **Analysis** asks for ordered sweeps — *everything under* `com.cnn.`*, in key order* — because MapReduce eats contiguous ranges. Hundreds of terabytes are already there; the crawl behind them never stops; and other teams — Analytics, Earth, Finance — are queued up behind the crawl with structured data of their own.',
         'Before the paper answers, you answer. Three decisions, the same rules Google faced. Wrong turns are cheap here — they were the expensive part in 2004.',
       ],
       diagram: (
@@ -60,7 +60,7 @@ export const bigtable: Chapter = {
             constraints: [
               '**Scale:** billions of rows keyed by URL, hundreds of terabytes and growing — no single machine, however expensive, is in the running',
               '**Writes never stop:** crawlers rewrite millions of pages a day, every day — ingest is the workload, not an event',
-              '**Two read shapes, both mandatory:** *fetch this URL now* (serving — a user is waiting, milliseconds matter) and *sweep everything under `com.cnn.` in order* (MapReduce — throughput matters)',
+              '**Two read shapes, both mandatory:** *fetch this URL now* (serving — a user is waiting, milliseconds matter) and *sweep everything under* `com.cnn.` *in order* (MapReduce — throughput matters)',
               '**The fleet:** thousands of cheap machines; disks die daily, so anything durable must already be replicated — which is exactly the job GFS does',
               '**The catch:** GFS files are created, appended to, read, deleted — **never edited.** Every engine you could buy is built on the operation it refuses',
             ],

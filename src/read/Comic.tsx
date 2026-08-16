@@ -257,7 +257,7 @@ export default function ComicView({ comic }: { comic: Comic }) {
                   ) : (
                     <span className="t">{s.title}</span>
                   )}
-                  {s.note && <span className="c">{s.note}</span>}
+                  {s.note && <span className="c">{rich(s.note)}</span>}
                 </div>
               ))}
             </div>

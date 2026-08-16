@@ -181,7 +181,11 @@ export default function ChapterView({ chapter }: { chapter: Chapter }) {
                   ) : (
                     <span className="t">{s.title}</span>
                   )}
-                  {s.note && <span className="c">{s.note}</span>}
+                  {/* through rich(), like every other prose field. Three
+                      chapters had already written **bold** in a note and been
+                      rendering the asterisks — the field was prose in practice
+                      long before it was prose in code. */}
+                  {s.note && <span className="c">{rich(s.note)}</span>}
                 </div>
               ))}
             </div>
