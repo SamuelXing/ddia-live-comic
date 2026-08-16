@@ -3,6 +3,7 @@ import { ROUTES, cardFor, cards } from '../scripts/routes.mjs'
 import type { RouteMeta } from '../scripts/routes.mjs'
 import { COMICS } from './read/comics'
 import { CHAPTERS } from './papers/chapters'
+import { SEASONS, seasonPath } from './papers/book'
 import { titleForPath } from './routeTitle'
 // Vite's ?raw, not node:fs — the app tsconfig has no node types, and pulling
 // them in for one test would widen the app project's ambient types.
@@ -55,6 +56,19 @@ describe('the route table still matches the site', () => {
       .filter((p) => p.startsWith('/ddia/'))
       .filter((p) => !(p.replace('/ddia', '') in ROUTES))
     expect(missing).toEqual([])
+  })
+
+  it('gives every season a page — in the route table and in the router', () => {
+    /* Adding a season is three edits in three files: SEASONS, the route table,
+       and App.tsx. Miss the second and the season previews as the homepage;
+       miss the third and every link to it renders the chapter 404, because
+       /papers/season/3 falls through to the :slug catch-all. Neither failure
+       shows up until somebody clicks the hand-off at the foot of season 2. */
+    const paths = SEASONS.map((s) => seasonPath(s.n))
+    expect(paths.length).toBeGreaterThan(1)
+    expect(paths.filter((p) => !(p in ROUTES))).toEqual([])
+    const routed = [...appSource.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1])
+    expect(paths.filter((p) => !routed.includes(p))).toEqual([])
   })
 
   it('every route the app can render has an entry', () => {

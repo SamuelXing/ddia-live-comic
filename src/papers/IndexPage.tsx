@@ -28,6 +28,11 @@ import { SITE_TITLE } from '../routeTitle'
    side by side made the page long without making it clearer. */
 export default function PapersIndexPage({ season: seasonN }: { season: number }) {
   const season = SEASONS.find((s) => s.n === seasonN) ?? SEASONS[0]
+  /* The season after this one, if there is one. Splitting the seasons onto
+     separate pages made the foot of each one a dead end — the tab that crosses
+     over is at the very top, which is the wrong end of a page somebody has just
+     finished reading. Derived, so a third season needs no code here. */
+  const next = SEASONS.find((s) => s.n === season.n + 1)
   useEffect(() => {
     document.title = `${season.label} · ${BOOK.title} · ${SITE_TITLE}`
   }, [season])
@@ -123,6 +128,14 @@ export default function PapersIndexPage({ season: seasonN }: { season: number })
             </section>
             )
           })}
+
+          {next && (
+            <Link className="gn-finale box pb-onward" to={seasonPath(next.n)} data-obs>
+              <div className="k">next</div>
+              <h3>{next.label} →</h3>
+              <p>{rich(next.dek)}</p>
+            </Link>
+          )}
         </div>
       </div>
     </div>

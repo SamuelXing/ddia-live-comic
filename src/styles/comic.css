@@ -626,3 +626,11 @@ a.pb-row.pb-line:hover .tt em { color: var(--ink); }
 .gn .pb-tab:hover { background: #e8edf5; color: var(--ink); }
 .gn .pb-tab.on { background: var(--ink); color: var(--paper); box-shadow: inset 0 -3px 0 var(--denim); }
 .gn .pb-tab.on span { color: #cfc7b8; }
+
+/* The hand-off at the foot of a season. Splitting the seasons onto their own
+   pages left each one dead-ending: the tab that crosses over sits at the top,
+   which is the wrong end of a page somebody has just finished. The whole block
+   is the link, because a reader who got this far is aiming at all of it. */
+.gn .pb-onward { display: block; text-decoration: none; }
+.gn .pb-onward h3 { color: var(--denim-ink); }
+.gn .pb-onward:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--denim); }
