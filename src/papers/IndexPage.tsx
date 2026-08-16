@@ -38,10 +38,21 @@ export default function PapersIndexPage({ season: seasonN }: { season: number })
   }, [season])
 
   /* reveal-on-scroll for the [data-obs] panels — same contract as the other
-     .gn index pages: without this the panels stay at opacity 0 forever */
+     .gn index pages: without this the panels stay at opacity 0 forever.
+     Keyed on the season, and that is load-bearing rather than tidy. Both
+     seasons are this same component with a different prop, so React reuses the
+     instance across /papers → /papers/season/2: nothing unmounts, nothing
+     remounts. With `[]` here the effect ran once ever, Season 2's acts were
+     new DOM nobody had observed, and the page rendered a masthead and a blank
+     space until you reloaded it. The chapter views key theirs on the slug for
+     exactly this reason; this one was missed when the seasons split. */
   useEffect(() => {
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
-    const nodes = Array.from(document.querySelectorAll('.gn [data-obs]'))
+    /* already-revealed panels are left alone — re-observing them would restage
+       an animation the reader has already watched, on a page they are on */
+    const nodes = Array.from(document.querySelectorAll('.gn [data-obs]')).filter(
+      (el) => !el.classList.contains('in'),
+    )
     if (reduce || !('IntersectionObserver' in window)) {
       nodes.forEach((el) => el.classList.add('in'))
       return
@@ -61,7 +72,7 @@ export default function PapersIndexPage({ season: seasonN }: { season: number })
       io.observe(el)
     })
     return () => io.disconnect()
-  }, [])
+  }, [season])
 
   return (
     <div className="gn">

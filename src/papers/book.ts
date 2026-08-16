@@ -331,3 +331,34 @@ export const seasonPath = (n: number) => (n === 1 ? '/papers' : `/papers/season/
  *  `book.test.ts` keeps them that way — this lookup is why. */
 export const seasonOfAct = (act: string): Season | undefined =>
   SEASONS.find((s) => s.acts.some((a) => a.act === act))
+
+/**
+ * Which season a chapter belongs to, by slug. Read off the TOC and not off the
+ * chapter registry, deliberately: the nav asks this on every page, and the
+ * registry imports every chapter's JSX. TOC rows are plain data.
+ */
+export const seasonOfSlug = (slug: string): Season | undefined =>
+  SEASONS.find((s) => s.acts.some((a) => a.entries.some((e) => e.slug === slug)))
+
+/**
+ * Where "← All chapters" points from a given path under /papers.
+ *
+ * It used to be the literal `/papers`, which is Season 1's contents — so
+ * finishing a Season 2 chapter walked you back into the wrong season's table
+ * of contents, and the only clue was that the acts were unfamiliar. The season
+ * is a property of the chapter you are reading, so it is read off the slug.
+ *
+ * Null on a season's own contents page: the brand is already the way up there,
+ * and a link across to the other season would be a sideways jump wearing an
+ * upward label. The season tabs are what crosses between them.
+ */
+export const chaptersBackPath = (path: string): string | null => {
+  if (!path.startsWith('/papers')) return null
+  const p = path.replace(/\/$/, '')
+  /* `/papers/season/` with the slash, not the bare prefix. Season 1's close
+     page is the chapter `season-1`, so a prefix test on "/papers/season"
+     swallows it and leaves that page with no way back at all — which is
+     exactly what it did, until the test below said so. */
+  if (p === '/papers' || p === '/papers/season' || p.startsWith('/papers/season/')) return null
+  return seasonPath(seasonOfSlug(p.slice('/papers/'.length))?.n ?? 1)
+}

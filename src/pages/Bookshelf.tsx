@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, SEASONS, progressLabel, progressOf, remainingLabel } from '../papers/book'
+import { BOOK, SEASONS, progressLabel, progressOf, remainingLabel, seasonPath } from '../papers/book'
 
 /* ============================================================
    The bookshelf — the front door of systemscomic.com.
@@ -18,7 +18,7 @@ interface ShelfBook {
   dek: string
   meta: string
   /** only the books that have them — one card lists its seasons, one does not */
-  seasons?: { n: string; subject: string; count: string }[]
+  seasons?: { n: string; subject: string; count: string; to: string }[]
 }
 
 const LIVE_BOOKS: ShelfBook[] = [
@@ -50,7 +50,7 @@ const LIVE_BOOKS: ShelfBook[] = [
        derived, and `bookshelf.test.ts` keeps a season name out of the source. */
     seasons: SEASONS.map((s) => {
       const [n, subject] = s.label.split(' · ')
-      return { n, subject, count: `${progressOf(s).live} chapters` }
+      return { n, subject, count: `${progressOf(s).live} chapters`, to: seasonPath(s.n) }
     }),
   },
 ]
@@ -110,24 +110,36 @@ export default function Bookshelf() {
         </header>
 
         <div className="bs-shelf">
+          {/* The card is not itself a link, and that is the whole reason this
+              shape exists. The season rows have to be reachable — a reader
+              looking at "Season 2 · When the Data Stops Sitting Still" will
+              click it — and an anchor inside an anchor is invalid HTML, which
+              browsers resolve by silently dropping the inner one. So the title
+              carries the link and its ::after stretches over the card, keeping
+              the whole thing clickable; the rows sit above that overlay and
+              lead to their own season. Nothing is nested. */}
           {LIVE_BOOKS.map((b) => (
-            <Link className="bs-book box lift" to={b.to} key={b.to} data-obs>
+            <article className="bs-book box lift" key={b.to} data-obs>
               <div className="bk">{b.kicker}</div>
-              <h2>{b.title}</h2>
+              <h2>
+                <Link className="bs-cover" to={b.to}>
+                  {b.title}
+                </Link>
+              </h2>
               <p>{b.dek}</p>
               {b.seasons && (
                 <div className="bs-seasons">
                   {b.seasons.map((s) => (
-                    <div className="row" key={s.n}>
+                    <Link className="row" to={s.to} key={s.n}>
                       <span className="sn">{s.n}</span>
                       <span className="ss">{s.subject}</span>
                       <span className="sc">{s.count}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
               <div className="bm">{b.meta} →</div>
-            </Link>
+            </article>
           ))}
         </div>
 
