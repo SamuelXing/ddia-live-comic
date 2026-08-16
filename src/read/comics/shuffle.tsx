@@ -149,7 +149,7 @@ export const shuffle: Comic = {
   inTheWild: {
     points: [
       {
-        t: '**Skew is usually a `NULL` or a default.** The most common hot key in production is not a celebrity — it is `NULL`, `""`, `0`, or `unknown`, which every unmatched row shares. Filter those out before the join and a great many "mysteriously slow" jobs become fast.',
+        t: '**Skew is usually a NULL or a default.** The most common hot key in production is not a celebrity — it is `NULL`, `""`, `0`, or `unknown`, which every unmatched row shares. Filter those out before the join and a great many "mysteriously slow" jobs become fast.',
         figure: <NullSkewDiagram />,
       },
       '**The broadcast threshold is a guess about data you have not read.** Planners decide to broadcast from table statistics, and statistics go stale. When they are wrong the job does not slow down, it runs every worker out of memory simultaneously.',

@@ -40,7 +40,7 @@ export const replicationQuorum: Comic = {
       rung: 'Rung 2 · Mechanism',
       diagram: <QuorumDiagram />,
       body: [
-        'If **`W + R > N`**, the set of replicas you wrote to and the set you read from **must overlap** by at least one. That overlapping replica has the latest write — so your read is guaranteed to see it.',
+        'If `W + R > N`, the set of replicas you wrote to and the set you read from **must overlap** by at least one. That overlapping replica has the latest write — so your read is guaranteed to see it.',
         'With N=5, W=3, R=3: 3 + 3 > 5. At least one replica is in both sets. That node carries the truth.',
       ],
       callout: {

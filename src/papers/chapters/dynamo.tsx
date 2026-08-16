@@ -145,7 +145,7 @@ export const dynamo: Chapter = {
                   {
                     label: 'Return both, and let the caller collapse them',
                     verdict: 'move',
-                    why: 'Push the decision up to the only layer that knows what a cart is. The read returns every version that has no descendant, plus an opaque context holding the merged clock; the application merges however its business requires and writes the result back, and that write descends from both branches so they collapse. The cost is real and worth stating plainly: **`get()` can now hand your code two answers, and that is a permanent property of the API**, not a failure mode you can turn off.',
+                    why: 'Push the decision up to the only layer that knows what a cart is. The read returns every version that has no descendant, plus an opaque context holding the merged clock; the application merges however its business requires and writes the result back, and that write descends from both branches so they collapse. The cost is real and worth stating plainly: **a read can now hand your code two answers, and that is a permanent property of the API**, not a failure mode you can turn off.',
                   },
                 ],
               },
@@ -373,5 +373,5 @@ export const dynamo: Chapter = {
     title: 'The pause is gone, and the decision is still here',
     body: 'The interlude promised that N, R and W would turn out to be the RUM triangle with a network in the middle, and now you can see it: how many replicas answer a read, how many acknowledge a write, how many copies exist at all. What the chapter adds is that removing the master removed a wait, not a question. Somebody still has to decide which cart is real — the system just stopped pretending it could. Next, before Act II’s second chapter, one page on the theorem everybody cites for this design and almost nobody states correctly.',
   },
-  next: { title: 'Interlude: CAP', unwritten: true },
+  next: { title: 'Interlude: CAP', slug: 'cap' },
 }
