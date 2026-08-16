@@ -951,3 +951,247 @@ export function DivergenceDiagram() {
     </svg>
   )
 }
+
+/** Ch 10 — the paper's Figure 3, which is the only picture of snapshot
+ *  isolation anybody needs. Read at your start stamp, write at your commit
+ *  stamp, and what you see is settled the instant you begin. Time runs left to
+ *  right; the open square is a start, the filled circle a commit. */
+export function SnapshotIsolationDiagram() {
+  const row = (y: number, name: string, x0: number, x1: number, accent: string) => (
+    <>
+      <text x="12" y={y + 3} fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        {name}
+      </text>
+      <line x1={x0} y1={y} x2={x1} y2={y} stroke={accent} strokeWidth="1.8" />
+      <rect x={x0 - 4} y={y - 4} width="8" height="8" fill="#fff" stroke={accent} strokeWidth="1.6" />
+      <circle cx={x1} cy={y} r="4.4" fill={accent} />
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 212"
+      role="img"
+      aria-label="Three transactions on a timeline. Each reads at its start stamp and writes at its commit stamp. Transaction two began before transaction one committed, so it never sees transaction one. Transaction three began after both committed and sees both. One and two overlap, so if they write the same cell one of them aborts."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        read at your start stamp □ · write at your commit stamp ●
+      </text>
+
+      {/* the dashed pair that carries the whole argument: txn 2 starts left of
+          txn 1's commit, so txn 1 is invisible to it, forever */}
+      <line x1="150" y1="44" x2="150" y2="132" stroke={TERRA} strokeWidth="0.9" strokeDasharray="3 3" />
+      <line x1="104" y1="44" x2="104" y2="132" stroke={TERRA} strokeWidth="0.9" strokeDasharray="3 3" />
+
+      {row(48, 'txn 1', 60, 150, INK)}
+      {row(84, 'txn 2', 104, 232, TERRA)}
+      {row(120, 'txn 3', 262, 308, DENIM)}
+
+      <line x1="44" y1="146" x2="324" y2="146" stroke={MUTED} strokeWidth="0.8" />
+      <text x="324" y="158" textAnchor="end" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        time →
+      </text>
+
+      <text x="12" y="174" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        txn 2 began before txn 1 committed — it never sees txn 1
+      </text>
+      <text x="12" y="188" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        txn 3 began after both — it sees both, and waited for nothing
+      </text>
+      <text x="12" y="202" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        1 and 2 overlap: same cell → one of them aborts. different cells → both commit
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 10 — Figure 7's shape, which is the figure that tells you when NOT to use
+ *  this. Two regimes with a crossover you can compute: random lookups per
+ *  update against streaming the whole repository. The vertical asymptote is the
+ *  honest part — Percolator does not degrade at saturation, it stops. */
+export function CrawlRateDiagram() {
+  // plot box: x 44..320, y 36..150. y=150 is zero, y=36 is ~2500 s.
+  const tick = (x: number, label: string) => (
+    <>
+      <line x1={x} y1="150" x2={x} y2="154" stroke={MUTED} strokeWidth="0.8" />
+      <text x={x} y="164" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {label}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="Median delay from crawl to clustered, against how much of the repository is crawled per hour. MapReduce sits above twenty minutes at every rate and rises slowly. Percolator sits at about two seconds until forty percent per hour, where it saturates and the delay goes vertical."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        median delay, crawl → clustered · 240 machines (Figure 7)
+      </text>
+
+      <line x1="44" y1="150" x2="324" y2="150" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="44" y1="30" x2="44" y2="150" stroke={MUTED} strokeWidth="0.8" />
+      {tick(44, '10%')}
+      {tick(113, '20%')}
+      {tick(182, '30%')}
+      {tick(251, '40%')}
+      {tick(320, '50%')}
+      <text x="182" y="180" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        percentage of the repository crawled per hour
+      </text>
+
+      {/* MapReduce: high everywhere, and the rise is weak because stragglers,
+          not data volume, set the floor at these rates */}
+      <path d="M44 70 C 130 66, 220 56, 320 46" fill="none" stroke={INK} strokeWidth="1.8" />
+      <text x="52" y="92" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        MapReduce — 20+ minutes, set by the repository
+      </text>
+
+      {/* Percolator: flat at ~2 s, then a wall */}
+      <line x1="44" y1="142" x2="251" y2="142" stroke={DENIM} strokeWidth="1.8" />
+      <text x="52" y="134" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        Percolator — about 2 seconds
+      </text>
+      <line x1="251" y1="142" x2="251" y2="36" stroke={TERRA} strokeWidth="1.8" strokeDasharray="4 3" />
+      {/* short lines, stacked, and kept low: the MapReduce curve runs across
+          the top right of the plot and will happily be drawn through anything
+          wide placed up there. */}
+      {['at 40%/hour', 'it saturates:', 'queue grows', 'without bound'].map((t, i) => (
+        <text key={t} x="257" y={92 + i * 10} fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+          {t}
+        </text>
+      ))}
+
+      <text x="12" y="196" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the crossover is arithmetic: lookups per update, against streaming the whole repository
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 11 — the one idea. Every other clock API returns a number and declines to
+ *  mention that the number is wrong; TrueTime returns a width. The sawtooth
+ *  underneath is that width measured in production, and it is the reason the
+ *  chapter is about buying hardware. */
+export function TrueTimeDiagram() {
+  // sawtooth: 3 teeth across x 44..320, ε from 1 ms (y=196) to 7 ms (y=160)
+  const teeth = [44, 136, 228, 320]
+  return (
+    <svg
+      viewBox="0 0 344 214"
+      role="img"
+      aria-label="Above: an ordinary clock call returns one number and says nothing about how wrong it is. TrueTime returns an interval, earliest to latest, guaranteed to contain the true time, with epsilon on each side. Below: epsilon measured in production sawtooths from about one millisecond to seven over each thirty-second poll interval."
+    >
+      <text x="12" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what the call gives back
+      </text>
+
+      {/* the ordinary clock */}
+      <text x="12" y="36" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        gettimeofday()
+      </text>
+      <line x1="44" y1="52" x2="320" y2="52" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="176" y1="45" x2="176" y2="59" stroke={TERRA} strokeWidth="2.2" />
+      <text x="176" y="70" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        one number, and no idea how far off it is
+      </text>
+
+      {/* TrueTime */}
+      <text x="12" y="96" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        TT.now()
+      </text>
+      <line x1="44" y1="112" x2="320" y2="112" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="122" y1="104" x2="122" y2="120" stroke={DENIM} strokeWidth="2.2" />
+      <line x1="230" y1="104" x2="230" y2="120" stroke={DENIM} strokeWidth="2.2" />
+      <line x1="122" y1="112" x2="230" y2="112" stroke={DENIM} strokeWidth="4" opacity="0.35" />
+      <circle cx="163" cy="112" r="3.6" fill={INK} />
+      <text x="122" y="100" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        earliest
+      </text>
+      <text x="230" y="100" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        latest
+      </text>
+      <text x="176" y="132" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the true time is in here somewhere · half-width ε
+      </text>
+
+      {/* ε in production */}
+      <text x="12" y="156" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        ε, measured
+      </text>
+      {teeth.slice(0, 3).map((x, i) => (
+        <path
+          key={x}
+          d={`M${x} 196 L${teeth[i + 1] - 2} 160 L${teeth[i + 1]} 196`}
+          fill="none"
+          stroke={DENIM}
+          strokeWidth="1.6"
+        />
+      ))}
+      <line x1="44" y1="196" x2="320" y2="196" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="212" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        1 ms after each poll, 7 ms just before the next · average 4 ms · one tooth is 30 seconds
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 11 — commit wait, which is the trick and also the bill. The coordinator
+ *  picks the pessimistic end of the interval and then refuses to say anything
+ *  until that stamp is definitely in the past. Everything downstream — global
+ *  snapshots, lock-free reads, atomic schema change — is bought with this bar. */
+export function CommitWaitDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="A timeline. Transaction one picks its commit stamp at the latest end of the TrueTime interval, then holds its locks and tells nobody until that stamp is certainly in the past. Only then is the write visible. Any transaction starting after that gets a larger stamp, so the stamps agree with real time."
+    >
+      <text x="12" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        real time runs left to right — the thing nobody can read directly
+      </text>
+
+      <line x1="20" y1="120" x2="330" y2="120" stroke={MUTED} strokeWidth="0.8" />
+
+      {/* the wait itself */}
+      <rect x="96" y="52" width="84" height="26" fill={TERRA} opacity="0.16" />
+      <rect x="96" y="52" width="84" height="26" fill="none" stroke={TERRA} strokeWidth="1.4" />
+      <text x="138" y="69" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        commit wait
+      </text>
+
+      {/* s is chosen */}
+      <line x1="96" y1="46" x2="96" y2="120" stroke={DENIM} strokeWidth="1.8" />
+      <text x="96" y="40" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        s = TT.now().latest
+      </text>
+      <text x="96" y="134" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        locks held
+      </text>
+
+      {/* the wait ends */}
+      <line x1="180" y1="46" x2="180" y2="120" stroke={INK} strokeWidth="1.8" />
+      <text x="180" y="40" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        TT.after(s)
+      </text>
+      <text x="184" y="134" fontFamily={MONO} fontSize="6" fill={INK}>
+        now the write is visible
+      </text>
+
+      {/* the next transaction */}
+      <line x1="262" y1="88" x2="262" y2="120" stroke={DENIM} strokeWidth="1.8" />
+      <text x="262" y="82" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        txn 2 starts
+      </text>
+      <text x="330" y="148" textAnchor="end" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        its stamp must exceed s
+      </text>
+
+      <text x="12" y="160" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        the cost: about 2ε of doing nothing, roughly 10 ms, on every write
+      </text>
+      <text x="12" y="176" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        what it buys: stamps that agree with wall time everywhere on earth
+      </text>
+    </svg>
+  )
+}

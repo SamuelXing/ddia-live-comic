@@ -318,5 +318,5 @@ export const zookeeper: Chapter = {
     title: 'Act III put back what Act I was standing on',
     body: 'Three chapters, and the hole is properly filled. Chapter 7 said there is no true order to discover, only one everybody can compute identically. Chapter 8 said a majority can settle it while a minority is broken, at the cost of a round trip per decision. This one said almost nobody should build that, and here is how everybody gets it anyway. Which means every appointment in Act I now has a name behind it — the master GFS waits for, the lease Bigtable’s tablet servers hold, the election Chubby runs. Next: with agreement in hand, you can start buying back the promises Act I sold. Two attempts at putting transactions on top of a system that never offered them — one done in software, on machines nobody upgraded, and one done by buying clocks.',
   },
-  next: { title: 'Transactions, Hand-Rolled', unwritten: true },
+  next: { title: 'Transactions, Hand-Rolled', slug: 'percolator' },
 }
