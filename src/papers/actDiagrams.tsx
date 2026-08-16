@@ -448,12 +448,15 @@ function ActEpilogue() {
   )
 }
 
-/** The close. Not a ninth pressure — a contact sheet of the eight shapes the
- *  book has drawn, small, in the order they were drawn, with the loop that
- *  connects them. It is the only figure here that argues about the others:
- *  the shapes are not eight answers to eight questions, they are seven
- *  answers to one, and the cost of each is the wall the next one hit. */
-function ActClose() {
+/** Not an act opener — the close chapter uses this one directly, which is why
+ *  it is exported and absent from ACT_FIGURES.
+ *
+ *  A contact sheet of the eight shapes the book has drawn, small, in the order
+ *  they were drawn, with the loop that connects them. The only figure in this
+ *  file that argues about the other figures: the shapes are not eight answers
+ *  to eight questions, they are seven answers to one, and the cost of each is
+ *  the wall the next one hit. */
+export function SeasonShapes() {
   const cell = (i: number) => 10 + i * 42
   const mark = (i: number, g: ReactElement) => <g key={i}>{g}</g>
   const st = { stroke: MUTED, strokeWidth: 1, fill: '#ffffff' }
@@ -584,5 +587,4 @@ export const ACT_FIGURES: Record<string, () => ReactElement> = {
   v: ActV,
   vi: ActVI,
   epilogue: ActEpilogue,
-  close: ActClose,
 }

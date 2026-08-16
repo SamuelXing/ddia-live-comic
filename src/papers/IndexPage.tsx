@@ -67,17 +67,19 @@ export default function PapersIndexPage() {
           {TOC.map((act) => {
             /* the same world, redrawn under each act's new pressure — the
                shape change carries the plot for anyone who only looks */
-            const Figure = ACT_FIGURES[act.figure]
+            const Figure = act.figure ? ACT_FIGURES[act.figure] : undefined
             return (
             <section className="pb-act box" key={act.act} data-obs>
               <div className="ah">{act.act}</div>
-              <div className="pb-actsum">
-                <div className="fig">{Figure && <Figure />}</div>
-                <div className="txt">
-                  <p>{act.summary}</p>
-                  <p className="nx">{act.next}</p>
+              {act.summary && (
+                <div className="pb-actsum">
+                  <div className="fig">{Figure && <Figure />}</div>
+                  <div className="txt">
+                    <p>{act.summary}</p>
+                    {act.next && <p className="nx">{act.next}</p>}
+                  </div>
                 </div>
-              </div>
+              )}
               {act.entries.map((e) => {
                 const live = e.slug && CHAPTER_BY_SLUG[e.slug]
                 return live ? (

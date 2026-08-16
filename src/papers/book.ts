@@ -33,8 +33,14 @@ export interface TocEntry {
 
 export interface TocAct {
   act: string
-  /** key into ACT_FIGURES (src/papers/actDiagrams.tsx) — the act's picture */
-  figure: string
+  /**
+   * Key into ACT_FIGURES (src/papers/actDiagrams.tsx) — the act's picture.
+   * Optional, and absent on The Close: the opener block exists to set up an
+   * act's pressure before you read it, and the close has no pressure to set
+   * up. It reads the other acts. Giving it a figure and a hinge line dressed
+   * a summary as a seventh instalment.
+   */
+  figure?: string
   /**
    * The act in a paragraph. Rule for this copy: state the PRESSURE and the
    * SHAPE, never the mechanism. The book's method is that the reader designs
@@ -42,9 +48,9 @@ export interface TocAct {
    * vector clocks" has spent the chapter before it starts. Paper names are
    * already in the rows below; techniques are not.
    */
-  summary: string
+  summary?: string
   /** the hinge — the pressure that forces the next act. Sets up the reader. */
-  next: string
+  next?: string
   entries: TocEntry[]
 }
 
@@ -177,10 +183,6 @@ export const TOC: TocAct[] = [
   },
   {
     act: 'The Close',
-    figure: 'close',
-    summary:
-      'One page that reads the other seventeen instead of a paper. The acts are not seven problems, they are one move made seven times — hit a limit, sell a guarantee to get past it, spend a decade buying it back in a cheaper form — and a handful of ideas cross every act without ever being the subject of one. This is where those get named.',
-    next: 'And then Season 2, which is what happens when the data stops sitting still.',
     entries: [
       {
         no: '—',

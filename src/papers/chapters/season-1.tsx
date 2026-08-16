@@ -1,5 +1,6 @@
 import type { Chapter } from '../types'
 import { OneMoveDiagram } from '../diagrams'
+import { SeasonShapes } from '../actDiagrams'
 import { ArcTable, ThroughLines } from '../SeasonBlocks'
 
 /* The close. A chapter with no paper — the only page in the book that reads
@@ -50,6 +51,14 @@ export const season1: Chapter = {
         'These are the ideas that never got a chapter, because they are not any one paper’s idea. They surface in act after act, usually without being named, and each one is worth more than the system it happened to appear in. *If you remember six things from the season, these are a defensible six.*',
       ],
       diagram: <ThroughLines />,
+    },
+    {
+      title: 'The eight shapes, side by side',
+      body: [
+        'Each act opened with a picture, and they were never eight unrelated drawings — they are **the same world redrawn under whatever was breaking that decade.** One box. A pyramid with a master on top. A ring with nobody in charge. The floor underneath both of them. A storey added on top. The whole thing tipped on its side with the log at the centre. A fork. And the ring growing its organs back.',
+        'Put them in a row and the argument stops needing words. *Nothing here was replaced; everything was added to, or turned over, or grown back.* The dashed line is the part worth sitting with — it runs from the last shape to the first, because the answer at the end of each act is what the next act ran into.',
+      ],
+      diagram: <SeasonShapes />,
     },
     {
       title: 'What the season left out, on purpose and otherwise',

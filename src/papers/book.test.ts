@@ -10,16 +10,30 @@ import { CHAPTERS, CHAPTER_BY_SLUG } from './chapters'
    complaint. */
 
 describe('the season table of contents', () => {
-  it('gives every act a figure, a summary and a hinge into the next one', () => {
-    for (const act of TOC) {
+  it('gives every act that reads papers a figure, a summary and a hinge', () => {
+    /* The Close is an act with no opener on purpose — it sets up no pressure,
+       it reads the acts that did. Every act that carries a paper still has to
+       introduce itself, which is what this was written to enforce. */
+    const storyActs = TOC.filter((a) =>
+      a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper),
+    )
+    expect(storyActs.length).toBeGreaterThan(5)
+    for (const act of storyActs) {
       expect(act.figure, `${act.act} has no figure key`).toBeTruthy()
-      expect(act.summary.length, `${act.act} summary looks empty`).toBeGreaterThan(80)
-      expect(act.next.length, `${act.act} has no hinge line`).toBeGreaterThan(20)
+      expect(act.summary?.length ?? 0, `${act.act} summary looks empty`).toBeGreaterThan(80)
+      expect(act.next?.length ?? 0, `${act.act} has no hinge line`).toBeGreaterThan(20)
     }
   })
 
+  it('never half-writes an opener', () => {
+    /* A figure with no words next to it, or words with an empty frame beside
+       them, both render as something broken rather than as something absent. */
+    const half = TOC.filter((a) => !!a.figure !== !!a.summary).map((a) => a.act)
+    expect(half).toEqual([])
+  })
+
   it('resolves every figure key, and leaves no figure unused', () => {
-    const used = TOC.map((a) => a.figure).sort()
+    const used = TOC.map((a) => a.figure).filter((f): f is string => !!f).sort()
     for (const key of used) expect(ACT_FIGURES[key], `no figure named "${key}"`).toBeTypeOf('function')
     expect(Object.keys(ACT_FIGURES).sort()).toEqual(used)
   })
