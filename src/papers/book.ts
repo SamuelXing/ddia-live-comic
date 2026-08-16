@@ -55,9 +55,17 @@ export interface TocAct {
  * and a real chapter must appear here.
  */
 export const seasonProgress = () => {
-  const entries = TOC.flatMap((a) => a.entries)
-  return { live: entries.filter((e) => e.slug).length, total: entries.filter((e) => !e.interlude).length }
+  const chapters = TOC.flatMap((a) => a.entries).filter((e) => !e.interlude)
+  return { live: chapters.filter((e) => e.slug).length, total: chapters.length }
 }
+
+/**
+ * Interludes are pages, and they are deliberately *not* chapters. They carry a
+ * slug like any other live page, and counting them would make "4 of 18" drift
+ * away from a table of contents that plainly numbers eighteen chapters. So both
+ * halves of the fraction skip them, and a test pins that — this is the kind of
+ * line someone later reads as an off-by-one and helpfully breaks.
+ */
 
 /** e.g. "2 of 18 chapters live" */
 export const progressLabel = () => {
@@ -84,7 +92,7 @@ export const TOC: TocAct[] = [
       { no: 'Ch 1', title: 'The File System That Refused to Edit', paper: 'GFS — SOSP 2003', slug: 'gfs' },
       { no: 'Ch 2', title: 'MapReduce: the Pattern, Not the Product', paper: 'OSDI 2004 · a half-chapter', slug: 'mapreduce' },
       { no: 'Ch 3', title: 'The Database GFS Deserved', paper: 'Bigtable — OSDI 2006', slug: 'bigtable' },
-      { no: '—', title: 'Interlude: The RUM Triangle', interlude: true },
+      { no: '—', title: 'Interlude: The RUM Triangle', interlude: true, slug: 'rum' },
       { no: 'Ch 4', title: 'The Lock Everyone Was Secretly Holding', paper: 'Chubby — OSDI 2006', slug: 'chubby' },
     ],
   },

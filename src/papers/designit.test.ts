@@ -30,13 +30,25 @@ function specsIn(): Array<{ where: string; spec: DesignItSpec }> {
 describe('the you-are-the-designer widget', () => {
   const found = specsIn()
 
-  it('is present in every chapter — one without it is not this book', () => {
+  it('is present in every paper chapter — one without it is not this book', () => {
     /* Also the anti-vacuity guard: if the traversal ever stops finding specs,
-       every check below passes while testing nothing. A half-chapter gets
-       fewer decisions, not zero — the interaction is the method. */
+       every check below passes while testing nothing.
+
+       Keyed off "has a paper" rather than an exemption list, because an
+       exemption list is a thing nobody re-reads. An interlude has no paper and
+       no answer key, so there is nothing to be walked into designing — a
+       half-chapter gets fewer decisions, an interlude gets none. */
     const withOne = new Set(found.map((f) => f.where.split(' · ')[0]))
-    const missing = CHAPTERS.map((c) => c.slug).filter((s) => !withOne.has(s))
+    const missing = CHAPTERS.filter((c) => c.paper).map((c) => c.slug).filter((s) => !withOne.has(s))
     expect(missing).toEqual([])
+  })
+
+  it('does not sneak one into an interlude', () => {
+    // the reverse: if an interlude grows a DesignIt it has become a chapter,
+    // and the reader is owed a paper to check the answer against
+    const interludes = new Set(CHAPTERS.filter((c) => !c.paper).map((c) => c.slug))
+    expect(interludes.size).toBeGreaterThan(0)
+    expect(found.map((f) => f.where.split(' · ')[0]).filter((s) => interludes.has(s))).toEqual([])
   })
 
   it('never puts markup in an option label, which renders raw', () => {

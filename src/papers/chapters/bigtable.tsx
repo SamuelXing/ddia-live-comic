@@ -289,5 +289,5 @@ export const bigtable: Chapter = {
     title: 'The file system chose the engine',
     body: 'Everything in this chapter unwinds from one refusal: GFS would not edit a byte. Immutable sorted files, background merges, metadata-only splits, crash recovery as a replay — each is that refusal, answered. Next, a different company meets a different refusal: Amazon’s cart must accept writes **while the network is failing** — and gives up the very thing Bigtable kept.',
   },
-  next: { title: 'The Lock Everyone Was Secretly Holding', slug: 'chubby' },
+  next: { title: 'Interlude: The RUM Triangle', slug: 'rum' },
 }

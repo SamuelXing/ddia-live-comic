@@ -31,7 +31,15 @@ export interface Chapter {
   title: string
   dek: string
   minutes: number
-  paper: PaperRef
+  /**
+   * The paper this chapter reads, rendered as a citation card under the
+   * masthead. **Absent on an interlude** — a half-chapter with no answer key,
+   * which exists to name a pattern the chapters around it keep using rather
+   * than to re-derive one paper. One fact, not two: nothing carries a separate
+   * `interlude` flag that could disagree with this, and `book.test.ts` checks
+   * it against the TOC's own marker.
+   */
+  paper?: PaperRef
   /** the opening narration box — the cold open */
   caption: string
   steps: Step[]

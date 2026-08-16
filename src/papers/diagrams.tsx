@@ -12,6 +12,101 @@ const TERRA = '#bd5f3d'
 const MUTED = '#8a8177'
 const MONO = 'JetBrains Mono, monospace'
 
+/** Interlude — the RUM triangle. Corners are the three overheads; a design sits
+ *  near the corners it minimises. Positions are illustrative, not measured, and
+ *  the drawing says so — this is a lens, not a benchmark. */
+export function RumTriangleDiagram() {
+  // apex R at top, U bottom-left, M bottom-right
+  const A: [number, number] = [172, 30]
+  const B: [number, number] = [46, 132]
+  const C: [number, number] = [298, 132]
+  /* Labels sit BELOW their dot, never above. The first draft put them above and
+     the geometry lint found the triangle's own left edge drawn straight through
+     "B-tree" — near the apex the interior is only ~70 units wide, which is three
+     words. Anything placed up there has to be checked against the edge at that
+     exact y, so the rule is simpler: label downwards, into the wide part. */
+  const dot = (x: number, y: number, label: string, accent: string) => (
+    <>
+      <circle cx={x} cy={y} r="4" fill={accent} />
+      <text x={x} y={y + 12} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={accent}>
+        {label}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="A triangle whose corners are read, update and memory overhead. A B-tree sits toward read, an LSM tree toward update, a heap file toward memory: every access method minimises two and pays the third."
+    >
+      <text x="8" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        pick two corners — the third sends the bill
+      </text>
+      <path
+        d={`M${A[0]} ${A[1]} L${B[0]} ${B[1]} L${C[0]} ${C[1]} Z`}
+        fill="none"
+        stroke={INK}
+        strokeWidth="1.8"
+      />
+      <text x="172" y="24" textAnchor="middle" fontFamily={MONO} fontSize="7.4" fill={INK}>
+        READ
+      </text>
+      <text x="36" y="146" textAnchor="start" fontFamily={MONO} fontSize="7.4" fill={INK}>
+        UPDATE
+      </text>
+      <text x="308" y="146" textAnchor="end" fontFamily={MONO} fontSize="7.4" fill={INK}>
+        MEMORY
+      </text>
+
+      {dot(172, 52, 'all indexed', DENIM)}
+      {dot(143, 80, 'B-tree', DENIM)}
+      {dot(100, 110, 'LSM tree', TERRA)}
+      {dot(248, 110, 'no index', MUTED)}
+
+      <text x="8" y="168" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        nearer a corner = cheaper on that overhead
+      </text>
+      <text x="8" y="182" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        positions are the argument, not a measurement
+      </text>
+    </svg>
+  )
+}
+
+/** Interlude — you cannot leave the triangle, but you can buy along it. Each
+ *  row is a mechanism, what it spends, and what it buys back. */
+export function RumTradesDiagram() {
+  const row = (y: number, name: string, spend: string, buy: string) => (
+    <>
+      <text x="10" y={y} fontFamily={MONO} fontSize="6.4" fill={INK}>{name}</text>
+      <text x="128" y={y} fontFamily={MONO} fontSize="6.4" fill={TERRA}>{spend}</text>
+      <text x="196" y={y} fontFamily={MONO} fontSize="6.4" fill={MUTED}>→</text>
+      <text x="216" y={y} fontFamily={MONO} fontSize="6.4" fill={DENIM}>{buy}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 140"
+      role="img"
+      aria-label="Bloom filters spend memory to buy reads; compaction spends updates to buy reads and memory; compression spends read cost to buy memory; caching spends memory to buy reads."
+    >
+      <text x="10" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        every optimisation is a purchase
+      </text>
+      <text x="128" y="30" fontFamily={MONO} fontSize="6" fill={MUTED}>spends</text>
+      <text x="216" y="30" fontFamily={MONO} fontSize="6" fill={MUTED}>buys</text>
+      <line x1="10" y1="36" x2="334" y2="36" stroke={MUTED} strokeWidth="0.8" />
+      {row(52, 'bloom filter', 'memory', 'reads')}
+      {row(70, 'compaction', 'updates', 'reads + memory')}
+      {row(88, 'compression', 'reads (decode)', 'memory')}
+      {row(106, 'a second index', 'memory + updates', 'reads')}
+      <text x="172" y="130" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        &ldquo;just faster&rdquo; is not an answer — ask which one it spent
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 1 — why 64 MB. The same petabyte catalogued at two block sizes, priced
  *  in the only currency that mattered: the master's RAM. */
 export function ChunkBudgetDiagram() {

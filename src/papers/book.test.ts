@@ -30,6 +30,22 @@ describe('the season table of contents', () => {
         if (e.slug) expect(CHAPTER_BY_SLUG[e.slug], `${e.no} points at a missing chapter`).toBeTruthy()
   })
 
+  it('agrees with each chapter about whether it is an interlude', () => {
+    /* Two files have to hold the same opinion: the TOC row carries the
+       `interlude` marker, the chapter carries it by *not* having a paper. If
+       they drift, a page renders with no citation card under a row that
+       promises one, or the reverse. */
+    const wrong: string[] = []
+    for (const act of TOC)
+      for (const e of act.entries) {
+        const ch = e.slug ? CHAPTER_BY_SLUG[e.slug] : undefined
+        if (!ch) continue
+        if (e.interlude && ch.paper) wrong.push(`${e.title}: TOC says interlude, chapter cites a paper`)
+        if (!e.interlude && !ch.paper) wrong.push(`${e.title}: chapter has no paper but the TOC calls it a chapter`)
+      }
+    expect(wrong).toEqual([])
+  })
+
   it('lists every chapter that exists — the other direction', () => {
     /* The half nobody thinks to check: a chapter can be written, registered and
        routed while its TOC row still has no slug, so the season map shows it as
@@ -45,7 +61,17 @@ describe('the season’s progress counter', () => {
   /* "1 of 18" was typed by hand in three places and all three were stale the
      moment Chapter 1 shipped. The count is derived now; these pin it. */
   it('counts the chapters that are live, not the rows that exist', () => {
-    expect(seasonProgress().live).toBe(Object.keys(CHAPTER_BY_SLUG).length)
+    const chapters = Object.values(CHAPTER_BY_SLUG).filter((c) => c.paper)
+    expect(seasonProgress().live).toBe(chapters.length)
+  })
+
+  it('does not let an interlude inflate the count', () => {
+    /* An interlude is a live page with a slug and is deliberately not a
+       chapter — counting it would make the fraction disagree with a table of
+       contents that plainly numbers eighteen. */
+    const interludes = Object.values(CHAPTER_BY_SLUG).filter((c) => !c.paper)
+    expect(interludes.length).toBeGreaterThan(0)
+    expect(seasonProgress().live + interludes.length).toBe(Object.keys(CHAPTER_BY_SLUG).length)
   })
 
   it('counts chapters, not interludes, in the total', () => {
