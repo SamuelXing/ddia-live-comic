@@ -105,6 +105,10 @@ export const ROUTES = {
     title: 'The Lock Everyone Was Secretly Holding',
     desc: 'Every system in Act I has one master and none of the papers say who appoints it. Work out who does — then find out why the contribution was the packaging, not the algorithm.',
   },
+  '/papers/dynamo': {
+    title: 'The Cart That Must Not Close',
+    desc: 'Amazon will not let a shopping cart refuse a write, so the master goes. Design the store that falls out of that — then find out who has to decide which of two carts is real.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',

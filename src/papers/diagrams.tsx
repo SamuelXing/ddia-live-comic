@@ -445,3 +445,102 @@ export function TabletSplitDiagram() {
     </svg>
   )
 }
+
+/** Ch 5 — the paper's Figure 3, redrawn. A version's clock is a list of
+ *  (node, counter) pairs, and the only question it answers is whether one
+ *  version descends from another or whether the two happened side by side.
+ *
+ *  Every box is 104 wide because the widest clock here — D5's three pairs —
+ *  is 22 mono characters, and at fontSize 6 that is ~80 units. The boxes are
+ *  drawn in one helper so a fourth pair added later overflows all of them at
+ *  once rather than just the one nobody re-measured. */
+export function VectorClockDiagram() {
+  const box = (x: number, y: number, name: string, clock: string, accent: string) => (
+    <>
+      <rect x={x} y={y} width="104" height="30" fill="#fff" stroke={accent} strokeWidth="1.6" />
+      <text x={x + 10} y={y + 13} fontFamily={MONO} fontSize="6.6" fill={accent}>{name}</text>
+      <text x={x + 10} y={y + 24} fontFamily={MONO} fontSize="6" fill={INK}>{clock}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 244"
+      role="img"
+      aria-label="A version history: D1 and D2 written via node Sx, then D3 via Sy and D4 via Sz branching from D2. D3 and D4 are concurrent — neither clock covers the other — so both survive until a client merges them into D5."
+    >
+      <defs>
+        <marker id="pb-vc" markerWidth="7" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} />
+        </marker>
+      </defs>
+      <text x="10" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one cart, four writes, two of them at once
+      </text>
+
+      {box(120, 24, 'D1 · via Sx', '[(Sx,1)]', INK)}
+      <path d="M172 54 L172 66" stroke={MUTED} strokeWidth="1.4" markerEnd="url(#pb-vc)" />
+      {box(120, 68, 'D2 · via Sx', '[(Sx,2)]', INK)}
+
+      <path d="M150 98 L104 116" stroke={MUTED} strokeWidth="1.4" markerEnd="url(#pb-vc)" />
+      <path d="M194 98 L240 116" stroke={MUTED} strokeWidth="1.4" markerEnd="url(#pb-vc)" />
+      {box(26, 118, 'D3 · via Sy', '[(Sx,2),(Sy,1)]', TERRA)}
+      {box(214, 118, 'D4 · via Sz', '[(Sx,2),(Sz,1)]', TERRA)}
+
+      <text x="172" y="166" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        neither clock covers the other
+      </text>
+      <text x="172" y="178" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        so both are kept, and a read returns both
+      </text>
+
+      {/* Both branches rejoin around the OUTSIDE, not diagonally inward. The
+          first draft ran them straight from each box's inner corner down to
+          D5, and the geometry lint found those two lines drawn through the
+          sibling annotation — the funnel narrows to about 70 units by the time
+          it reaches D5, and that caption is 115 wide. Elbows keep the whole
+          middle of the figure empty for the text that explains it. */}
+      <path d="M78 148 L78 203 L116 203" fill="none" stroke={MUTED} strokeWidth="1.4" markerEnd="url(#pb-vc)" />
+      <path d="M266 148 L266 203 L228 203" fill="none" stroke={MUTED} strokeWidth="1.4" markerEnd="url(#pb-vc)" />
+      {box(120, 188, 'D5 · your merge', '[(Sx,3),(Sy,1),(Sz,1)]', DENIM)}
+
+      <text x="172" y="236" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the counters are not clocks — nothing here measures time
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 5 — §6.3, the number that decides whether any of this is worth it: how
+ *  often the shopping cart service actually saw a conflict over 24 hours.
+ *  Percentages that small stop meaning anything, so each is restated as a
+ *  count out of a million reads, which is arithmetic the reader can check. */
+export function DivergenceDiagram() {
+  const row = (y: number, versions: string, pct: string, perM: string, accent: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{versions}</text>
+      <text x="120" y={y} fontFamily={MONO} fontSize="6.4" fill={INK}>{pct}</text>
+      <text x="212" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{perM}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 146"
+      role="img"
+      aria-label="Over 24 hours the shopping cart service saw one version on 99.94 percent of reads, two versions on 0.00057 percent, three on 0.00047 percent and four on 0.00009 percent — about six reads in a million returning a conflict."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        shopping cart reads over 24 hours (§6.3)
+      </text>
+      <text x="120" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>of requests</text>
+      <text x="212" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>per million reads</text>
+      <line x1="14" y1="38" x2="330" y2="38" stroke={MUTED} strokeWidth="0.8" />
+      {row(54, '1 version', '99.94%', 'essentially all', DENIM)}
+      {row(72, '2 versions', '0.00057%', 'about 6', TERRA)}
+      {row(90, '3 versions', '0.00047%', 'about 5', TERRA)}
+      {row(108, '4 versions', '0.00009%', 'about 1', TERRA)}
+      <text x="14" y="136" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        and the cause was not failures — it was concurrent writers
+      </text>
+    </svg>
+  )
+}
