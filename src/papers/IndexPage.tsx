@@ -1,9 +1,11 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, TOC, progressLabel } from './book'
+import { BOOK, TOC } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
+import { CHAPTER_LINES, SEASON_NEXT } from './season'
+import { rich } from '../read/rich'
 import { SITE_TITLE } from '../routeTitle'
 
 /* ============================================================
@@ -11,6 +13,13 @@ import { SITE_TITLE } from '../routeTitle'
    The whole season is visible from day one, unwritten chapters
    included: the book's spine is the story arc, and the reader
    should see its shape before choosing where to step in.
+
+   Two things sit under the map. Each row carries its chapter's
+   one-line argument, so the contents say what a chapter claims
+   and not only what it is called. And the foot looks forward to
+   the next season — the looking-back is a page of its own, the
+   last row of the Epilogue, because a retrospective printed here
+   would be scenery rather than something anybody chose to read.
    ============================================================ */
 
 export default function PapersIndexPage() {
@@ -52,34 +61,37 @@ export default function PapersIndexPage() {
           <div className="gn-kicker">{BOOK.season}</div>
           <h1>{BOOK.title}</h1>
           <p className="dek">{BOOK.dek}</p>
-          <div className="gn-tags">
-            <span className="gn-tag">{progressLabel()}</span>
-            <span className="gn-tag">Each chapter · one paper</span>
-          </div>
         </header>
 
         <div className="pb-toc">
           {TOC.map((act) => {
             /* the same world, redrawn under each act's new pressure — the
                shape change carries the plot for anyone who only looks */
-            const Figure = ACT_FIGURES[act.figure]
+            const Figure = act.figure ? ACT_FIGURES[act.figure] : undefined
             return (
             <section className="pb-act box" key={act.act} data-obs>
               <div className="ah">{act.act}</div>
-              <div className="pb-actsum">
-                <div className="fig">{Figure && <Figure />}</div>
-                <div className="txt">
-                  <p>{act.summary}</p>
-                  <p className="nx">{act.next}</p>
+              {act.summary && (
+                <div className="pb-actsum">
+                  <div className="fig">{Figure && <Figure />}</div>
+                  <div className="txt">
+                    <p>{act.summary}</p>
+                    {act.next && <p className="nx">{act.next}</p>}
+                  </div>
                 </div>
-              </div>
+              )}
               {act.entries.map((e) => {
                 const live = e.slug && CHAPTER_BY_SLUG[e.slug]
                 return live ? (
-                  <Link className="pb-row" to={`/papers/${e.slug}`} key={e.no + e.title}>
+                  /* the one-line argument under the title: a contents page that
+                     says what each chapter claims, not only what it is called */
+                  <Link className="pb-row pb-line" to={`/papers/${e.slug}`} key={e.no + e.title}>
                     <span className="no">{e.no}</span>
-                    <span className="tt">{e.title}</span>
-                    <span className="pp">{e.paper}</span>
+                    <span className="tt">
+                      {e.title}
+                      <em>{CHAPTER_LINES[e.slug as string]}</em>
+                    </span>
+                    <span className="pp">{e.paper ?? e.note ?? 'interlude'}</span>
                   </Link>
                 ) : (
                   <div className={'pb-row soon' + (e.interlude ? ' interlude' : '')} key={e.no + e.title}>
@@ -92,6 +104,12 @@ export default function PapersIndexPage() {
             </section>
             )
           })}
+
+          <section className="gn-finale box" data-obs>
+            <div className="k">next</div>
+            <h3>{SEASON_NEXT.title}</h3>
+            <p>{rich(SEASON_NEXT.body)}</p>
+          </section>
         </div>
       </div>
     </div>

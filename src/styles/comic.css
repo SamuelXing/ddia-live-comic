@@ -565,3 +565,47 @@ a.pb-row .pp::after { content: ' →'; color: var(--denim-ink); }
      Forcing opacity:1 here painted a white slab over the memtable. */
   .gn-diagram [class*='gn-an-'] { transform: none !important; }
 }
+
+/* ---------- the season close ----------
+   Two blocks inside the close chapter's figure slots — the move each act made,
+   and the ideas that cross acts — plus the one-line argument under each row of
+   the table of contents. .pb-close takes the figure column full width the same
+   way .gn-design does: a four-across ledger squeezed into 340px is unreadable. */
+.gn-diagram:has(> .pb-close) { grid-template-columns: 1fr; }
+.pb-close { border: 2px solid var(--ink-line); background: var(--paper-2); box-shadow: 3px 3px 0 var(--denim); }
+.pb-arc { padding: 14px 18px 16px; display: grid; gap: 14px; }
+.pb-arc-row { border-top: 1px dashed var(--rule); padding-top: 13px; }
+.pb-arc-row:first-child { border-top: none; padding-top: 4px; }
+.pb-arc-row .ac { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 9px; }
+.pb-arc-row .cells { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 860px) { .pb-arc-row .cells { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .pb-arc-row .cells { grid-template-columns: 1fr; } }
+.pb-arc-row .cell { font-size: 13.5px; line-height: 1.55; color: var(--ink-2);
+  border-left: 3px solid var(--rule); padding-left: 10px; }
+.pb-arc-row .cell .k { display: block; font-family: var(--gn-mono); font-size: 9.5px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px; }
+/* two accents, doing what they always do here: terra is the thing given up and
+   the bill for it, denim is what got built. The wall stays neutral — it is the
+   world, not a decision anybody made. */
+.pb-arc-row .cell.gave { border-left-color: var(--terra); }
+.pb-arc-row .cell.gave .k { color: var(--terra-ink); }
+.pb-arc-row .cell.got { border-left-color: var(--denim); }
+.pb-arc-row .cell.got .k { color: var(--denim-ink); }
+.pb-arc-row .cell.cost { border-left-color: var(--terra); }
+.pb-arc-row .cell.cost .k { color: var(--terra-ink); }
+
+.pb-threads { padding: 14px 18px 18px; display: grid; gap: 18px; }
+.pb-thread { border-top: 1px dashed var(--rule); padding-top: 14px; }
+.pb-thread:first-child { border-top: none; padding-top: 4px; }
+.pb-thread h3 { font-family: var(--gn-display); font-weight: 800; font-size: 19px;
+  margin: 0 0 6px; letter-spacing: -.01em; color: var(--ink); }
+.pb-thread p { margin: 0 0 11px; font-size: 14.5px; line-height: 1.62; color: var(--ink-2); }
+.pb-thread p b { color: var(--ink); font-weight: 600; }
+
+a.pb-row.pb-line { align-items: start; }
+.pb-line .tt em { display: block; font-family: var(--gn-body); font-style: normal;
+  font-weight: 400; font-size: 13.5px; line-height: 1.55; color: var(--ink-2);
+  margin-top: 3px; border: none; max-width: 68ch; }
+a.pb-row.pb-line .tt { border-bottom: none; }
+a.pb-row.pb-line:hover .tt em { color: var(--ink); }

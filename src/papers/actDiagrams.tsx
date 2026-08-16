@@ -448,6 +448,133 @@ function ActEpilogue() {
   )
 }
 
+/** Not an act opener — the close chapter uses this one directly, which is why
+ *  it is exported and absent from ACT_FIGURES.
+ *
+ *  A contact sheet of the eight shapes the book has drawn, small, in the order
+ *  they were drawn, with the loop that connects them. The only figure in this
+ *  file that argues about the other figures: the shapes are not eight answers
+ *  to eight questions, they are seven answers to one, and the cost of each is
+ *  the wall the next one hit. */
+export function SeasonShapes() {
+  const cell = (i: number) => 10 + i * 42
+  const mark = (i: number, g: ReactElement) => <g key={i}>{g}</g>
+  const st = { stroke: MUTED, strokeWidth: 1, fill: '#ffffff' }
+  const roman = ['0', 'I', 'II', 'III', 'IV', 'V', 'VI', 'E']
+  return (
+    <svg
+      viewBox="0 0 344 180"
+      role="img"
+      aria-label="The eight shapes the season has drawn, side by side and small: one box, a pyramid, a ring, a floor beneath, a storey above, a log on its side, a fork, and the ring with its organs grown back. A dashed loop runs from the last back to the first."
+    >
+      <C x={12} y={18} size={6.5}>
+        the same world, redrawn eight times
+      </C>
+      {roman.map((r, i) => (
+        <text key={r} x={cell(i) + 16} y={38} textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+          {r}
+        </text>
+      ))}
+
+      {/* 0 — one machine */}
+      {mark(0, <rect x={cell(0) + 6} y={56} width={20} height={12} {...st} />)}
+      {/* I — a pyramid with a master on top */}
+      {mark(
+        1,
+        <>
+          <rect x={cell(1) + 10} y={46} width={12} height={8} {...st} />
+          <rect x={cell(1) + 2} y={62} width={12} height={8} {...st} />
+          <rect x={cell(1) + 18} y={62} width={12} height={8} {...st} />
+          <line x1={cell(1) + 16} y1={54} x2={cell(1) + 8} y2={62} stroke={MUTED} strokeWidth="0.8" />
+          <line x1={cell(1) + 16} y1={54} x2={cell(1) + 24} y2={62} stroke={MUTED} strokeWidth="0.8" />
+        </>,
+      )}
+      {/* II — a ring with nobody in charge */}
+      {mark(
+        2,
+        <>
+          {[0, 1, 2, 3, 4].map((k) => {
+            const a = (-90 + k * 72) * (Math.PI / 180)
+            return (
+              <circle key={k} cx={cell(2) + 16 + Math.cos(a) * 11} cy={62 + Math.sin(a) * 11} r="3.4" {...st} />
+            )
+          })}
+        </>,
+      )}
+      {/* III — the floor underneath both */}
+      {mark(
+        3,
+        <>
+          <rect x={cell(3) + 3} y={48} width={11} height={8} {...st} />
+          <rect x={cell(3) + 18} y={48} width={11} height={8} {...st} />
+          <rect x={cell(3) + 3} y={64} width={26} height={7} {...st} />
+        </>,
+      )}
+      {/* IV — a storey added on top */}
+      {mark(
+        4,
+        <>
+          <rect x={cell(4) + 5} y={46} width={22} height={7} {...st} />
+          <rect x={cell(4) + 5} y={56} width={22} height={7} {...st} />
+          <rect x={cell(4) + 5} y={66} width={22} height={7} {...st} />
+        </>,
+      )}
+      {/* V — the log on its side, with readers hanging off it */}
+      {mark(
+        5,
+        <>
+          <rect x={cell(5) + 2} y={60} width={28} height={7} {...st} />
+          {[0, 1, 2].map((k) => (
+            <line key={k} x1={cell(5) + 8 + k * 9} y1={60} x2={cell(5) + 8 + k * 9} y2={50} stroke={MUTED} strokeWidth="0.8" />
+          ))}
+        </>,
+      )}
+      {/* VI — the fork */}
+      {mark(
+        6,
+        <>
+          <line x1={cell(6) + 3} y1={62} x2={cell(6) + 16} y2={62} stroke={MUTED} strokeWidth="1" />
+          <line x1={cell(6) + 16} y1={62} x2={cell(6) + 29} y2={50} stroke={MUTED} strokeWidth="1" />
+          <line x1={cell(6) + 16} y1={62} x2={cell(6) + 29} y2={74} stroke={MUTED} strokeWidth="1" />
+        </>,
+      )}
+      {/* E — the ring with its organs back */}
+      {mark(
+        7,
+        <>
+          {[0, 1, 2, 3, 4].map((k) => {
+            const a = (-90 + k * 72) * (Math.PI / 180)
+            return (
+              <circle
+                key={k}
+                cx={cell(7) + 16 + Math.cos(a) * 11}
+                cy={62 + Math.sin(a) * 11}
+                r="3.4"
+                fill={k === 0 ? DENIM : '#ffffff'}
+                stroke={k === 0 ? DENIM : MUTED}
+                strokeWidth={k === 0 ? 1.8 : 1}
+              />
+            )
+          })}
+        </>,
+      )}
+
+      <path d="M330 82 L330 96 L14 96 L14 84" fill="none" stroke={TERRA} strokeWidth="1.2" strokeDasharray="3 3" />
+      <path d="M14 80 L11 86 L17 86 Z" fill={TERRA} />
+      <C x={172} y={112} mid tone="pain">
+        the bill for one act is the wall the next one hit
+      </C>
+      <L x1={12} y1={126} x2={332} y2={126} />
+      <C x={12} y={142}>
+        so these are not eight answers to eight questions
+      </C>
+      <C x={12} y={158} size={6.2}>
+        they are seven answers to one, and the question is which guarantee to sell
+      </C>
+    </svg>
+  )
+}
+
 /** Act key (from `TOC`) → its figure. Kept as a lookup rather than a field on
  *  TOC itself because book.ts is plain data with no JSX. A test asserts the
  *  two stay in step. */

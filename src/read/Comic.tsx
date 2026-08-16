@@ -91,7 +91,7 @@ export function Panel({ step }: { step: Step }) {
     <article className={'gn-panel box lift' + accent + (wide ? ' gn-span2' : '')} data-obs>
       {step.rung && <div className="gn-layertag">{step.rung}</div>}
       <div className="head">
-        <span className="gn-step">{step.n}</span>
+        {step.n && <span className="gn-step">{step.n}</span>}
         <span className="ht">{step.title}</span>
       </div>
       {step.diagram ? (

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TOC, seasonProgress, progressLabel } from './book'
 import { ACT_FIGURES } from './actDiagrams'
-import { CHAPTER_BY_SLUG } from './chapters'
+import { CHAPTERS, CHAPTER_BY_SLUG } from './chapters'
 
 /* The act openers are split across two files — prose in book.ts (plain data,
    no JSX) and pictures in actDiagrams.tsx — joined by a string key. That join
@@ -10,16 +10,30 @@ import { CHAPTER_BY_SLUG } from './chapters'
    complaint. */
 
 describe('the season table of contents', () => {
-  it('gives every act a figure, a summary and a hinge into the next one', () => {
-    for (const act of TOC) {
+  it('gives every act that reads papers a figure, a summary and a hinge', () => {
+    /* The Close is an act with no opener on purpose — it sets up no pressure,
+       it reads the acts that did. Every act that carries a paper still has to
+       introduce itself, which is what this was written to enforce. */
+    const storyActs = TOC.filter((a) =>
+      a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper),
+    )
+    expect(storyActs.length).toBeGreaterThan(5)
+    for (const act of storyActs) {
       expect(act.figure, `${act.act} has no figure key`).toBeTruthy()
-      expect(act.summary.length, `${act.act} summary looks empty`).toBeGreaterThan(80)
-      expect(act.next.length, `${act.act} has no hinge line`).toBeGreaterThan(20)
+      expect(act.summary?.length ?? 0, `${act.act} summary looks empty`).toBeGreaterThan(80)
+      expect(act.next?.length ?? 0, `${act.act} has no hinge line`).toBeGreaterThan(20)
     }
   })
 
+  it('never half-writes an opener', () => {
+    /* A figure with no words next to it, or words with an empty frame beside
+       them, both render as something broken rather than as something absent. */
+    const half = TOC.filter((a) => !!a.figure !== !!a.summary).map((a) => a.act)
+    expect(half).toEqual([])
+  })
+
   it('resolves every figure key, and leaves no figure unused', () => {
-    const used = TOC.map((a) => a.figure).sort()
+    const used = TOC.map((a) => a.figure).filter((f): f is string => !!f).sort()
     for (const key of used) expect(ACT_FIGURES[key], `no figure named "${key}"`).toBeTypeOf('function')
     expect(Object.keys(ACT_FIGURES).sort()).toEqual(used)
   })
@@ -80,10 +94,99 @@ describe('the season’s progress counter', () => {
     expect(rows.some((e) => e.interlude)).toBe(true) // or the line above proves nothing
   })
 
-  it('reads as a sentence, with both numbers in it', () => {
-    const { live, total } = seasonProgress()
-    expect(progressLabel()).toBe(`${live} of ${total} chapters live`)
+  it('states what there is to read, without a fraction', () => {
+    /* The fraction read as an off-by-one, because the chapters start at Ch 0 —
+       a reader counts to Ch 17 and is told there are 18. */
+    const { live } = seasonProgress()
+    expect(progressLabel()).toBe(`${live} chapters live`)
     expect(live).toBeGreaterThan(0)
-    expect(total).toBeGreaterThan(live)
+    expect(progressLabel()).not.toMatch(/ of /)
+  })
+
+})
+
+describe('the chain of “next” teasers at the foot of every chapter', () => {
+  /* Nothing checked these until Chapter 17 shipped, and shipping it needed two
+     edits in two files: the new chapter, and the previous chapter's `next`
+     changing from unwritten to a slug. A typo in that slug renders a link to
+     /papers/whatever, which is a page the router does not have — and the only
+     way anyone finds out is by clicking the last link on a finished chapter,
+     which is the link a reader is most likely to click and an author least
+     likely to re-test.
+
+     The reading order lives in CHAPTERS. These pin the teasers to it, so the
+     chain cannot quietly disagree with the order the book is registered in. */
+  const order = CHAPTERS.map((c) => c.slug)
+
+  it('points every teaser at a chapter that exists', () => {
+    const broken = CHAPTERS.filter((c) => c.next?.slug && !CHAPTER_BY_SLUG[c.next.slug]).map(
+      (c) => `${c.slug} → ${c.next?.slug}`,
+    )
+    expect(broken).toEqual([])
+  })
+
+  it('follows the reading order, one chapter at a time', () => {
+    /* Not merely "forwards": the next teaser is the very next chapter, because
+       a teaser that skips one is how a chapter becomes unreachable by reading. */
+    const wrong = CHAPTERS.flatMap((c, i) => {
+      const expected = order[i + 1]
+      const actual = c.next?.slug
+      if (!expected) return actual ? [`${c.slug} is last but teases ${actual}`] : []
+      return actual === expected ? [] : [`${c.slug} → ${actual ?? 'nothing'}, expected ${expected}`]
+    })
+    expect(wrong).toEqual([])
+  })
+
+  it('gives the teaser the title of the chapter it points at', () => {
+    /* The title is typed by hand in the previous chapter, so it drifts the
+       moment a chapter is renamed — and it drifts silently, because the link
+       still works and only the words are stale. */
+    const stale = CHAPTERS.filter((c) => c.next?.slug && CHAPTER_BY_SLUG[c.next.slug]?.title !== c.next.title).map(
+      (c) => `${c.slug} calls it “${c.next?.title}”`,
+    )
+    expect(stale).toEqual([])
+  })
+
+  it('leaves the last live chapter teasing something unwritten', () => {
+    /* There is no next chapter to name and the foot of the last page is still
+       the most-clicked link on it, so it has to say the book is unfinished
+       rather than dead-end in silence. */
+    const last = CHAPTERS[CHAPTERS.length - 1]
+    expect(last.next?.unwritten).toBe(true)
+    expect(last.next?.slug).toBeUndefined()
+  })
+})
+
+describe('the chapter numbers written into cross-links', () => {
+  /* Chapter numbers are typed by hand into `seenIn` labels — "The Cart That
+     Must Not Close — Ch 6" — and the number lives in exactly one other place,
+     the TOC row. Writing the epilogue I got Dynamo's number wrong in a label
+     and in ten sentences of prose, because I had it as Ch 6 in my head and
+     nothing in the repo disagreed with me.
+
+     Prose is not checkable. A label next to the link it labels is: the `to`
+     says which chapter is meant, so the number in the text has to match the
+     number the TOC gives that chapter. That is the half of the mistake a test
+     can hold, and it is the half a reader clicks. */
+  const numberBySlug: Record<string, string> = {}
+  for (const act of TOC)
+    for (const e of act.entries) if (e.slug && /^Ch \d+$/.test(e.no)) numberBySlug[e.slug] = e.no
+
+  it('has chapter numbers to check', () => {
+    expect(Object.keys(numberBySlug).length).toBeGreaterThan(10)
+  })
+
+  it('gives every labelled cross-link the number the TOC gives that chapter', () => {
+    const wrong: string[] = []
+    for (const c of CHAPTERS)
+      for (const s of c.seenIn) {
+        const m = /^\/papers\/([\w-]+)$/.exec(s.to ?? '')
+        const label = /\bCh (\d+)\b/.exec(s.label)
+        if (!m || !label) continue
+        const expected = numberBySlug[m[1]]
+        if (expected && expected !== `Ch ${label[1]}`)
+          wrong.push(`${c.slug}: “${s.label}” points at ${m[1]}, which is ${expected}`)
+      }
+    expect(wrong).toEqual([])
   })
 })
