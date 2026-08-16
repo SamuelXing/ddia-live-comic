@@ -38,4 +38,35 @@ describe('trace geometry', () => {
   it.each(found.map((f) => [f.where, f.spec] as const))('%s passes lint', (_where, spec) => {
     expect(lintTraceSpec(spec)).toEqual([])
   })
+
+  it('gives every trace step the full column width', () => {
+    /* A trace needs BOTH `span: 2` on the step and a `.gn-figure` wrapper
+       around the player, and neither one alone is enough — .gn-diagram is a
+       two-column grid that only collapses when it has a .gn-design, a
+       .gn-figure or a .pb-close child, so a trace handed to it bare lands in
+       the 280–340px sidebar meant for small SVGs. The canvas then draws at
+       about a hundred pixels with every label on top of the last.
+
+       Nothing else catches it. Typecheck passes, trace lint passes (the
+       geometry is fine — it is the container that is wrong), and no error is
+       logged. The only signal is looking at the page, which is exactly the
+       check that gets skipped. Both epilogue chapters were written this way
+       and got as far as a screenshot before anybody noticed. */
+    const wrongContainer = CHAPTERS.flatMap((ch) =>
+      ch.steps.flatMap((step) => {
+        const specs: TraceSpec[] = []
+        tracesIn(step.diagram, specs)
+        if (!specs.length) return []
+        const where = `${ch.slug} · ${step.n}`
+        const wrapper = isValidElement(step.diagram)
+          ? (step.diagram.props as { className?: string })?.className
+          : undefined
+        const faults: string[] = []
+        if (step.span !== 2) faults.push(`${where}: missing span: 2`)
+        if (wrapper !== 'gn-figure') faults.push(`${where}: not wrapped in .gn-figure`)
+        return faults
+      }),
+    )
+    expect(wrongContainer).toEqual([])
+  })
 })

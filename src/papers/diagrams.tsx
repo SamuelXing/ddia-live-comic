@@ -3965,3 +3965,504 @@ export function CloudPeerDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   SEASON 2 · EPILOGUE — what you were building all along.
+   Act IV's figures drew agreement without an arbiter. These
+   two sets draw the same disagreement from opposite sides:
+   where the edge of "the system" goes. Chapter 29's figures
+   are about putting the pieces back under one lid; Chapter
+   30's are about the seam that makes the lid unnecessary.
+   The last one draws the argument itself, and deliberately
+   does not settle it.
+   ============================================================ */
+
+/** Ch 29 — the paper's Figure 1, which is the whole motivation in one picture.
+ *  Four systems holding four copies of the same records, and the same pipeline
+ *  with one storage layer under all of it. Drawn as two rows because the claim
+ *  is a substitution, not an improvement. */
+export function ThreeSystemsDiagram() {
+  const box = (x: number, y: number, w: number, t: string, sub: string, colour: string) => (
+    <>
+      <rect x={x} y={y} width={w} height="26" fill="none" stroke={colour} strokeWidth="1.3" />
+      <text x={x + w / 2} y={y + 11} textAnchor="middle" fontFamily={MONO} fontSize="6" fill={colour}>
+        {t}
+      </text>
+      <text x={x + w / 2} y={y + 21} textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        {sub}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="A conventional pipeline runs a message queue for real-time results, an object store for long-term data, and separate data warehouses for each business-intelligence team, which means four copies of the same records and an ingest job feeding each one. The same pipeline on Delta Lake keeps one set of tables in the object store, and the streaming, batch and interactive workloads all read and write those."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one pipeline, drawn twice
+      </text>
+
+      <text x="14" y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        three storage systems, four copies
+      </text>
+      {box(14, 42, 70, 'queue', 'for real-time', TERRA)}
+      {box(96, 42, 70, 'object store', 'for keeping', TERRA)}
+      {box(178, 42, 70, 'warehouse', 'BI team A', TERRA)}
+      {box(260, 42, 70, 'warehouse', 'BI team B', TERRA)}
+      <line x1="84" y1="55" x2="96" y2="55" stroke={TERRA} strokeWidth="1.1" />
+      <line x1="166" y1="55" x2="178" y2="55" stroke={TERRA} strokeWidth="1.1" />
+      <line x1="248" y1="55" x2="260" y2="55" stroke={TERRA} strokeWidth="1.1" />
+      <text x="14" y="84" fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        every arrow is an ingest job somebody owns, and every box is a bill
+      </text>
+
+      <text x="14" y="110" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        one storage layer, one copy
+      </text>
+      {box(14, 118, 152, 'Delta tables', 'on the object store', DENIM)}
+      <text x="180" y="128" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+        streaming writes into them
+      </text>
+      <text x="180" y="139" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+        batch jobs read and rewrite them
+      </text>
+      <text x="180" y="150" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+        BI queries them directly
+      </text>
+
+      <line x1="14" y1="166" x2="330" y2="166" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the copies were never the point — they were the price of atomicity
+      </text>
+      <text x="14" y="194" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        so the whole paper is about getting atomicity on a key-value store
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 29 — the measurement that motivates centralising metadata. Drawn as a
+ *  table rather than as bars on purpose: the partition counts differ by three
+ *  orders of magnitude between rows, so any bar chart of the times would
+ *  flatter Delta by hiding that it was measured on a far harder case. */
+export function PartitionListingDiagram() {
+  const row = (y: number, what: string, parts: string, time: string, colour: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6" fill={colour}>
+        {what}
+      </text>
+      <text x="196" y={y} fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {parts}
+      </text>
+      <text x="330" y={y} textAnchor="end" fontFamily={MONO} fontSize="6.4" fill={colour}>
+        {time}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="The same query summing every record in a 33-million-row table, run against tables with different numbers of partitions. Hive took over an hour at ten thousand partitions and Presto took over an hour at a hundred thousand. Databricks reading Parquet took 450 seconds at a hundred thousand. Delta Lake took 108 seconds at a million partitions, and 17 seconds with the log cached on local SSD."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one query — sum every record in a 33-million-row table
+      </text>
+      <text x="14" y="30" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        16 nodes each · the work is finding the objects, not reading them
+      </text>
+
+      <line x1="14" y1="40" x2="330" y2="40" stroke={MUTED} strokeWidth="0.8" />
+      <text x="196" y="52" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        partitions
+      </text>
+
+      {row(70, 'Hive, Parquet', '10,000', 'over an hour', TERRA)}
+      {row(88, 'Presto, Parquet', '100,000', 'over an hour', TERRA)}
+      {row(106, 'Databricks, Parquet', '100,000', '450 s', MUTED)}
+      {row(124, 'Delta Lake', '1,000,000', '108 s', DENIM)}
+      {row(142, 'Delta Lake, log on SSD', '1,000,000', '17 s', DENIM)}
+
+      <line x1="14" y1="156" x2="330" y2="156" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="172" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the fast rows are answering a question 100× larger than the slow ones
+      </text>
+      <text x="14" y="184" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        because the answer is one file, not a million LIST results
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 29 — what a table actually is on disk. The reason this is worth a figure
+ *  is that the whole design is legible from a directory listing: the Parquet
+ *  objects are ordinary and readable by anything, and one subdirectory decides
+ *  which of them count. */
+export function DeltaTableDiagram() {
+  const line = (y: number, path: string, gloss: string, colour: string) => (
+    <>
+      <text x="18" y={y} fontFamily={MONO} fontSize="5.8" fill={colour}>
+        {path}
+      </text>
+      <text x="196" y={y} fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        {gloss}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="A Delta table is one directory in an object store. It holds ordinary Parquet objects grouped into partition directories, and a _delta_log subdirectory containing numbered JSON records of add and remove actions, occasional Parquet checkpoints that compact those records, and a _last_checkpoint file naming the most recent one."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        a table, as seen by a file listing
+      </text>
+
+      <text x="14" y="34" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        mytable/
+      </text>
+      {line(50, 'date=2020-01-01/1b8a32d2ad.parquet', 'ordinary Parquet', DENIM)}
+      {line(62, 'date=2020-01-01/a2dc5244f7.parquet', 'anything can read it', DENIM)}
+      {line(74, 'date=2020-01-02/f52312dfae.parquet', '', DENIM)}
+
+      {line(96, '_delta_log/000001.json', 'add / remove actions', TERRA)}
+      {line(108, '_delta_log/000002.json', '', TERRA)}
+      {line(120, '_delta_log/000003.json', '', TERRA)}
+      {line(132, '_delta_log/000003.parquet', 'records 1–3, compacted', TERRA)}
+      {line(144, '_delta_log/_last_checkpoint', '{version: 000003}', TERRA)}
+
+      <line x1="14" y1="158" x2="330" y2="158" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="174" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the Parquet objects are not the table — they are candidates
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the log is the only thing that says which of them count right now
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 29 — why sorting a table by one column is a decision about which query
+ *  gets to be fast. Percentages are the paper's own, on a 100-object table of
+ *  synthetic network flows. */
+export function ZOrderDiagram() {
+  const FIELDS = ['srcIP', 'srcPort', 'dstIP', 'dstPort']
+  const SORTED = [99, 0, 0, 0]
+  const ZORDER = [67, 60, 47, 44]
+  const BASE = 132
+  const bars = (x0: number, vals: number[], colour: string) =>
+    vals.map((v, i) => {
+      const x = x0 + i * 32
+      const h = (v / 100) * 74
+      return (
+        <g key={i}>
+          {v > 0 && <rect x={x} y={BASE - h} width="24" height={h} fill="none" stroke={colour} strokeWidth="1.3" />}
+          <text x={x + 12} y={BASE - h - 4} textAnchor="middle" fontFamily={MONO} fontSize="5.6" fill={v > 0 ? colour : TERRA}>
+            {v}%
+          </text>
+          <text x={x + 12} y={BASE + 11} textAnchor="middle" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+            {FIELDS[i]}
+          </text>
+        </g>
+      )
+    })
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="Percentage of Parquet objects a query can skip using min and max statistics, for a table of network flows stored 100 objects. Sorted globally by source IP, a query on source IP skips 99 percent of objects and a query on any of the other three fields skips none. Z-ordered by all four fields, the skip rates are 67, 60, 47 and 44 percent."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        objects a query can skip, by which field it filters on
+      </text>
+
+      <text x="20" y="34" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        sorted by srcIP
+      </text>
+      {bars(20, SORTED, TERRA)}
+      <text x="20" y="152" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        one fast query, three table scans
+      </text>
+
+      <text x="188" y="34" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        Z-ordered by all four
+      </text>
+      {bars(188, ZORDER, DENIM)}
+      <text x="188" y="152" fontFamily={MONO} fontSize="5.6" fill={DENIM}>
+        nothing is fast, nothing is hopeless
+      </text>
+
+      <line x1="14" y1="164" x2="330" y2="164" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="180" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        a sort order picks a winner — 25% skipped on average, 54% for Z-order
+      </text>
+      <text x="14" y="192" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        on a real 500 TB table of flows, Z-order skipped 93% of the data
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 30 — the analogy the paper is built on, and the two places it does not
+ *  hold. A batch workflow chained by directory name has properties a Unix pipe
+ *  loses; the claim is that a topic keeps both sets. */
+export function PipeVsTopicDiagram() {
+  const row = (y: number, name: string, colour: string, cells: string[]) => (
+    <>
+      <text x="14" y={y + 11} fontFamily={MONO} fontSize="6" fill={colour}>
+        {name}
+      </text>
+      {cells.map((c, i) => (
+        <g key={i}>
+          <rect x={124 + i * 70} y={y} width="62" height="16" fill="none" stroke={c === 'no' ? TERRA : colour} strokeWidth={c === 'no' ? 0.9 : 1.3} strokeDasharray={c === 'no' ? '3 3' : undefined} />
+          <text x={155 + i * 70} y={y + 11} textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={c === 'no' ? TERRA : colour}>
+            {c === 'no' ? '—' : c}
+          </text>
+        </g>
+      ))}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="A batch workflow chained by directory name is multi-consumer, recoverable, named and low latency in none of those senses. A Unix pipe is fast and incremental but connects exactly one output to one input and cannot be repaired after a crash. A Kafka topic keeps the multi-consumer, recoverable and named properties of the batch workflow and adds the low latency of the pipe."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what you keep when the files become a stream
+      </text>
+
+      <text x="138" y="36" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        many readers
+      </text>
+      <text x="212" y="36" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        restartable
+      </text>
+      <text x="282" y="36" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        low latency
+      </text>
+
+      {row(44, 'files in a directory', MUTED, ['yes', 'yes', 'no'])}
+      {row(70, 'a Unix pipe', MUTED, ['no', 'no', 'yes'])}
+      {row(96, 'a Kafka topic', DENIM, ['yes', 'yes', 'yes'])}
+
+      <text x="14" y="134" fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        a pipe joins exactly one writer to one reader, and dies with either
+      </text>
+      <text x="14" y="146" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        a directory name is a contract between two teams — so is a topic name
+      </text>
+
+      <line x1="14" y1="160" x2="330" y2="160" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="176" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the durable log is not a compromise on the pipe — it is what buys
+      </text>
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        back the two columns a pipe gave up to be fast
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 30 — Samza's state management, which is the paper's least obvious idea
+ *  and the one that makes joins possible at all. Local disk for reads, the log
+ *  for durability, and the durability mechanism doubling as an output stream. */
+export function ChangelogDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 202"
+      role="img"
+      aria-label="A stream task keeps its state in an embedded key-value store on local disk, so reads never leave the process. Every write to that store is also appended to a dedicated changelog topic in Kafka, which log compaction keeps bounded by retaining only the latest value per key. After a crash the task rebuilds its store by replaying the changelog, and any other job may consume the same changelog as an ordinary stream."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        where a stream operator keeps what it remembers
+      </text>
+
+      <rect x="14" y="30" width="96" height="30" fill="none" stroke={MUTED} strokeWidth="1.3" />
+      <text x="62" y="43" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={INK}>
+        the task
+      </text>
+      <text x="62" y="54" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        one input partition
+      </text>
+
+      <rect x="14" y="76" width="96" height="30" fill="none" stroke={DENIM} strokeWidth="1.5" />
+      <text x="62" y="89" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        RocksDB
+      </text>
+      <text x="62" y="100" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        on local disk
+      </text>
+      <line x1="62" y1="60" x2="62" y2="76" stroke={DENIM} strokeWidth="1.2" />
+      <text x="70" y="72" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        read + write, no network
+      </text>
+
+      <rect x="196" y="76" width="134" height="30" fill="none" stroke={DENIM} strokeWidth="1.5" />
+      <text x="263" y="89" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        a changelog topic
+      </text>
+      <text x="263" y="100" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        compacted — latest value per key
+      </text>
+      <line x1="110" y1="86" x2="196" y2="86" stroke={DENIM} strokeWidth="1.2" />
+      <text x="120" y="82" fontFamily={MONO} fontSize="5.2" fill={DENIM}>
+        every write, appended
+      </text>
+      <path d="M196 98 L152 98 L152 112 L110 112" fill="none" stroke={TERRA} strokeWidth="1.2" strokeDasharray="3 3" />
+      {/* pinned to the left margin, not tucked under the elbow of its own
+          arrow: at 5.6 this label is ~100 units wide, so starting it near the
+          middle ran it straight into the two lines on the right */}
+      <text x="16" y="126" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        after a crash, replay to rebuild
+      </text>
+
+      <text x="196" y="126" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        and any other job may read it
+      </text>
+      <text x="196" y="137" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        as an ordinary input stream
+      </text>
+
+      <line x1="14" y1="152" x2="330" y2="152" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="168" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the durability mechanism and the output are the same object
+      </text>
+      <text x="14" y="180" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        which is what stops the state being trapped inside the operator
+      </text>
+      <text x="14" y="196" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        the alternative is querying a database per message, and melting it
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 30 — the unbundling claim, drawn as the thing it is: not "fewer
+ *  systems" but a single seam between many. Each store is a consumer that
+ *  built the index its own workload needs, and all of them are derivable. */
+export function UnbundledDiagram() {
+  const leaf = (x: number, t: string) => (
+    <>
+      <rect x={x} y="34" width="68" height="22" fill="none" stroke={MUTED} strokeWidth="1" />
+      <text x={x + 34} y="48" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        {t}
+      </text>
+      <line x1={x + 34} y1="56" x2={x + 34} y2="86" stroke={DENIM} strokeWidth="1" />
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="A search index, a columnar analytics store, a key-value cache and a machine-learning feature store each sit above one replicated log. Each is a consumer that reads the same records in the same order and builds whatever index its own workload needs, so each is a derived view that can be dropped and rebuilt from the log."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        four specialised stores, one seam
+      </text>
+
+      {leaf(14, 'search index')}
+      {leaf(96, 'columnar store')}
+      {leaf(178, 'a cache')}
+      {leaf(260, 'feature store')}
+
+      <rect x="14" y="86" width="316" height="26" fill="none" stroke={DENIM} strokeWidth="1.8" />
+      <text x="172" y="102" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        one replicated, partitioned log
+      </text>
+
+      <text x="14" y="128" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        every reader sees the same records in the same order per partition
+      </text>
+      <text x="14" y="139" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        so each builds a view consistent with the others, without asking them
+      </text>
+
+      <line x1="14" y1="152" x2="330" y2="152" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="168" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        none of these boxes can be deleted — the workloads are genuinely different
+      </text>
+      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        what a log removes is the pipeline between every pair of them
+      </text>
+    </svg>
+  )
+}
+
+/** The book's last figure. Two answers to the same question, and the honest
+ *  thing to draw is not a winner but where each one puts the boundary. Both
+ *  boxes are denim because both are things somebody built and shipped; the
+ *  terra lines are what each one costs, which is the only asymmetry there is. */
+export function TwoEndingsDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 206"
+      role="img"
+      aria-label="Chapter 29 draws the system boundary around a single storage layer, so batch, streaming and interactive workloads share one set of tables, and the cost is a commit rate of a few transactions per second and no transaction spanning two tables. Chapter 30 draws it around many specialised stores joined by a log, and the cost is stale reads, duplicate processing after a crash, and no ordering across partitions. Both answers are a log."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same question — where does the system end?
+      </text>
+
+      <rect x="14" y="30" width="150" height="70" fill="none" stroke={DENIM} strokeWidth="1.6" strokeDasharray="5 3" />
+      <text x="22" y="44" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        Ch 29 · one lid
+      </text>
+      <text x="22" y="60" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        one table format, and
+      </text>
+      <text x="22" y="71" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        batch, streaming and BI
+      </text>
+      <text x="22" y="82" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        all read the same objects
+      </text>
+      <text x="22" y="95" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        the engines sit outside
+      </text>
+
+      <rect x="180" y="30" width="150" height="70" fill="none" stroke={DENIM} strokeWidth="1.6" strokeDasharray="5 3" />
+      <text x="188" y="44" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        Ch 30 · no lid
+      </text>
+      <text x="188" y="60" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        many stores, each doing
+      </text>
+      <text x="188" y="71" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        one thing, joined only by
+      </text>
+      <text x="188" y="82" fontFamily={MONO} fontSize="5.4" fill={INK}>
+        what they read and write
+      </text>
+      <text x="188" y="95" fontFamily={MONO} fontSize="5.2" fill={MUTED}>
+        the boundary is the seam
+      </text>
+
+      <text x="22" y="118" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        costs: a few commits a second,
+      </text>
+      <text x="22" y="129" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        and never across two tables
+      </text>
+      <text x="188" y="118" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        costs: reads lag, crashes
+      </text>
+      <text x="188" y="129" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        reprocess, order is per-partition
+      </text>
+
+      <line x1="14" y1="146" x2="330" y2="146" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="162" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        they disagree about the boundary and agree about the mechanism
+      </text>
+      <text x="14" y="176" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        both answers are an ordered log of changes that anyone may replay
+      </text>
+      <text x="14" y="198" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        which is what Season 1 spent an act calling the database
+      </text>
+    </svg>
+  )
+}

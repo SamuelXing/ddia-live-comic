@@ -287,10 +287,34 @@ const SEASON_2_ACTS: TocAct[] = [
     figure: 's2epi',
     summary:
       'Two endings that pull in opposite directions, which is the honest state of the argument. One puts a single storage layer under batch, streaming and interactive queries, and quietly undoes the split Act VI spent a whole act creating. The other says the pieces were never meant to be reassembled at all — that a log, an index, a cache and a query engine, wired together by hand, are a database with the lid off, and that you have been building one for four acts without being told.',
-    next: 'And then Season 3, if there is one — which nobody has decided.',
+    next: 'Then the season on one page. After that, nothing anybody has decided yet.',
     entries: [
-      { no: 'Ch 29', title: 'Sewing It Back Together', paper: 'Delta Lake — VLDB 2020' },
-      { no: 'Ch 30', title: 'The Database, With the Lid Off', paper: 'Kafka, Samza & the Unix Philosophy — 2015' },
+      { no: 'Ch 29', title: 'Sewing It Back Together', paper: 'Delta Lake — VLDB 2020', slug: 'delta' },
+      {
+        no: 'Ch 30',
+        title: 'The Database, With the Lid Off',
+        paper: 'Kafka, Samza & the Unix Philosophy — 2015',
+        slug: 'unbundling',
+      },
+    ],
+  },
+  {
+    /* Same shape as Season 1's close, and unwritten on purpose while the
+       epilogue lands — the season's argument ends on a disagreement, and a
+       one-page summary of a disagreement is a harder page than it looks.
+
+       Named with the season on it because act names are unique across the
+       whole TOC — a chapter's masthead is looked up by act, so two acts
+       called "The Close" would put a Season 2 page under Season 1's heading,
+       which is the bug book.test.ts refuses to let back in. */
+    act: 'The Close · Season 2',
+    entries: [
+      {
+        no: '—',
+        title: 'The Season, in One Page',
+        interlude: true,
+        note: 'the close · no new paper',
+      },
     ],
   },
 ]
