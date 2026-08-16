@@ -1,5 +1,6 @@
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { REPO_URL } from '../site'
+import { chaptersBackPath } from '../papers/book'
 
 /** The GitHub mark (Octicon `mark-github`, 16px), inlined rather than fetched
  *  so the nav never waits on a network request to finish drawing itself. */
@@ -44,6 +45,10 @@ export default function SiteNav() {
   /* only once you are *below* a section index — on the index itself the brand
      is already the way up */
   const ddiaBack = DDIA_SECTIONS.find((s) => path.startsWith(s.at + '/'))
+  /* The papers book has one contents page per season, so "up" is not a fixed
+     URL — it is whichever season holds the chapter you are reading. book.ts
+     owns that, since it owns the book's URL shape. */
+  const papersBack = chaptersBackPath(path)
 
   return (
     <nav className="gn-nav">
@@ -78,8 +83,8 @@ export default function SiteNav() {
             {ddiaBack.back}
           </NavLink>
         )}
-        {section === 'papers' && path !== '/papers' && (
-          <NavLink className={linkClass} to="/papers" end>
+        {papersBack && (
+          <NavLink className={linkClass} to={papersBack} end>
             ← All chapters
           </NavLink>
         )}
