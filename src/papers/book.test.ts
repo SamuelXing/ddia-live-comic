@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { TOC, seasonProgress, progressLabel } from './book'
 import { ACT_FIGURES } from './actDiagrams'
-import { CHAPTER_BY_SLUG } from './chapters'
+import { CHAPTERS, CHAPTER_BY_SLUG } from './chapters'
 
 /* The act openers are split across two files — prose in book.ts (plain data,
    no JSX) and pictures in actDiagrams.tsx — joined by a string key. That join
@@ -85,5 +85,56 @@ describe('the season’s progress counter', () => {
     expect(progressLabel()).toBe(`${live} of ${total} chapters live`)
     expect(live).toBeGreaterThan(0)
     expect(total).toBeGreaterThan(live)
+  })
+})
+
+describe('the chain of “next” teasers at the foot of every chapter', () => {
+  /* Nothing checked these until Chapter 17 shipped, and shipping it needed two
+     edits in two files: the new chapter, and the previous chapter's `next`
+     changing from unwritten to a slug. A typo in that slug renders a link to
+     /papers/whatever, which is a page the router does not have — and the only
+     way anyone finds out is by clicking the last link on a finished chapter,
+     which is the link a reader is most likely to click and an author least
+     likely to re-test.
+
+     The reading order lives in CHAPTERS. These pin the teasers to it, so the
+     chain cannot quietly disagree with the order the book is registered in. */
+  const order = CHAPTERS.map((c) => c.slug)
+
+  it('points every teaser at a chapter that exists', () => {
+    const broken = CHAPTERS.filter((c) => c.next?.slug && !CHAPTER_BY_SLUG[c.next.slug]).map(
+      (c) => `${c.slug} → ${c.next?.slug}`,
+    )
+    expect(broken).toEqual([])
+  })
+
+  it('follows the reading order, one chapter at a time', () => {
+    /* Not merely "forwards": the next teaser is the very next chapter, because
+       a teaser that skips one is how a chapter becomes unreachable by reading. */
+    const wrong = CHAPTERS.flatMap((c, i) => {
+      const expected = order[i + 1]
+      const actual = c.next?.slug
+      if (!expected) return actual ? [`${c.slug} is last but teases ${actual}`] : []
+      return actual === expected ? [] : [`${c.slug} → ${actual ?? 'nothing'}, expected ${expected}`]
+    })
+    expect(wrong).toEqual([])
+  })
+
+  it('gives the teaser the title of the chapter it points at', () => {
+    /* The title is typed by hand in the previous chapter, so it drifts the
+       moment a chapter is renamed — and it drifts silently, because the link
+       still works and only the words are stale. */
+    const stale = CHAPTERS.filter((c) => c.next?.slug && CHAPTER_BY_SLUG[c.next.slug]?.title !== c.next.title).map(
+      (c) => `${c.slug} calls it “${c.next?.title}”`,
+    )
+    expect(stale).toEqual([])
+  })
+
+  it('leaves the last live chapter teasing something unwritten', () => {
+    /* The book is being drawn in public; the foot of the last page has to say
+       so rather than dead-ending. */
+    const last = CHAPTERS[CHAPTERS.length - 1]
+    expect(last.next?.unwritten).toBe(true)
+    expect(last.next?.slug).toBeUndefined()
   })
 })

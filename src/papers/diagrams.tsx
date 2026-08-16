@@ -1762,3 +1762,164 @@ export function SharedDataDiagram() {
     </svg>
   )
 }
+
+/** Epilogue — the retreat, itemised. Six properties the 2007 paper argued for,
+ *  and what the 2022 paper says the system does now. The accent is doing work:
+ *  denim marks the one decision that survived intact, and it is the least
+ *  famous one on the list. Everything the paper is remembered for is in the
+ *  column that got walked back. */
+export function RetreatDiagram() {
+  const rows: [string, string, string, boolean][] = [
+    ['who takes a write', 'any node on the ring', 'the group’s elected leader', false],
+    ['ordering writes', 'vector clocks', 'Multi-Paxos', false],
+    ['two concurrent writes', 'siblings, you merge them', 'the leader decides', false],
+    ['a consistent read', 'not on offer', 'ask for one, it costs more', false],
+    ['placing a key', 'hash it onto a ring', 'hash it, then split by heat', true],
+    ['who operates it', 'your team, in your account', 'nobody you have met', false],
+  ]
+  return (
+    <svg
+      viewBox="0 0 344 216"
+      role="img"
+      aria-label="Six properties compared between the 2007 Dynamo paper and the 2022 DynamoDB paper. Writes moved from any node on the ring to an elected leader, ordering from vector clocks to Multi-Paxos, conflict resolution from application-merged siblings to leader decision, consistent reads from unavailable to available on request, and operation from your own team to a managed service. Only the hashing of the key survived, and even that now splits ranges under load."
+    >
+      <text x="12" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        same name, fifteen years apart
+      </text>
+      <text x="118" y="32" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        Dynamo · 2007
+      </text>
+      <text x="232" y="32" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        DynamoDB · 2022
+      </text>
+      <line x1="12" y1="38" x2="332" y2="38" stroke={INK} strokeWidth="1" />
+      <line x1="226" y1="26" x2="226" y2="176" stroke={MUTED} strokeWidth="0.8" />
+
+      {rows.map(([prop, then, now, kept], i) => {
+        const y = 54 + i * 20
+        return (
+          <g key={prop}>
+            <text x="12" y={y} fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+              {prop}
+            </text>
+            <text x="118" y={y} fontFamily={MONO} fontSize="6.2" fill={kept ? DENIM : INK}>
+              {then}
+            </text>
+            <text x="232" y={y} fontFamily={MONO} fontSize="6.2" fill={kept ? DENIM : INK}>
+              {now}
+            </text>
+          </g>
+        )
+      })}
+
+      <line x1="12" y1="182" x2="332" y2="182" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="196" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        one row survived, and it is not the one anybody quotes
+      </text>
+      <text x="12" y="210" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        the property it was built for — a write with no leader — is gone
+      </text>
+    </svg>
+  )
+}
+
+/** Epilogue — throughput dilution, with the paper's own arithmetic. The whole
+ *  point is the direction of the second row: the customer asked for more
+ *  capacity and every partition ended up with less than before. Nothing here
+ *  is a bug; it is what happens when you divide a table's budget evenly among
+ *  partitions and then split partitions. */
+export function ThroughputDilutionDiagram() {
+  const bar = (x: number, y: number, w: number, accent: string) => (
+    <rect x={x} y={y} width={w} height="14" fill={accent} opacity="0.7" stroke={INK} strokeWidth="0.8" />
+  )
+  return (
+    <svg
+      viewBox="0 0 344 214"
+      role="img"
+      aria-label="A table provisioned at 3200 write units is split into four partitions of 800 each. Raise the table to 6000 write units and it becomes eight partitions of 750 each, so every individual partition can now absorb less traffic than before the increase."
+    >
+      <text x="12" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one partition tops out around 1000 write units
+      </text>
+
+      <text x="12" y="38" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        table asks for 3200 → 4 partitions
+      </text>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={`a${i}`}>{bar(12 + i * 46, 46, 40, DENIM)}</g>
+      ))}
+      <text x="204" y="57" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        800 each
+      </text>
+
+      <text x="12" y="90" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        table asks for 6000 → 8 partitions
+      </text>
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+        <g key={`b${i}`}>{bar(12 + i * 23, 98, 19, TERRA)}</g>
+      ))}
+      <text x="204" y="126" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        750 each — less than before
+      </text>
+
+      <line x1="12" y1="142" x2="332" y2="142" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="158" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        you bought more capacity and each partition got weaker
+      </text>
+      <text x="12" y="174" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        splitting for size does it too, and the table did nothing at all
+      </text>
+      <text x="12" y="196" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        the answer was to stop giving throughput to partitions
+      </text>
+      <text x="12" y="210" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        and start counting it for the table as a whole
+      </text>
+    </svg>
+  )
+}
+
+/** Epilogue — the cache that is not allowed to hide anything. A 99.75 percent
+ *  hit rate means the store behind it is sized for a quarter of a percent of
+ *  the traffic, which is fine until the caches go cold together. Refreshing on
+ *  a HIT costs strictly more every second and removes the cliff. */
+export function MetadataLoadDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 220"
+      role="img"
+      aria-label="With a conventional cache the metadata store sees almost no traffic until the caches go cold, at which point load spikes toward the full request rate. When every cache hit also triggers an asynchronous refresh, the metadata store sees a constant high load and a cold start changes nothing."
+    >
+      <text x="12" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        load on the metadata store, over time
+      </text>
+
+      <text x="12" y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        cache the routing table — 99.75% hits
+      </text>
+      <line x1="12" y1="102" x2="332" y2="102" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="12" y1="44" x2="12" y2="102" stroke={MUTED} strokeWidth="0.8" />
+      <path d="M12 99 L150 99 L164 50 L196 50 L214 99 L332 99" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x="150" y="44" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        a fresh router fleet boots, cold
+      </text>
+      <text x="18" y="94" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        near zero, most of the time
+      </text>
+
+      <text x="12" y="130" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        refresh on every hit, asynchronously
+      </text>
+      <line x1="12" y1="192" x2="332" y2="192" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="12" y1="140" x2="12" y2="192" stroke={MUTED} strokeWidth="0.8" />
+      <path d="M12 152 L332 152" fill="none" stroke={DENIM} strokeWidth="1.6" />
+      <text x="18" y="166" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        flat, and sized for it — a cold start changes nothing
+      </text>
+
+      <text x="12" y="214" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the second one costs more every second and has no cliff in it
+      </text>
+    </svg>
+  )
+}

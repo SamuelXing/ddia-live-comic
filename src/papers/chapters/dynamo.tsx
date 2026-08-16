@@ -364,6 +364,7 @@ export const dynamo: Chapter = {
     },
   ],
   seenIn: [
+    { label: 'The Retreat — the Epilogue', to: '/papers/dynamodb', live: true },
     { label: 'Leaderless & quorums — the comic', to: '/ddia/read/replication-quorum', live: true },
     { label: 'Consistent hashing — the comic', to: '/ddia/read/partitioning', live: true },
     { label: 'Interlude: the RUM Triangle', to: '/papers/rum', live: true },

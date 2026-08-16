@@ -160,6 +160,6 @@ export const TOC: TocAct[] = [
     summary:
       'DynamoDB in 2022 shares a name with the 2007 paper and not much else. The ring that was proud of having no leader now runs one per partition group, watches for heat and splits ranges under load, and will sell you a strongly consistent read if you ask. Meanwhile the range-partitioned side spent the same decade growing the availability tricks it once refused. Nobody announced it, but the argument that started in Act II ended in a draw.',
     next: 'That is Season 1. Season 2 is what happens when the data stops sitting still.',
-    entries: [{ no: 'Ch 17', title: 'The Retreat', paper: 'DynamoDB — USENIX ATC 2022' }],
+    entries: [{ no: 'Ch 17', title: 'The Retreat', paper: 'DynamoDB — USENIX ATC 2022', slug: 'dynamodb' }],
   },
 ]

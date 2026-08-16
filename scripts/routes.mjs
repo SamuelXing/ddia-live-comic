@@ -157,6 +157,10 @@ export const ROUTES = {
     title: 'Elasticity as the Product',
     desc: 'Build the analytical half again for a world where machines are rented by the second — and find out that the thing customers are buying is not the query engine.',
   },
+  '/papers/dynamodb': {
+    title: 'The Retreat',
+    desc: 'The same building, the same name, and almost none of the same architecture. What Amazon walked back after a decade of running it \u2014 and the thing that turned out to matter more than any of it.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',
