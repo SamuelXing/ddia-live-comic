@@ -166,10 +166,10 @@ export const streamTable: Comic = {
   },
   sources: [
     {
-      year: '2013',
-      title: 'Kreps — The Log: What every software engineer should know about real-time data’s unifying abstraction',
-      url: 'https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying-abstraction',
-      note: 'The essay that made the duality a design principle: the log as the source of truth, every store a materialized view of it.',
+      year: '2014',
+      title: 'Jay Kreps — I Heart Logs (O’Reilly)',
+      url: 'https://www.oreilly.com/library/view/i-heart-logs/9781491909379/',
+      note: 'The book form of the 2013 essay that made this duality a design principle — the log as the source of truth, every store a materialized view of it. Linked here because LinkedIn has since taken the original post down; it is short, and the argument is the same one.',
     },
     {
       title: 'Designing Data-Intensive Applications (1st ed.), Ch 11',

@@ -1949,7 +1949,7 @@ export default function Calculator() {
               Netflix Tech Blog
             </a>{' '}
             ·{' '}
-            <a href="https://pdos.lcs.mit.edu/6.824/notes/l-memcached.txt" target="_blank" rel="noreferrer">
+            <a href="https://www.usenix.org/system/files/conference/nsdi13/nsdi13-final170_update.pdf" target="_blank" rel="noreferrer">
               Scaling Memcache at Facebook
             </a>{' '}
             ·{' '}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { STORES } from './deepdives/calcModel'
 import { COMICS } from './read/comics'
+import { CHAPTERS } from './papers/chapters'
 
 /* "Every hard number gets a primary source" is the standard this project set
    itself, and nothing enforced it. The check that matters is the cheap one: a
@@ -94,5 +95,45 @@ describe('the comics cite what they claim', () => {
     )
     // the third one is the claim that needs a source; the other two are vendor docs
     expect((pk.sources ?? []).some((s) => /manhattan/i.test(s.url ?? ''))).toBe(true)
+  })
+})
+
+/* The papers book had none of this, which is the wrong way round — it is the
+   one whose entire premise is that the paper is there to be checked. These are
+   the offline half. `npm run check:links` is the other half, and it is the one
+   that catches a URL that was never real: a citeseerx link with a plausible
+   hash in it looked exactly like the four correct links beside it, and only
+   fetching it said otherwise. */
+describe('the papers book cites what it claims', () => {
+  it('every chapter reading a paper links to that paper', () => {
+    const bad = CHAPTERS.filter((c) => c.paper && !httpsUrl.test(c.paper.url)).map((c) => c.slug)
+    expect(bad).toEqual([])
+  })
+
+  it('every source has a title, a well-formed https URL, and a note', () => {
+    const bad: string[] = []
+    CHAPTERS.forEach((c) =>
+      (c.sources ?? []).forEach((s) => {
+        if (!s.title?.trim()) bad.push(`${c.slug}: source with no title`)
+        if (s.url && !httpsUrl.test(s.url)) bad.push(`${c.slug}: ${s.url}`)
+        // a bare link is a reading list; the note is what makes it a citation
+        if (s.url && !s.note?.trim()) bad.push(`${c.slug}: no note on "${s.title}"`)
+      }),
+    )
+    expect(bad).toEqual([])
+  })
+
+  it('gives every chapter something to read afterwards', () => {
+    const none = CHAPTERS.filter((c) => !(c.sources?.length ?? 0)).map((c) => c.slug)
+    expect(none).toEqual([])
+  })
+
+  it('does not cite the same page twice in one chapter', () => {
+    const dupes: string[] = []
+    CHAPTERS.forEach((c) => {
+      const urls = (c.sources ?? []).map((s) => s.url).filter(Boolean)
+      if (new Set(urls).size !== urls.length) dupes.push(c.slug)
+    })
+    expect(dupes).toEqual([])
   })
 })

@@ -202,6 +202,84 @@ export function PacelcDiagram() {
   )
 }
 
+/** Ch 6 — the marriage, itemised. Two parents, and the row that matters is the
+ *  bottom one: what it declined, and why. A synthesis is defined by its
+ *  refusals; anyone can list what a system borrowed. */
+export function MarriageDiagram() {
+  const took = (x: number, lines: string[]) =>
+    lines.map((t, i) => (
+      <text key={i} x={x} y={56 + i * 14} fontFamily={MONO} fontSize="6" fill={INK}>{t}</text>
+    ))
+  const refused = (y: number, what: string, why: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6" fill={TERRA}>{what}</text>
+      <text x="150" y={y} fontFamily={MONO} fontSize="6" fill={MUTED}>{why}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 206"
+      role="img"
+      aria-label="Cassandra took the ring, gossip, quorums and no write-path master from Dynamo, and column families, the commit log and memtable, immutable files and bloom filters from Bigtable. It refused Dynamo's vector clocks because a write would need a read, refused Bigtable's dependency on GFS, and refused Bigtable's master — though ZooKeeper came back in anyway."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what it took, and what it would not take
+      </text>
+      <text x="14" y="36" fontFamily={MONO} fontSize="6.6" fill={DENIM}>from Dynamo</text>
+      <text x="180" y="36" fontFamily={MONO} fontSize="6.6" fill={DENIM}>from Bigtable</text>
+      <line x1="14" y1="42" x2="330" y2="42" stroke={MUTED} strokeWidth="0.8" />
+      {took(14, ['the ring', 'gossip membership', 'N replicas, quorum', 'no master on writes'])}
+      {took(180, ['column families', 'commit log + memtable', 'immutable files', 'bloom filter per file'])}
+
+      <line x1="14" y1="118" x2="330" y2="118" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="132" fontFamily={MONO} fontSize="6.6" fill={TERRA}>REFUSED</text>
+      {refused(150, 'Dynamo: vector clocks', 'a write would need a read')}
+      {refused(164, 'Bigtable: GFS underneath', 'the log and the ring instead')}
+      {refused(178, 'Bigtable: one master', 'ZooKeeper came back anyway')}
+
+      <text x="14" y="198" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        anyone can list the borrowings — the refusals are the design
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 6 — the accrual failure detector, which is the paper's one genuinely
+ *  novel piece and the one nobody quotes. A detector that reports a suspicion
+ *  level instead of a verdict, so the caller picks its own tolerance. */
+export function PhiDiagram() {
+  const row = (y: number, phi: string, wrong: string, accent: string, note?: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{phi}</text>
+      <text x="110" y={y} fontFamily={MONO} fontSize="6.4" fill={INK}>{wrong}</text>
+      {note && <text x="196" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>{note}</text>}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 168"
+      role="img"
+      aria-label="The accrual failure detector reports a suspicion level rather than up or down. At phi 1 you are wrong about 10 percent of the time, at phi 2 about 1 percent, at phi 3 about 0.1 percent. Cassandra ran phi 5. On a 100-node cluster a conventional detector took about two minutes to notice a failure; this took about fifteen seconds."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        not up or down — a suspicion level
+      </text>
+      <text x="110" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>chance you are wrong</text>
+      <line x1="14" y1="38" x2="330" y2="38" stroke={MUTED} strokeWidth="0.8" />
+      {row(56, 'suspect at Φ=1', 'about 10%', MUTED)}
+      {row(74, 'suspect at Φ=2', 'about 1%', MUTED)}
+      {row(92, 'suspect at Φ=3', 'about 0.1%', MUTED)}
+      {row(110, 'suspect at Φ=5', 'about 0.001%', DENIM, 'what it shipped')}
+      <text x="14" y="140" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        100 nodes, a conventional detector: about 2 minutes
+      </text>
+      <text x="14" y="156" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        the same failure, at Φ=5: about 15 seconds
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 1 — why 64 MB. The same petabyte catalogued at two block sizes, priced
  *  in the only currency that mattered: the master's RAM. */
 export function ChunkBudgetDiagram() {

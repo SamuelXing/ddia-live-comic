@@ -245,6 +245,52 @@ whose numbers are trustworthy enough to print. That is a new interactive surface
 a new skin on an existing one, and it should be planned as such rather than
 discovered in chapter two.
 
+### The one where there is no canonical book: Kubernetes
+
+Asked for on 2026-08-16, with the bar set at *expert and beyond*. The honest thing
+to say first is the thing that makes this book different from every other entry
+here: **there is no DDIA for Kubernetes.** No single volume that a competent
+practitioner reads and comes out the other side an expert. The genuinely expert
+material is the API machinery, the KEPs, and the source, and every book on the
+shelf is either an introduction or a snapshot of a version that has since moved.
+
+So the pick is two books doing different jobs, and a set of papers doing the job
+this site actually cares about.
+
+**The spine — *Programming Kubernetes* (Hausenblas & Schimanski, O'Reilly 2019).**
+Because it teaches the one idea everything else is derivable from: you write a
+controller, watch the API for a desired state, compare it to the observed state,
+and act. Level-triggered, not edge-triggered; no transactions across objects; the
+API server is a database with admission control in front. Once that clicks, the
+scheduler and the kubelet and every operator you meet stop being separate things
+to memorise. It is aging — client-go has moved and controller-runtime is the way
+people build now — so read it for the model, not for the imports.
+
+**The substrate — *Core Kubernetes* (Vyas & Love, Manning 2022).** The layer the
+first book stands on: kubelet, CRI, CNI, CSI, etcd, how a pod actually gets a
+network. This is the operations-and-internals half, and the half that answers
+"why did it do that" at 3am.
+
+**The answer keys, which are where this site's method fits.** Kubernetes is
+unusual among infrastructure: its *why* is published. **Borg** (EuroSys 2015),
+**Omega** (EuroSys 2013), and above all **"Borg, Omega, and Kubernetes"** (ACM
+Queue 2016), which is the Google team explaining what they got wrong twice before
+getting here. That is exactly the shape Book B already uses — read the constraint,
+design your answer, then check it against the paper — which means **this book
+inherits the papers-book machinery rather than breaking format the way the GPU
+book does.** DesignIt, citation cards, TracePlayer, all of it.
+
+The chapter spine writes itself from that: *why level-triggered rather than
+edge-triggered* · *why no transaction across two objects* · *why the scheduler
+does not talk to the kubelet* · *why every extension is the same shape as the
+built-ins*. Each has a real answer, and the hands-on layer is trivially available
+in a way the GPU book's is not — `kind` runs a cluster on the reader's laptop, so
+"write a controller and watch it reconcile" is a chapter, not an infrastructure
+project.
+
+**Cost:** cheap, like C–F. It needs writing and SVGs, not a new interactive
+surface. Filed on the cheap side of the split below.
+
 ### Still on the shelf as prospectuses
 
 - **Book C — "The Analytical Engine"**: single-node engine internals, scaffolded on
@@ -269,10 +315,10 @@ is, it should be a rule about *when a book is allowed to start*, not a ranking o
 which is most interesting — every one of these is the most interesting on the day
 you start it.
 
-One input to that rule, now that there are two entries above rather than one: the
-books split cleanly into **the cheap ones and the one that isn't.** C, D, E, F and G
-all inherit the finished machine and are therefore writing plus a few SVGs. The GPU
-book needs a new interactive surface built first. That is not an argument against it
+One input to that rule, now that there are three entries above rather than one: the
+books split cleanly into **the cheap ones and the one that isn't.** C, D, E, F, G and
+the Kubernetes book all inherit the finished machine and are therefore writing plus a
+few SVGs. The GPU book needs a new interactive surface built first. That is not an argument against it
 — it is the argument for deciding *when*, deliberately, rather than starting it on an
 enthusiastic afternoon and discovering the cost in chapter two.
 

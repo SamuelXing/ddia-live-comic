@@ -113,13 +113,13 @@ export const rum: Chapter = {
     {
       year: '2016',
       title: 'Designing Access Methods: The RUM Conjecture — Athanassoulis et al. (EDBT)',
-      url: 'https://stratos.seas.harvard.edu/files/stratos/files/rum.pdf',
+      url: 'https://openproceedings.org/2016/conf/edbt/paper-12.pdf',
       note: 'Six pages, and the figure on the third is the one reproduced above. Read it for the survey as much as the conjecture: it places a few dozen real access methods on the triangle, which is a faster education in storage engines than any single system paper.',
     },
     {
       year: '2017',
       title: 'Monkey: Optimal Navigable Key-Value Store — Dayan, Athanassoulis & Idreos (SIGMOD)',
-      url: 'https://stratos.seas.harvard.edu/files/stratos/files/monkey.pdf',
+      url: 'https://nivdayan.github.io/monkeykeyvaluestore.pdf',
       note: 'The follow-up that makes the trade continuous rather than a choice of corners: allocate bloom-filter bits unevenly across LSM levels and you move along the read-memory curve on purpose. Worth reading right after, because it turns the lens into a knob.',
     },
   ],

@@ -105,6 +105,10 @@ export const ROUTES = {
     title: 'The Lock Everyone Was Secretly Holding',
     desc: 'Every system in Act I has one master and none of the papers say who appoints it. Work out who does — then find out why the contribution was the packaging, not the algorithm.',
   },
+  '/papers/cassandra': {
+    title: 'A Marriage of Two Papers',
+    desc: 'Take Dynamo’s ring and Bigtable’s storage engine and you have Cassandra. What it refused to take — and why a mechanism that was right one chapter ago is unaffordable here.',
+  },
   '/papers/cap': {
     title: 'Interlude: CAP',
     desc: 'The most cited result in distributed systems, and the one most often quoted wrong. The proof is a paragraph — and the question it forgets to ask is the one you live in.',
