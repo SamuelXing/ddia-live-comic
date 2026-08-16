@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { TOC } from './book'
+import { SEASONS, TOC } from './book'
 import { CHAPTER_BY_SLUG } from './chapters'
 import { ARC, CHAPTER_LINES, THREADS } from './season'
 
@@ -68,10 +68,17 @@ describe('the through-lines', () => {
 describe('the arc', () => {
   it('covers every act that has a live chapter, in the book’s order', () => {
     /* Acts that read a paper — the close is an act with a live page in it and
-       has no row in its own ledger, which is the correct amount of recursion. */
-    const actsWithPapers = TOC.filter((a) =>
-      a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper),
-    ).map((a) => a.act)
+       has no row in its own ledger, which is the correct amount of recursion.
+
+       Scoped to season 1, because ARC is season 1's ledger: it lives inside
+       /papers/season-1 and its last row is the epilogue. Left unscoped this
+       assertion fails the moment any season-2 chapter ships, which reads as
+       "the close is out of date" when the truth is that a later season is
+       being written — and every season gets a close of its own. */
+    const season = SEASONS.find((s) => s.n === 1)!
+    const actsWithPapers = season.acts
+      .filter((a) => a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper))
+      .map((a) => a.act)
     expect(ARC.map((r) => r.act)).toEqual(actsWithPapers)
   })
 

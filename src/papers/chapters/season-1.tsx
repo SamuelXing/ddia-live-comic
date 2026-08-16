@@ -106,5 +106,5 @@ export const season1: Chapter = {
     title: 'The pressure outlives the answer',
     body: 'The papers in this book were right about their problems and are being steadily contradicted about their conclusions, which is what a healthy field looks like from the inside. Read them for the pressure that forced the design rather than for the design: the pressure comes back, and the answers are made of whatever hardware and economics happened to exist that year. A leaderless ring made sense when the alternative was a master and the hardware was yours. It made less sense once the machines were rented and the operator was a stranger. Nothing was refuted; the premises moved, and the conclusions went with them. That is the useful thing to carry into the next season, and into whatever you are building this week.',
   },
-  next: { title: 'Season 2 — when the data stops sitting still', unwritten: true },
+  next: { title: 'The Cost of Starting Over', slug: 'spark' },
 }

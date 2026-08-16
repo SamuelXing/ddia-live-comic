@@ -106,6 +106,9 @@ export const CHAPTER_LINES: Record<string, string> = {
   snowflake: 'Compute that owns nothing can be made for one job and destroyed after it, which turned wall-clock time into something you buy.',
   dynamodb: 'Fifteen years on, the retreat — and the discovery that the arguments the field was having were not the ones the operators were having.',
   'season-1': 'The whole season on one page: the three moves every act makes, and the ideas that cross all of them without owning a chapter.',
+  spark: 'Nobody made memory reliable. They made reliability cheap enough to stop caring — by storing the recipe instead of the dish.',
+  naiad: 'Batch and streaming were never two workloads. They were two corners of one grid, kept apart by a timestamp too small to say where you are.',
+  'structured-streaming': 'Write the query you would have written for a finished table, and let the planner work out the incremental version — because almost nobody gets that right by hand.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */
