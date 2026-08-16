@@ -202,6 +202,240 @@ export function PacelcDiagram() {
   )
 }
 
+/** Ch 8 — the one idea underneath every consensus algorithm, which is a fact
+ *  about sets rather than about computers: two majorities of the same group
+ *  cannot be disjoint, so whatever the first one decided, the second one has
+ *  somebody in it who remembers. */
+export function QuorumOverlapDiagram() {
+  const node = (key: string, x: number, y: number, label: string, fill: string, stroke: string) => (
+    <g key={key}>
+      <circle cx={x} cy={y} r="15" fill={fill} stroke={stroke} strokeWidth="1.8" />
+      <text x={x} y={y + 3} textAnchor="middle" fontFamily={MONO} fontSize="7.6" fill={stroke}>{label}</text>
+    </g>
+  )
+  const row = (y: number, members: boolean[], accent: string) =>
+    members.map((inSet, i) =>
+      node(
+        `${y}-${i}`,
+        46 + i * 63,
+        y,
+        ['A', 'B', 'C', 'D', 'E'][i],
+        inSet ? (accent === DENIM ? '#e8edf5' : '#f6e9e2') : '#fff',
+        inSet ? accent : MUTED,
+      ),
+    )
+  return (
+    <svg
+      viewBox="0 0 344 214"
+      role="img"
+      aria-label="Five servers. One majority of three and another majority of three, chosen differently, must still share at least one server — so the second group always contains somebody who remembers what the first decided."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        five servers, two different majorities
+      </text>
+      <text x="14" y="36" fontFamily={MONO} fontSize="6.4" fill={DENIM}>first round accepted by</text>
+      {row(62, [true, true, true, false, false], DENIM)}
+      <text x="14" y="112" fontFamily={MONO} fontSize="6.4" fill={TERRA}>later round asks</text>
+      {row(138, [false, false, true, true, true], TERRA)}
+      <text x="172" y="176" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        C is in both, and C cannot forget
+      </text>
+      <text x="172" y="192" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        no arrangement of two majorities avoids this
+      </text>
+      <text x="172" y="208" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        that overlap is the entire safety argument
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 8 — the measurement that justified writing a second paper about an
+ *  algorithm that already worked. Understandability is not usually something
+ *  anyone puts a number on. */
+export function RaftStudyDiagram() {
+  const bar = (y: number, label: string, score: number, accent: string) => (
+    <>
+      <text x="14" y={y + 4} fontFamily={MONO} fontSize="6.4" fill={INK}>{label}</text>
+      <rect x="96" y={y - 6} width={(score / 60) * 200} height="13" fill={accent === DENIM ? '#e8edf5' : '#f6e9e2'} stroke={accent} strokeWidth="1.4" />
+      <text x={100 + (score / 60) * 200} y={y + 4} fontFamily={MONO} fontSize="6.4" fill={accent}>{score}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 176"
+      role="img"
+      aria-label="43 students each learned both algorithms and took both quizzes. Mean score out of 60 was 25.7 for Raft and 20.8 for Paxos, and 33 of the 43 scored higher on Raft — despite 15 of them having prior Paxos experience and the Paxos lecture being longer."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        43 students, both lectures, both quizzes
+      </text>
+      <text x="96" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>mean score, out of 60</text>
+      {bar(56, 'Raft', 25.7, DENIM)}
+      {bar(80, 'Paxos', 20.8, TERRA)}
+      <text x="14" y="116" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        33 of 43 scored higher on Raft
+      </text>
+      <text x="14" y="132" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and the study was tilted toward Paxos:
+      </text>
+      <text x="14" y="146" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        15 had prior Paxos experience, and its lecture ran 14% longer
+      </text>
+      <text x="14" y="166" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        an algorithms paper with a control group
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 9 — the paper's Table 1, and the most useful shape in the whole act:
+ *  adding servers makes reads faster and writes slower, measured, on one page. */
+export function ZkThroughputDiagram() {
+  const row = (y: number, servers: string, reads: string, writes: string) => (
+    <>
+      <text x="20" y={y} fontFamily={MONO} fontSize="6.4" fill={INK}>{servers}</text>
+      <text x="110" y={y} fontFamily={MONO} fontSize="6.4" fill={DENIM}>{reads}</text>
+      <text x="220" y={y} fontFamily={MONO} fontSize="6.4" fill={TERRA}>{writes}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="Saturated throughput by cluster size: 3 servers do 87 thousand reads and 21 thousand writes per second; 13 servers do 460 thousand reads and 8 thousand writes. Adding servers multiplies read capacity and divides write capacity."
+    >
+      <text x="20" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        saturated throughput, ops/sec (Table 1)
+      </text>
+      <text x="110" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>all reads</text>
+      <text x="220" y="32" fontFamily={MONO} fontSize="6" fill={MUTED}>all writes</text>
+      <line x1="20" y1="38" x2="324" y2="38" stroke={MUTED} strokeWidth="0.8" />
+      {row(56, '3 servers', '87,000', '21,000')}
+      {row(74, '5 servers', '165,000', '18,000')}
+      {row(92, '7 servers', '257,000', '14,000')}
+      {row(110, '9 servers', '296,000', '12,000')}
+      {row(128, '13 servers', '460,000', '8,000')}
+      <text x="20" y="158" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        more servers → more read capacity
+      </text>
+      <text x="20" y="174" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        more servers → LESS write capacity, and less fault to spare
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 7 — the paper's Figure 1, redrawn with time running downward because that
+ *  is the direction a web page is read. Deliberately carries NO per-event text
+ *  labels: nine small labels beside three vertical lines and four diagonal
+ *  arrows is a geometry-lint fight with nothing to win, and colour says the
+ *  same thing. Denim is a path that exists; terra is a pair with no path
+ *  either way. */
+export function HappenedBeforeDiagram() {
+  const X = { p: 60, q: 172, r: 284 }
+  const dot = (x: number, y: number, fill = INK, r = 3.4) => <circle cx={x} cy={y} r={r} fill={fill} />
+  return (
+    <svg
+      viewBox="0 0 344 208"
+      role="img"
+      aria-label="Three process lines with events and messages between them. A chain of message and process steps links one event on P to a later event on P, so those are ordered. Another pair, one on P and one on R, has no path in either direction, so nothing can order them."
+    >
+      <defs>
+        <marker id="pb-hb" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={MUTED} />
+        </marker>
+        <marker id="pb-hbd" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={DENIM} />
+        </marker>
+      </defs>
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        time runs downward · each line is one process
+      </text>
+      {(['p', 'q', 'r'] as const).map((k, i) => (
+        <g key={k}>
+          <text x={X[k]} y="32" textAnchor="middle" fontFamily={MONO} fontSize="7.4" fill={INK}>
+            {['P', 'Q', 'R'][i]}
+          </text>
+          <line x1={X[k]} y1="40" x2={X[k]} y2="172" stroke={MUTED} strokeWidth="1.2" />
+        </g>
+      ))}
+
+      {/* the ordered chain: P's first event reaches P's last, the long way round */}
+      <path d={`M${X.p} 56 L${X.q} 76`} stroke={DENIM} strokeWidth="2" markerEnd="url(#pb-hbd)" />
+      <line x1={X.q} y1="76" x2={X.q} y2="116" stroke={DENIM} strokeWidth="2" />
+      <path d={`M${X.q} 116 L${X.p} 136`} stroke={DENIM} strokeWidth="2" markerEnd="url(#pb-hbd)" />
+
+      {/* the other traffic, which is what makes the concurrent pair interesting */}
+      <path d={`M${X.q} 50 L${X.r} 64`} stroke={MUTED} strokeWidth="1.3" markerEnd="url(#pb-hb)" />
+      <path d={`M${X.r} 110 L${X.q} 156`} stroke={MUTED} strokeWidth="1.3" markerEnd="url(#pb-hb)" />
+
+      {dot(X.p, 56, DENIM)}
+      {dot(X.q, 76, DENIM)}
+      {dot(X.q, 116, DENIM)}
+      {dot(X.p, 136, DENIM)}
+      {dot(X.q, 50)}
+      {dot(X.q, 156)}
+      {dot(X.r, 64)}
+      {/* the concurrent pair */}
+      {dot(X.p, 96, TERRA, 4.4)}
+      {dot(X.r, 110, TERRA, 4.4)}
+
+      <text x="14" y="190" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        a path exists — so this happened before that
+      </text>
+      <text x="14" y="202" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        no path either way — concurrent, and no clock fixes it
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 7 — the anomaly, which is the paper's own objection to its own answer.
+ *  Information can travel by a route the system cannot see, and then the total
+ *  order is internally perfect and disagrees with what actually happened. */
+export function AnomalyDiagram() {
+  const box = (x: number, name: string, what: string, stamp: string) => (
+    <>
+      <rect x={x} y="34" width="140" height="44" fill="#fff" stroke={INK} strokeWidth="1.6" />
+      <text x={x + 12} y="50" fontFamily={MONO} fontSize="6.6" fill={INK}>{name}</text>
+      <text x={x + 12} y="62" fontFamily={MONO} fontSize="6" fill={MUTED}>{what}</text>
+      <text x={x + 12} y="72" fontFamily={MONO} fontSize="6" fill={TERRA}>{stamp}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 168"
+      role="img"
+      aria-label="A person makes a request on computer A, then telephones a friend who makes a request on computer B. The phone call is outside the system, so B can get the lower timestamp and be ordered first. The ordering is internally consistent and disagrees with what happened."
+    >
+      <defs>
+        <marker id="pb-an" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto">
+          <path d="M0 0 L7 3.5 L0 7 z" fill={TERRA} />
+        </marker>
+      </defs>
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the order is perfect, and it is backwards
+      </text>
+      {box(14, 'Computer A', 'request A, made first', 'timestamp 40')}
+      {box(190, 'Computer B', 'request B, made after', 'timestamp 12')}
+      <path d="M156 56 L186 56" stroke={TERRA} strokeWidth="1.6" strokeDasharray="4 3" markerEnd="url(#pb-an)" />
+      <text x="172" y="98" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        a phone call — a channel the system cannot see
+      </text>
+      <text x="14" y="124" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        so the system orders B before A, and it is not confused
+      </text>
+      <text x="14" y="138" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        it ordered every event it was told about, correctly
+      </text>
+      <text x="14" y="158" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        two exits: carry the timestamp by hand, or buy real clocks
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 6 — the marriage, itemised. Two parents, and the row that matters is the
  *  bottom one: what it declined, and why. A synthesis is defined by its
  *  refusals; anyone can list what a system borrowed. */

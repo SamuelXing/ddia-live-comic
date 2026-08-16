@@ -345,5 +345,5 @@ export const cassandra: Chapter = {
     title: 'Act II ends with the store deciding, badly, on purpose',
     body: 'Two chapters threw out the master and found out what it had been doing for them. Dynamo handed the decision to the application and was honest that it could not make it. Cassandra took the decision back, resolved it with a number that is not really a measure of anything, and got the write rate it needed in exchange. Both are defensible; neither is agreement. And the thing both are working around has a name, which is that on machines with separate clocks nobody can say what happened first. Next: the book stops going forward and goes back to 1978 to ask that question properly.',
   },
-  next: { title: 'What "Before" Even Means', unwritten: true },
+  next: { title: 'What “Before” Even Means', slug: 'lamport' },
 }
