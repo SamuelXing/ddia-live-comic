@@ -42,6 +42,29 @@ export interface TocAct {
   entries: TocEntry[]
 }
 
+/**
+ * How far the season has got, derived rather than typed. Three places carried
+ * "1 of 18" by hand and all three were wrong the moment Chapter 1 shipped —
+ * the fourth hand-maintained tally in this project to go stale, after the
+ * comics count, the ideas count and /ddia/read's own description.
+ *
+ * Read off the TOC, not off the chapter registry: TOC rows are plain data, so
+ * a page can show the count without pulling every chapter's JSX into its
+ * bundle. Interludes are half-chapters with no paper and are not counted.
+ * `book.test.ts` pins both ends — a slug here must resolve to a real chapter,
+ * and a real chapter must appear here.
+ */
+export const seasonProgress = () => {
+  const entries = TOC.flatMap((a) => a.entries)
+  return { live: entries.filter((e) => e.slug).length, total: entries.filter((e) => !e.interlude).length }
+}
+
+/** e.g. "2 of 18 chapters live" */
+export const progressLabel = () => {
+  const { live, total } = seasonProgress()
+  return `${live} of ${total} chapters live`
+}
+
 export const TOC: TocAct[] = [
   {
     act: 'Prologue',
@@ -58,7 +81,7 @@ export const TOC: TocAct[] = [
       'Google has more web than fits on any machine you can buy, and the machines it can afford die weekly. What falls out of that is a file system that replicates well, appends well, and refuses to edit a byte you already wrote. The rest of the act is people working around that refusal. By the end there is a database sitting on a file system that cannot overwrite anything — and the bargain it struck to get there is what your database is doing tonight.',
     next: 'Next: all of it has a master. Amazon is about to call that unacceptable.',
     entries: [
-      { no: 'Ch 1', title: 'The File System That Refused to Edit', paper: 'GFS — SOSP 2003' },
+      { no: 'Ch 1', title: 'The File System That Refused to Edit', paper: 'GFS — SOSP 2003', slug: 'gfs' },
       { no: 'Ch 2', title: 'MapReduce: the Pattern, Not the Product', paper: 'OSDI 2004 · a half-chapter' },
       { no: 'Ch 3', title: 'The Database GFS Deserved', paper: 'Bigtable — OSDI 2006', slug: 'bigtable' },
       { no: '—', title: 'Interlude: The RUM Triangle', interlude: true },
