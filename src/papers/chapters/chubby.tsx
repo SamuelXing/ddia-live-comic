@@ -328,5 +328,5 @@ export const chubby: Chapter = {
     title: 'Act I ran on one machine being allowed to decide',
     body: 'Look back across four chapters and the same move is under all of them. One master holds the file catalogue. One master schedules the tasks. One tablet server owns a key range. One replica holds the lease. Nobody votes on anything except *who gets to be the one*, and even that is delegated to a service built for it. It works, it is cheap, and it produces a system that is unavailable exactly when the appointment cannot be made. Next: a company whose shopping cart may not stop taking writes, ever, decides that is an unacceptable trade — and throws out the master that this entire act was built on.',
   },
-  next: { title: 'Dynamo — The Cart That Must Not Close', unwritten: true },
+  next: { title: 'The Cart That Must Not Close', slug: 'dynamo' },
 }

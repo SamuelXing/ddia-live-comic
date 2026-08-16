@@ -103,7 +103,7 @@ export const TOC: TocAct[] = [
       'Amazon’s problem is not the size of the web, it is the checkout button. A cart that refuses a write because some machine in the middle is unreachable has already cost real money, and nobody is soothed by an explanation about network partitions. So this act throws out the thing Act I hung its whole hierarchy on: the master. Every node accepts writes, from anyone, during the failure. You get a store that never says no, and no idea which of two conflicting carts is the real one.',
     next: 'Next: two nodes accepted the same cart. Which one happened later? Nobody in this act can say.',
     entries: [
-      { no: 'Ch 5', title: 'The Cart That Must Not Close', paper: 'Dynamo — SOSP 2007' },
+      { no: 'Ch 5', title: 'The Cart That Must Not Close', paper: 'Dynamo — SOSP 2007', slug: 'dynamo' },
       { no: '—', title: 'Interlude: CAP', interlude: true },
       { no: 'Ch 6', title: 'A Marriage of Two Papers', paper: 'Cassandra — 2008' },
     ],
