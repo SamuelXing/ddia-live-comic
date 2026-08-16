@@ -30,10 +30,13 @@ function specsIn(): Array<{ where: string; spec: DesignItSpec }> {
 describe('the you-are-the-designer widget', () => {
   const found = specsIn()
 
-  it('is present — a chapter without one is not this book', () => {
-    // if the traversal ever stops finding specs, every check below passes
-    // vacuously, which is the failure mode this file exists to avoid
-    expect(found.length).toBeGreaterThanOrEqual(CHAPTERS.length)
+  it('is present in every chapter — one without it is not this book', () => {
+    /* Also the anti-vacuity guard: if the traversal ever stops finding specs,
+       every check below passes while testing nothing. A half-chapter gets
+       fewer decisions, not zero — the interaction is the method. */
+    const withOne = new Set(found.map((f) => f.where.split(' · ')[0]))
+    const missing = CHAPTERS.map((c) => c.slug).filter((s) => !withOne.has(s))
+    expect(missing).toEqual([])
   })
 
   it('never puts markup in an option label, which renders raw', () => {

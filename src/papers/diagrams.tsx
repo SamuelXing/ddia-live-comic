@@ -64,6 +64,56 @@ export function ChunkBudgetDiagram() {
   )
 }
 
+/** Ch 2 — every mapper feeds every reducer, so the framework's bookkeeping is
+ *  M × R. Deliberately shaped like Ch 1's ChunkBudgetDiagram: it is the same
+ *  ceiling — one machine's RAM — one layer up the stack. */
+export function FanoutDiagram() {
+  const YS = [28, 54, 80]
+  const box = (x: number, y: number, label: string, accent: string) => (
+    <>
+      <rect x={x} y={y} width="56" height="16" fill="#fff" stroke={accent} strokeWidth="1.6" />
+      <text x={x + 28} y={y + 10.5} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={accent}>{label}</text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 172"
+      role="img"
+      aria-label="Every map task feeds every reduce task, so the master tracks M times R pieces of intermediate state — a billion of them at the paper's own working numbers."
+    >
+      <text x="10" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        every mapper feeds every reducer
+      </text>
+      {YS.map((y, i) => (
+        <g key={'m' + i}>{box(10, y, `map ${i + 1}`, INK)}</g>
+      ))}
+      {YS.map((y, i) => (
+        <g key={'r' + i}>{box(190, y, `reduce ${i + 1}`, DENIM)}</g>
+      ))}
+      {YS.map((a, i) =>
+        YS.map((b, j) => (
+          <line key={`${i}-${j}`} x1="66" y1={a + 8} x2="190" y2={b + 8} stroke={MUTED} strokeWidth="0.7" opacity="0.75" />
+        )),
+      )}
+      <text x="256" y="60" fontFamily={MONO} fontSize="6" fill={MUTED}>one output</text>
+      <text x="256" y="70" fontFamily={MONO} fontSize="6" fill={MUTED}>file each</text>
+
+      <text x="172" y="118" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        M = 200,000 · R = 5,000 — the paper&rsquo;s own working numbers
+      </text>
+      <text x="172" y="132" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        M × R = 1,000,000,000 pieces to keep track of
+      </text>
+      <text x="172" y="146" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        at ~1 byte apiece, ~1 GB in the master&rsquo;s RAM
+      </text>
+      <text x="172" y="162" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        the same ceiling as Chapter 1, one floor up
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 1 — the consistency model, drawn. Three replicas of one chunk after an
  *  append failed on C and the client retried: the record is in all three, but
  *  the replicas are not identical and one region is garbage. */

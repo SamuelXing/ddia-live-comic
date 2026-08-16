@@ -82,7 +82,7 @@ export const TOC: TocAct[] = [
     next: 'Next: all of it has a master. Amazon is about to call that unacceptable.',
     entries: [
       { no: 'Ch 1', title: 'The File System That Refused to Edit', paper: 'GFS — SOSP 2003', slug: 'gfs' },
-      { no: 'Ch 2', title: 'MapReduce: the Pattern, Not the Product', paper: 'OSDI 2004 · a half-chapter' },
+      { no: 'Ch 2', title: 'MapReduce: the Pattern, Not the Product', paper: 'OSDI 2004 · a half-chapter', slug: 'mapreduce' },
       { no: 'Ch 3', title: 'The Database GFS Deserved', paper: 'Bigtable — OSDI 2006', slug: 'bigtable' },
       { no: '—', title: 'Interlude: The RUM Triangle', interlude: true },
       { no: 'Ch 4', title: 'The Lock Everyone Was Secretly Holding', paper: 'Chubby — OSDI 2006' },

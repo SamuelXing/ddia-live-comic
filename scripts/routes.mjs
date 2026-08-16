@@ -93,6 +93,10 @@ export const ROUTES = {
     title: 'The File System That Refused to Edit',
     desc: 'Google’s machines die weekly and its files outgrew every disk. Design the file system that falls out of that — then read the 2003 paper and see how close you got.',
   },
+  '/papers/mapreduce': {
+    title: 'MapReduce: the Pattern, Not the Product',
+    desc: 'The famous half was borrowed from Lisp. The half that mattered was the restriction — work out what a program must give up before a framework can recover it for you.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',
