@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, SEASONS } from './book'
+import { BOOK, SEASONS, seasonPath } from './book'
 import { ACT_FIGURES } from './actDiagrams'
 import { CHAPTER_BY_SLUG } from './chapters'
 import { CHAPTER_LINES } from './season'
@@ -22,10 +22,15 @@ import { SITE_TITLE } from '../routeTitle'
    would be scenery rather than something anybody chose to read.
    ============================================================ */
 
-export default function PapersIndexPage() {
+/* One season at a time, and one nav item — the same split the two calculators
+   use, for the same reason. Thirteen acts on one page is a scroll nobody
+   finishes, and the two seasons ask different questions; putting them
+   side by side made the page long without making it clearer. */
+export default function PapersIndexPage({ season: seasonN }: { season: number }) {
+  const season = SEASONS.find((s) => s.n === seasonN) ?? SEASONS[0]
   useEffect(() => {
-    document.title = `${BOOK.title} · ${SITE_TITLE}`
-  }, [])
+    document.title = `${season.label} · ${BOOK.title} · ${SITE_TITLE}`
+  }, [season])
 
   /* reveal-on-scroll for the [data-obs] panels — same contract as the other
      .gn index pages: without this the panels stay at opacity 0 forever */
@@ -58,18 +63,26 @@ export default function PapersIndexPage() {
       <SiteNav />
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">Two seasons · one argument</div>
+          <div className="gn-kicker">{season.label}</div>
           <h1>{BOOK.title}</h1>
-          <p className="dek">{BOOK.dek}</p>
+          <p className="dek">{rich(season.dek)}</p>
         </header>
 
+        <nav className="pb-tabs" aria-label="Which season">
+          {SEASONS.map((s) => (
+            <NavLink
+              key={s.n}
+              end
+              to={seasonPath(s.n)}
+              className={({ isActive }) => 'pb-tab' + (isActive ? ' on' : '')}
+            >
+              Season {s.n}
+              <span>{s.label.split(' · ')[1]}</span>
+            </NavLink>
+          ))}
+        </nav>
+
         <div className="pb-toc">
-          {SEASONS.map((season) => (
-          <div className="pb-season" key={season.n}>
-            <div className="pb-season-head box" data-obs>
-              <div className="sh">{season.label}</div>
-              <p>{rich(season.dek)}</p>
-            </div>
           {season.acts.map((act) => {
             /* the same world, redrawn under each act's new pressure — the
                shape change carries the plot for anyone who only looks */
@@ -110,8 +123,6 @@ export default function PapersIndexPage() {
             </section>
             )
           })}
-          </div>
-          ))}
         </div>
       </div>
     </div>

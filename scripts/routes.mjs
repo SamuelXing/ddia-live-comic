@@ -157,6 +157,10 @@ export const ROUTES = {
     title: 'Elasticity as the Product',
     desc: 'Build the analytical half again for a world where machines are rented by the second — and find out that the thing customers are buying is not the query engine.',
   },
+  '/papers/season/2': {
+    title: 'Season 2 · When the Data Stops Sitting Still',
+    desc: 'The delay between something happening and somebody being able to see it — and what each way of shortening it costs. Thirteen papers on data in motion.',
+  },
   '/papers/season-1': {
     title: 'The Season, in One Page',
     desc: 'Seventeen papers, and the same three moves under all of them. What the acts add up to, and the ideas that cross every one of them without getting a chapter of their own.',

@@ -33,11 +33,15 @@ describe('the route table still matches the site', () => {
   it('every papers chapter has an entry with its own title, and none is invented', () => {
     /* Same drift guard as the comics: the .mjs table duplicates chapter titles
        because the emitter cannot import JSX modules. */
-    const chapterPaths = CHAPTERS.map((c) => `/papers/${c.slug}`).sort()
+    /* Paths under /papers/ that are not chapters, listed by hand on purpose:
+       the point of this assertion is that a path nobody meant to add fails it,
+       so exceptions have to be typed out rather than pattern-matched away. */
+    const notChapters = ['/papers/season/2']
+    const expected = [...CHAPTERS.map((c) => `/papers/${c.slug}`), ...notChapters].sort()
     const tablePaths = Object.keys(ROUTES)
       .filter((p) => p.startsWith('/papers/'))
       .sort()
-    expect(tablePaths).toEqual(chapterPaths)
+    expect(tablePaths).toEqual(expected)
     const wrong: string[] = []
     CHAPTERS.forEach((c) => {
       const entry = ROUTES[`/papers/${c.slug}`]
@@ -57,14 +61,22 @@ describe('the route table still matches the site', () => {
     /* Parsed from App.tsx rather than hand-listed: a route added there without
        a description would otherwise ship previewing as the homepage, which is
        the exact bug this whole mechanism exists to fix. */
-    const paths = [...appSource.matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1])
-    const missing = paths.filter(
-      (p) =>
-        p !== '*' &&
-        !p.includes(':') && // /read/:slug is covered by the comic entries above
-        p !== '/calculator' && // redirects to /calculator/capacity
-        !(p in ROUTES),
-    )
+    /* A route whose element is <Navigate> renders nothing and needs no
+       description — it hands the reader to a path that has one. That used to
+       be a hand-listed exception for /calculator, which is the kind of list
+       that grows quietly: three season redirects arrived at once. Read the
+       element instead of naming the paths. */
+    const routes = [...appSource.matchAll(/<Route\s+path="([^"]+)"\s+element=\{<(\w+)/g)]
+    expect(routes.length, 'the Route regex stopped matching App.tsx').toBeGreaterThan(20)
+    const missing = routes
+      .filter(([, , el]) => el !== 'Navigate')
+      .map(([, p]) => p)
+      .filter(
+        (p) =>
+          p !== '*' &&
+          !p.includes(':') && // /read/:slug is covered by the comic entries above
+          !(p in ROUTES),
+      )
     expect(missing).toEqual([])
   })
 })

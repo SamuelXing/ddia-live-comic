@@ -297,6 +297,15 @@ export const SEASONS: Season[] = [
 /** Every act in the book, in reading order. What most callers want. */
 export const TOC: TocAct[] = SEASONS.flatMap((s) => s.acts)
 
+/**
+ * Where a season's contents page lives. Season 1 keeps the bare `/papers`
+ * because it is the book's front door — it is in the nav, on the shelf card,
+ * in social cards and in cross-links from chapters, and redirecting it away to
+ * make the URLs symmetrical would be tidiness paid for by every one of those.
+ * `routes.test.ts` pins these against the route table.
+ */
+export const seasonPath = (n: number) => (n === 1 ? '/papers' : `/papers/season/${n}`)
+
 /** Which season an act belongs to. Act names are unique across the book, and
  *  `book.test.ts` keeps them that way — this lookup is why. */
 export const seasonOfAct = (act: string): Season | undefined =>

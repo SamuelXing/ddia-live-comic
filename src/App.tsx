@@ -99,7 +99,15 @@ export default function App() {
           <Route path="/ddia/apps/observability" element={<ObservabilityPage />} />
 
           {/* Book B — the papers storybook */}
-          <Route path="/papers" element={<PapersIndexPage />} />
+          {/* One season per page. Season 1 keeps the bare /papers — it is the
+              book's front door and every existing link points at it. The extra
+              path segment on the others is what keeps them from colliding with
+              the :slug catch-all below, which is why it is /papers/season/2 and
+              not /papers/season-2. */}
+          <Route path="/papers" element={<PapersIndexPage season={1} />} />
+          <Route path="/papers/season" element={<Navigate to="/papers" replace />} />
+          <Route path="/papers/season/1" element={<Navigate to="/papers" replace />} />
+          <Route path="/papers/season/2" element={<PapersIndexPage season={2} />} />
           <Route path="/papers/:slug" element={<PaperPage />} />
 
           {/* Shared tools. Two tabs, each a real route so it can be linked. */}
