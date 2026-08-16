@@ -232,10 +232,10 @@ const SEASON_2_ACTS: TocAct[] = [
       'A phone was in a tunnel. The purchase happened at 09:14 and reaches you at 13:40, long after you published the total for the morning and told everyone it was final. Every system so far has quietly assumed that the order things arrive in is the order they happened in, and at this speed that assumption stops being harmless. The act is about the gap between those two clocks: how long you wait for stragglers, what you promise before they arrive, and what you owe anyone you already answered.',
     next: 'Next: the answer is a few seconds old, and somebody asks why it is recomputed at all.',
     entries: [
-      { no: 'Ch 21', title: 'One Record at a Time, Forever', paper: 'MillWheel — VLDB 2013' },
-      { no: '—', title: 'Interlude: The Three Times', interlude: true },
-      { no: 'Ch 22', title: 'When It Happened, and When You Heard', paper: 'The Dataflow Model — VLDB 2015' },
-      { no: 'Ch 23', title: 'A Photograph of a Moving System', paper: 'Flink snapshots — 2015' },
+      { no: 'Ch 21', title: 'One Record at a Time, Forever', paper: 'MillWheel — VLDB 2013', slug: 'millwheel' },
+      { no: '—', title: 'Interlude: The Three Times', interlude: true, slug: 'three-times' },
+      { no: 'Ch 22', title: 'When It Happened, and When You Heard', paper: 'The Dataflow Model — VLDB 2015', slug: 'dataflow' },
+      { no: 'Ch 23', title: 'A Photograph of a Moving System', paper: 'Flink snapshots — 2015', slug: 'flink-snapshots' },
     ],
   },
   {

@@ -2468,3 +2468,467 @@ export function FreshnessPriceDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   SEASON 2 · ACT II — time is not when it arrived.
+   Act I's figures drew duration. From here the subject is two
+   different clocks that were always being conflated, so these
+   draw the gap between them: what a watermark claims, what it
+   costs to be sure, and what you owe the people you already
+   answered.
+   ============================================================ */
+
+/** Ch 21 — the low watermark, defined. It is not a clock and it is not a
+ *  guess about the future; it is the oldest unfinished work anywhere behind
+ *  you, and the recursion is what makes it composable down a pipeline. */
+export function WatermarkDefinitionDiagram() {
+  const stage = (x: number, name: string, oldest: string) => (
+    <>
+      <rect x={x} y="46" width="82" height="34" fill="none" stroke={INK} strokeWidth="1.6" />
+      <text x={x + 8} y="60" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        {name}
+      </text>
+      <text x={x + 8} y="72" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        {oldest}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="A computation's low watermark is the minimum of its own oldest unfinished record and the low watermarks of everything feeding into it. Because the definition is recursive, a stage's watermark bounds all the work behind it, not just its own."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the low watermark of a stage
+      </text>
+      <text x="14" y="32" fontFamily={MONO} fontSize="7" fill={INK}>
+        min( its own oldest unfinished record ,
+      </text>
+      <text x="60" y="42" fontFamily={MONO} fontSize="7" fill={INK}>
+        the watermark of everything feeding it )
+      </text>
+
+      {stage(14, 'injector', 'oldest file open')}
+      {stage(114, 'window count', 'oldest bucket')}
+      {stage(214, 'dip detector', 'oldest pending')}
+      <line x1="96" y1="63" x2="112" y2="63" stroke={DENIM} strokeWidth="1.4" />
+      <line x1="196" y1="63" x2="212" y2="63" stroke={DENIM} strokeWidth="1.4" />
+      <path d="M300 63 L318 63 L318 92" fill="none" stroke={DENIM} strokeWidth="1.4" />
+      <text x="298" y="104" textAnchor="end" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        nothing older than this is still coming
+      </text>
+
+      <line x1="14" y1="120" x2="330" y2="120" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="138" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        it counts in-flight, stored and pending-delivery work alike
+      </text>
+      <text x="14" y="152" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        so it is a fact about the pipeline, not a reading off a clock
+      </text>
+      <text x="14" y="174" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        and it only ever moves forward — even when that makes it wrong
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 21 — what a receipt costs. Five steps in a fixed order, and the third
+ *  one is the whole guarantee: the record's id is committed in the same
+ *  atomic write as the state it changed. */
+export function ExactlyOnceLedgerDiagram() {
+  const step = (y: number, n: string, text: string, accent: string) => (
+    <>
+      <text x="16" y={y} fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {n}
+      </text>
+      <text x="38" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>
+        {text}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="On receiving a record the framework checks it against deduplication data, runs user code, commits the pending state changes and the record's unique id in one atomic write, acknowledges the sender, and only then sends downstream. A Bloom filter of known fingerprints gives a fast path for records never seen before."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what happens when a record arrives
+      </text>
+      <line x1="14" y1="22" x2="330" y2="22" stroke={MUTED} strokeWidth="0.8" />
+      {step(40, '1', 'seen this id before? discard if so', MUTED)}
+      {step(58, '2', 'run the user’s code — may change state,', INK)}
+      <text x="38" y="70" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        timers, and records to send on
+      </text>
+      {step(90, '3', 'commit all of it, AND the record’s id,', DENIM)}
+      <text x="38" y="102" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        in one atomic write
+      </text>
+      {step(122, '4', 'acknowledge the sender', MUTED)}
+      {step(140, '5', 'now send downstream', MUTED)}
+
+      <line x1="14" y1="152" x2="330" y2="152" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        step 3 is the guarantee: the receipt and the change are one fact
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        a bloom filter of seen fingerprints keeps step 1 off the disk
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 21 — the bill, and the reason the paper lets you switch it off. Same
+ *  pipeline, same hardware, guarantees on and off. Numbers are §8.1. */
+export function GuaranteePriceDiagram() {
+  const U = 2.6 // units per millisecond
+  const row = (y: number, label: string, med: number, p95: number, accent: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>
+        {label}
+      </text>
+      <rect x="14" y={y + 6} width={med * U} height="11" fill={accent} fillOpacity="0.28" stroke={accent} strokeWidth="1.1" />
+      <rect
+        x={14 + med * U}
+        y={y + 6}
+        width={(p95 - med) * U}
+        height="11"
+        fill={accent}
+        fillOpacity="0.1"
+        stroke={accent}
+        strokeWidth="0.9"
+        strokeDasharray="2 2"
+      />
+      <text x={14 + p95 * U + 6} y={y + 15} fontFamily={MONO} fontSize="6" fill={INK}>
+        {med} ms · 95th {p95} ms
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 178"
+      role="img"
+      aria-label="The same single-stage pipeline on 200 CPUs. With exactly-once delivery and checkpoint-before-send switched off, median record latency is 3.6 milliseconds and the 95th percentile is 30. With both switched on, the median is 33.7 milliseconds and the 95th percentile is 93.8."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one stage, 200 CPUs — solid is the median, dashed to the 95th
+      </text>
+      {row(38, 'guarantees off — retries may duplicate', 3.6, 30, DENIM)}
+      {row(84, 'exactly-once + checkpoint before send', 33.7, 93.8, TERRA)}
+
+      <line x1="14" y1="128" x2="330" y2="128" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="146" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        about nine times the median, to never process a record twice
+      </text>
+      <text x="14" y="162" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        which is why it is a switch, and why a stateless filter turns it off
+      </text>
+    </svg>
+  )
+}
+
+/** Interlude — the three clocks, and the one property that actually separates
+ *  them. Event time is fixed and belongs to the world; processing time is
+ *  different at every stage; ingestion time is fixed and belongs to you. */
+export function ThreeTimesDiagram() {
+  const col = (x: number, w: number, name: string, rows: string[], accent: string) => (
+    <>
+      <text x={x} y="34" fontFamily={MONO} fontSize="6.6" fill={accent}>
+        {name}
+      </text>
+      <line x1={x} y1="40" x2={x + w} y2="40" stroke={accent} strokeWidth="1.2" />
+      {rows.map((r, i) => (
+        <text key={r + i} x={x} y={56 + i * 16} fontFamily={MONO} fontSize="5.8" fill={i === 2 ? accent : INK}>
+          {r}
+        </text>
+      ))}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 168"
+      role="img"
+      aria-label="Event time is when it happened, is set by the producer, and never changes. Processing time is when a stage looked at it, is set by your infrastructure, and is different at every stage. Ingestion time is when it entered your system, is set by your edge, and is fixed once."
+    >
+      <text x="14" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        three timestamps a record can carry
+      </text>
+      {col(14, 96, 'event time', ['when it happened', 'the producer sets it', 'never changes'], DENIM)}
+      {col(126, 96, 'processing time', ['when a stage read it', 'your machines set it', 'differs at every stage'], TERRA)}
+      {col(238, 96, 'ingestion time', ['when it reached you', 'your edge sets it', 'fixed, and not the truth'], MUTED)}
+      <line x1="14" y1="116" x2="330" y2="116" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="134" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        most bugs here are a system offering one and a person meaning another
+      </text>
+      <text x="14" y="152" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the middle column is the one Act I was silently using
+      </text>
+    </svg>
+  )
+}
+
+/** Interlude — why the choice is not a preference. Group by when you looked and
+ *  the same input gives different answers on a rerun; group by when it happened
+ *  and it does not. That is the whole argument, and it is testable. */
+export function ReproducibleDiagram() {
+  const run = (y: number, label: string, a: string, b: string, same: boolean) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.4" fill={same ? DENIM : TERRA}>
+        {label}
+      </text>
+      <rect x="150" y={y - 9} width="78" height="14" fill="none" stroke={same ? DENIM : TERRA} strokeWidth="1.1" />
+      <text x="156" y={y} fontFamily={MONO} fontSize="5.8" fill={INK}>
+        {a}
+      </text>
+      <rect x="238" y={y - 9} width="78" height="14" fill="none" stroke={same ? DENIM : TERRA} strokeWidth="1.1" />
+      <text x="244" y={y} fontFamily={MONO} fontSize="5.8" fill={INK}>
+        {b}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 176"
+      role="img"
+      aria-label="The same recorded input, replayed twice. Grouped by processing time the two runs give different answers, because the second run reads the file faster. Grouped by event time they give the same answer both times."
+    >
+      <text x="14" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same saved input, replayed twice
+      </text>
+      <text x="156" y="34" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        run 1
+      </text>
+      <text x="244" y="34" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        run 2
+      </text>
+      {run(56, 'bucketed by when you read it', '41, 38, 44', '52, 39, 32', false)}
+      {run(86, 'bucketed by when it happened', '43, 40, 40', '43, 40, 40', true)}
+
+      <line x1="14" y1="106" x2="330" y2="106" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="124" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        the first is not wrong on either run — it answers a question about
+      </text>
+      <text x="14" y="136" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        your pipeline that nobody asked
+      </text>
+      <text x="14" y="160" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        only the second can be re-run, backfilled, or audited
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 22 — the decomposition the whole paper is remembered for. One pipeline,
+ *  four questions, answered independently. Season 1's systems answered all
+ *  four at once by having no vocabulary to separate them. */
+export function FourQuestionsDiagram() {
+  const q = (y: number, word: string, question: string, answer: string) => (
+    <>
+      <text x="16" y={y} fontFamily={MONO} fontSize="7" fill={DENIM}>
+        {word}
+      </text>
+      <text x="76" y={y} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {question}
+      </text>
+      <text x="76" y={y + 11} fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        {answer}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="A pipeline decomposes into four independent questions: what results are computed, answered by the transformations; where in event time they are grouped, answered by windowing; when in processing time they are emitted, answered by triggers; and how later results relate to earlier ones, answered by the accumulation mode."
+    >
+      <text x="14" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        four questions, and you answer them separately
+      </text>
+      <line x1="14" y1="24" x2="330" y2="24" stroke={MUTED} strokeWidth="0.8" />
+      {q(44, 'what', 'results are being computed', 'the transformations — sums, joins, counts')}
+      {q(80, 'where', 'in event time they are grouped', 'windowing — fixed, sliding, per-user sessions')}
+      {q(116, 'when', 'in processing time they go out', 'triggers — at the watermark, on a clock, on a count')}
+      {q(152, 'how', 'later results relate to earlier ones', 'discard, accumulate, or accumulate and retract')}
+
+      <line x1="14" y1="170" x2="330" y2="170" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        every system before this answered all four by answering none of them
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 22 — a watermark used as the only signal fails in both directions, and
+ *  the two failures want opposite fixes. That is why it stops being the
+ *  trigger and becomes one trigger among several. */
+export function WatermarkBothWaysDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="A watermark used as the sole signal for emitting results fails two ways. Sometimes it is too fast, and data arrives behind it. Sometimes it is too slow, because one straggling record holds back the bound for the whole pipeline."
+    >
+      <text x="14" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same bound, two opposite complaints
+      </text>
+
+      <rect x="14" y="28" width="150" height="88" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x="24" y="46" fontFamily={MONO} fontSize="6.8" fill={TERRA}>
+        sometimes too fast
+      </text>
+      <text x="24" y="62" fontFamily={MONO} fontSize="6" fill={INK}>
+        data arrives behind it, so
+      </text>
+      <text x="24" y="74" fontFamily={MONO} fontSize="6" fill={INK}>
+        the answer you published
+      </text>
+      <text x="24" y="86" fontFamily={MONO} fontSize="6" fill={INK}>
+        was incomplete
+      </text>
+      <text x="24" y="104" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        wants: emit again, later
+      </text>
+
+      <rect x="180" y="28" width="150" height="88" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x="190" y="46" fontFamily={MONO} fontSize="6.8" fill={TERRA}>
+        sometimes too slow
+      </text>
+      <text x="190" y="62" fontFamily={MONO} fontSize="6" fill={INK}>
+        one straggling record holds
+      </text>
+      <text x="190" y="74" fontFamily={MONO} fontSize="6" fill={INK}>
+        the bound back for the
+      </text>
+      <text x="190" y="86" fontFamily={MONO} fontSize="6" fill={INK}>
+        whole pipeline
+      </text>
+      <text x="190" y="104" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        wants: emit sooner, early
+      </text>
+
+      <line x1="14" y1="132" x2="330" y2="132" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="150" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        one signal cannot want both — so stop making it the only signal
+      </text>
+      <text x="14" y="168" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        it becomes one trigger among several, and a window emits more than once
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 23 — the algorithm, in the only four frames it needs. A barrier arrives
+ *  on one input, that input is held, the rest catch up, and only then does the
+ *  operator write its state. Nothing else in the graph stops. */
+export function BarrierAlignDiagram() {
+  const frame = (x: number, n: string, a: string, b: string, note: string, aOn: boolean, bOn: boolean, snap: boolean) => (
+    <>
+      <text x={x} y="30" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        {n}
+      </text>
+      <rect x={x + 22} y="40" width="30" height="22" fill={snap ? DENIM : 'none'} fillOpacity={snap ? 0.2 : 1} stroke={snap ? DENIM : INK} strokeWidth="1.4" />
+      <line x1={x} y1="46" x2={x + 22} y2="46" stroke={aOn ? DENIM : MUTED} strokeWidth={aOn ? 1.8 : 1} />
+      <line x1={x} y1="56" x2={x + 22} y2="56" stroke={bOn ? DENIM : MUTED} strokeWidth={bOn ? 1.8 : 1} />
+      <text x={x - 2} y="44" textAnchor="end" fontFamily={MONO} fontSize="5.4" fill={aOn ? DENIM : MUTED}>
+        {a}
+      </text>
+      <text x={x - 2} y="59" textAnchor="end" fontFamily={MONO} fontSize="5.4" fill={bOn ? DENIM : MUTED}>
+        {b}
+      </text>
+      <text x={x + 22} y="76" fontFamily={MONO} fontSize="5.4" fill={snap ? DENIM : MUTED}>
+        {note}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 168"
+      role="img"
+      aria-label="An operator with two inputs. A barrier arrives on the first input, which is then blocked while the second catches up. When the barrier arrives on the second input too, the operator writes its state, forwards the barrier, and unblocks both inputs."
+    >
+      <text x="14" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one operator, two inputs, one barrier
+      </text>
+      {frame(36, '1', '▸', '', 'running', true, false, false)}
+      {frame(116, '2', 'held', '', 'waiting', true, false, false)}
+      {frame(196, '3', '▸', '▸', 'writes state', true, true, true)}
+      {frame(276, '4', '', '', 'flowing', false, false, false)}
+
+      <line x1="14" y1="98" x2="330" y2="98" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="116" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the only pause is one input of one operator, for as long as its
+      </text>
+      <text x="14" y="128" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        siblings take to catch up
+      </text>
+      <text x="14" y="152" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        no record in transit is stored — the state already reflects them
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 23 — the measurement that settles it. Stopping the world costs more the
+ *  more often you do it; pushing a marker through costs about the same either
+ *  way. Numbers read off Figure 6 (10 nodes, 1 billion records). */
+export function SnapshotCostDiagram() {
+  const x = (iv: number) => 44 + (iv / 10) * 268
+  const y = (s: number) => 122 - ((s - 250) / 560) * 84
+  const sync: Array<[number, number]> = [
+    [1, 790],
+    [2, 560],
+    [3, 460],
+    [5, 380],
+    [10, 330],
+  ]
+  const abs: Array<[number, number]> = [
+    [1, 330],
+    [2, 315],
+    [3, 305],
+    [5, 300],
+    [10, 295],
+  ]
+  const path = (pts: Array<[number, number]>) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0])} ${y(p[1])}`).join(' ')
+  /* The series are keyed below the axis rather than annotated in place. Two
+     lines that converge at the right leave nowhere inside the plot to put a
+     label without something crossing it, and the geometry lint says so. */
+  const key = (kx: number, colour: string, label: string) => (
+    <>
+      <line x1={kx} y1="150" x2={kx + 14} y2="150" stroke={colour} strokeWidth="1.8" />
+      <text x={kx + 19} y="152.5" fontFamily={MONO} fontSize="6" fill={colour}>
+        {label}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 192"
+      role="img"
+      aria-label="Net runtime against snapshot interval on ten nodes processing a billion records. Stopping the world to snapshot costs far more as snapshots get more frequent; asynchronous barrier snapshotting stays nearly flat at every interval. Values are read off the paper's figure."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        net runtime vs. how often you snapshot
+      </text>
+      <line x1="44" y1="122" x2="322" y2="122" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="44" y1="34" x2="44" y2="122" stroke={MUTED} strokeWidth="0.8" />
+      <path d={path(sync)} fill="none" stroke={TERRA} strokeWidth="1.8" />
+      <path d={path(abs)} fill="none" stroke={DENIM} strokeWidth="1.8" />
+      <text x="44" y="134" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        every 1s
+      </text>
+      <text x="322" y="134" textAnchor="end" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        every 10s
+      </text>
+      {key(14, TERRA, 'stop the world')}
+      {key(150, DENIM, 'push a barrier through')}
+      <text x="14" y="172" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the flat line runs within a few per cent of no fault tolerance at all
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        values read off the paper’s figure, so treat them as shape not decimals
+      </text>
+    </svg>
+  )
+}

@@ -109,6 +109,10 @@ export const CHAPTER_LINES: Record<string, string> = {
   spark: 'Nobody made memory reliable. They made reliability cheap enough to stop caring — by storing the recipe instead of the dish.',
   naiad: 'Batch and streaming were never two workloads. They were two corners of one grid, kept apart by a timestamp too small to say where you are.',
   'structured-streaming': 'Write the query you would have written for a finished table, and let the planner work out the incremental version — because almost nobody gets that right by hand.',
+  millwheel: 'Nothing in a stream says “that was the last one.” So compute it — the oldest unfinished work anywhere behind you — and accept that the answer is a bet.',
+  'three-times': 'Three clocks, and only one of them lets you compute the same answer twice from the same input. That is why event time is not a preference.',
+  dataflow: 'Never rely on completeness. Split the decision into where data is grouped, when you speak, and what a later answer does to an earlier one.',
+  'flink-snapshots': 'A thirty-year-old algorithm with its expensive half deleted — because in a dataflow graph, what is on the wires is a consequence rather than a fact.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */

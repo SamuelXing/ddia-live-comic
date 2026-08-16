@@ -189,6 +189,24 @@ export const ROUTES = {
     desc: 'Two chapters of engines, and the hard part turned out to be who has to understand them. Write the query you would have written for a finished table, and let the planner do the rest.',
   },
 
+  '/papers/millwheel': {
+    title: 'One Record at a Time, Forever',
+    desc: 'A search happened at 09:14 and reached you at 13:40. Here is the system that stopped treating arrival order as event order, and worked out what it costs to know you have everything.',
+  },
+
+  '/papers/three-times': {
+    title: 'Interlude: The Three Times',
+    desc: 'Event time, processing time, ingestion time. Picking the wrong one gives answers that are not wrong so much as about something else \u2014 and only one of them can be computed twice.',
+  },
+  '/papers/dataflow': {
+    title: 'When It Happened, and When You Heard',
+    desc: 'The same authors, two years on, opening with a sentence that contradicts their own previous paper: never rely on any notion of completeness. What replaced it is the vocabulary this field now uses.',
+  },
+  '/papers/flink-snapshots': {
+    title: 'A Photograph of a Moving System',
+    desc: 'Three chapters of machinery, all of it state, and a machine about to die holding it. The answer is a marker walking the graph \u2014 a thirty-year-old algorithm with its most expensive part removed.',
+  },
+
   '/ddia/components': {
     title: 'Component deep-dives',
     desc: 'Six pieces of infrastructure taken apart: animated request traces, a hardware envelope you can drag, failure cascades, and the papers behind each one.',
