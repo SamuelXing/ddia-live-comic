@@ -105,6 +105,18 @@ export const ROUTES = {
     title: 'The Lock Everyone Was Secretly Holding',
     desc: 'Every system in Act I has one master and none of the papers say who appoints it. Work out who does — then find out why the contribution was the packaging, not the algorithm.',
   },
+  '/papers/consensus': {
+    title: 'Consensus, Twice Told',
+    desc: 'One algorithm, two papers, sixteen years apart. The first was correct and nobody could implement it — so the second optimised for something almost no algorithms paper measures.',
+  },
+  '/papers/zookeeper': {
+    title: 'Consensus as a Service',
+    desc: 'Almost nobody should implement consensus. Here is how everybody gets it anyway — and the three places this design deliberately disagrees with Chubby.',
+  },
+  '/papers/lamport': {
+    title: 'What “Before” Even Means',
+    desc: 'Two machines, two events, no shared clock — and the 1978 paper that defines “happened before” by declining to answer the question you asked.',
+  },
   '/papers/cassandra': {
     title: 'A Marriage of Two Papers',
     desc: 'Take Dynamo’s ring and Bigtable’s storage engine and you have Cassandra. What it refused to take — and why a mechanism that was right one chapter ago is unaffordable here.',

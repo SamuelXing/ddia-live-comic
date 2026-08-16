@@ -115,9 +115,9 @@ export const TOC: TocAct[] = [
       'We have been leaning on this the whole time without looking at it. Chubby held Bigtable’s master election back in Act I; the ring in Act II came apart at exactly the point where it had no way to agree. So the book goes back to 1978 and asks the embarrassing question underneath both: on machines with separate clocks, what does “before” even mean? Then it watches a group of computers settle on one value while some of them have crashed and the rest cannot tell which.',
     next: 'Next: with agreement in hand, you can start buying back what Act I sold.',
     entries: [
-      { no: 'Ch 7', title: 'What "Before" Even Means', paper: 'Time, Clocks — Lamport 1978' },
-      { no: 'Ch 8', title: 'Consensus, Twice Told', paper: 'Paxos 1998 · Raft 2014' },
-      { no: 'Ch 9', title: 'Consensus as a Service', paper: 'ZooKeeper — USENIX ATC 2010' },
+      { no: 'Ch 7', title: 'What “Before” Even Means', paper: 'Time, Clocks — Lamport 1978', slug: 'lamport' },
+      { no: 'Ch 8', title: 'Consensus, Twice Told', paper: 'Paxos 1998 · Raft 2014', slug: 'consensus' },
+      { no: 'Ch 9', title: 'Consensus as a Service', paper: 'ZooKeeper — USENIX ATC 2010', slug: 'zookeeper' },
     ],
   },
   {
