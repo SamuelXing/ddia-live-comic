@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SEASONS, progressLabel, remainingLabel, seasonProgress } from '../papers/book'
+import { SEASONS, progressLabel, remainingLabel, seasonPath, seasonProgress } from '../papers/book'
 // Vite's ?raw, not node:fs — same reason routes.test.ts gives: the app
 // tsconfig has no node types, and adding them for one test widens the
 // app project's ambient types.
@@ -51,6 +51,23 @@ describe('the shelf card summarises the whole book', () => {
       (s) => s.acts.flatMap((a) => a.entries).filter((e) => !e.interlude && e.slug).length,
     )
     expect(perSeason.filter((n) => n > 0).length).toBeGreaterThan(1)
+  })
+
+  it('makes each season row a link to that season', () => {
+    /* The rows started life as inert <span>s inside a card that was itself one
+       big <Link>, because an anchor inside an anchor is invalid HTML and
+       browsers resolve it by dropping the inner one. Naming a season and not
+       letting somebody click it is the wrong half of that trade — so the card
+       stopped being a link and the title's stretched ::after took over. */
+    expect(code).toMatch(/<Link className="row" to=\{s\.to\}/)
+    expect(code).toContain('seasonPath(s.n)')
+    // and the card itself must not be an anchor again, or the rows go inert
+    expect(code).toContain('<article className="bs-book')
+    expect(code).not.toMatch(/<Link className="bs-book/)
+  })
+
+  it('sends each row to a season page that exists', () => {
+    expect(SEASONS.map((s) => seasonPath(s.n))).toEqual(['/papers', '/papers/season/2'])
   })
 
   it('states what is live and what is missing as two separate facts', () => {
