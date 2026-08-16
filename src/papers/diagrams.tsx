@@ -64,6 +64,62 @@ export function ChunkBudgetDiagram() {
   )
 }
 
+/** Ch 4 — what a lock service actually does all day, from the paper's own
+ *  snapshot of a typical cell (§4.1). The operation it is named after is too
+ *  small to draw, which is the entire point of the figure. */
+export function ChubbyTrafficDiagram() {
+  const X0 = 10
+  const W = 324
+  const keep = X0 + W * 0.93
+  return (
+    <svg
+      viewBox="0 0 344 176"
+      role="img"
+      aria-label="In a typical Chubby cell, 93% of RPCs are KeepAlives and lock acquisition is 31 per million; 60% of open files are naming-related."
+    >
+      <text x="10" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one cell, ten minutes of RPCs
+      </text>
+      <rect x={X0} y="24" width={keep - X0} height="20" fill="#e8edf5" stroke={DENIM} strokeWidth="1.6" />
+      <text x={(X0 + keep) / 2} y="37" textAnchor="middle" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        KeepAlive — 93%
+      </text>
+      <rect x={keep} y="24" width={X0 + W - keep} height="20" fill="#f6e9e2" stroke={TERRA} strokeWidth="1.6" />
+      <text x="10" y="58" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the other 7%: GetStat, Open, CreateSession, reads, writes
+      </text>
+      <text x="322" y="58" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        7%
+      </text>
+
+      <text x="10" y="80" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what the open files are for
+      </text>
+      <rect x={X0} y="88" width={W * 0.6} height="18" fill="#e8edf5" stroke={DENIM} strokeWidth="1.6" />
+      <text x={X0 + W * 0.3} y="100" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        naming — 60%
+      </text>
+      <rect x={X0 + W * 0.6} y="88" width={W * 0.4} height="18" fill="#fff" stroke={INK} strokeWidth="1.6" />
+      <text x={X0 + W * 0.8} y="100" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        locks, config, metadata
+      </text>
+
+      <text x="172" y="126" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        Acquire — the operation it is named after — is 31 per million
+      </text>
+      <text x="172" y="140" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        93% of its traffic is clients saying: still here
+      </text>
+      <text x="172" y="156" textAnchor="middle" fontFamily={MONO} fontSize="6.8" fill={DENIM}>
+        built as a lock service, used as a name service
+      </text>
+      <text x="172" y="169" textAnchor="middle" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        (§4.1 reports this as data, not as a confession)
+      </text>
+    </svg>
+  )
+}
+
 /** Ch 2 — every mapper feeds every reducer, so the framework's bookkeeping is
  *  M × R. Deliberately shaped like Ch 1's ChunkBudgetDiagram: it is the same
  *  ceiling — one machine's RAM — one layer up the stack. */

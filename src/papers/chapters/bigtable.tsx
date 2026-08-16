@@ -279,6 +279,7 @@ export const bigtable: Chapter = {
   seenIn: [
     { label: 'The File System That Refused to Edit — Ch 1', to: '/papers/gfs', live: true },
     { label: 'MapReduce: the Pattern, Not the Product — Ch 2', to: '/papers/mapreduce', live: true },
+    { label: 'The Lock Everyone Was Secretly Holding — Ch 4', to: '/papers/chubby', live: true },
     { label: 'B-trees vs LSM-trees — the comic', to: '/ddia/read/storage', live: true },
     { label: 'Choosing the Partition Key — the comic', to: '/ddia/read/partition-key', live: true },
     { label: 'The wide-column ring, priced out — capacity calculator', to: '/calculator/capacity', live: true },
@@ -288,5 +289,5 @@ export const bigtable: Chapter = {
     title: 'The file system chose the engine',
     body: 'Everything in this chapter unwinds from one refusal: GFS would not edit a byte. Immutable sorted files, background merges, metadata-only splits, crash recovery as a replay — each is that refusal, answered. Next, a different company meets a different refusal: Amazon’s cart must accept writes **while the network is failing** — and gives up the very thing Bigtable kept.',
   },
-  next: { title: 'Dynamo — The Cart That Must Not Close', unwritten: true },
+  next: { title: 'The Lock Everyone Was Secretly Holding', slug: 'chubby' },
 }

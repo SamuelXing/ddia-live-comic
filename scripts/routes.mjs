@@ -97,6 +97,10 @@ export const ROUTES = {
     title: 'MapReduce: the Pattern, Not the Product',
     desc: 'The famous half was borrowed from Lisp. The half that mattered was the restriction — work out what a program must give up before a framework can recover it for you.',
   },
+  '/papers/chubby': {
+    title: 'The Lock Everyone Was Secretly Holding',
+    desc: 'Every system in Act I has one master and none of the papers say who appoints it. Work out who does — then find out why the contribution was the packaging, not the algorithm.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',
