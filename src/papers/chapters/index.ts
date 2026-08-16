@@ -29,10 +29,12 @@ import { flinkSnapshots } from './flink-snapshots'
 import { differential } from './differential'
 import { noria } from './noria'
 import { dbsp } from './dbsp'
+import { crdt } from './crdt'
+import { localFirst } from './local-first'
 
 /** Chapters that exist, in reading order — interludes included, since they are
  *  pages a reader walks through. The season's full map, including everything
  *  unwritten, lives in book.ts (TOC); this is only what is live. */
-export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb, season1, spark, naiad, structuredStreaming, millwheel, threeTimes, dataflow, flinkSnapshots, differential, noria, dbsp]
+export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb, season1, spark, naiad, structuredStreaming, millwheel, threeTimes, dataflow, flinkSnapshots, differential, noria, dbsp, crdt, localFirst]
 
 export const CHAPTER_BY_SLUG: Record<string, Chapter> = Object.fromEntries(CHAPTERS.map((c) => [c.slug, c]))

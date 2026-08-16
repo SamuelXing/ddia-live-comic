@@ -220,6 +220,15 @@ export const ROUTES = {
     desc: 'Forty years of incremental view maintenance produced one algorithm per class of query. This one produces a procedure \u2014 and machine-checks the whole theory in five thousand lines.',
   },
 
+  '/papers/crdt': {
+    title: 'Who Writes the Merge Function',
+    desc: 'Chapter 5 built a store that never refuses a write, found two copies of a cart disagreeing, and handed the reconciliation to the application. Here is that question answered.',
+  },
+  '/papers/local-first': {
+    title: 'The Network Is Optional',
+    desc: 'Seven things you want from the software you make things in. Files get six and cannot collaborate; web apps get collaboration and nothing else. One swap returns the rest.',
+  },
+
   '/ddia/components': {
     title: 'Component deep-dives',
     desc: 'Six pieces of infrastructure taken apart: animated request traces, a hardware envelope you can drag, failure cascades, and the papers behind each one.',

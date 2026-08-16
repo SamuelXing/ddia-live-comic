@@ -3618,3 +3618,350 @@ export function OperatorCostDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   SEASON 2 · ACT IV — everybody's copy is live.
+   Act III's figures drew work: how much of it a change
+   implies, and where the answer has to sit. These draw
+   agreement without anybody to arbitrate it — what forces two
+   copies to the same value when there is no quorum to reach,
+   no leader to ask, and the writes already happened.
+   ============================================================ */
+
+/** Ch 27 — the question Chapter 5 asked and handed back. Two copies of a cart
+ *  disagree; somebody has to say what the reconciled value is. The whole
+ *  chapter is about moving that decision out of the application. */
+export function MergeChoiceDiagram() {
+  const side = (x: number, title: string, who: string, lines: string[], colour: string) => (
+    <>
+      <text x={x} y="34" fontFamily={MONO} fontSize="6.6" fill={colour}>
+        {title}
+      </text>
+      <rect x={x} y="42" width="146" height="64" fill="none" stroke={MUTED} strokeWidth="0.9" />
+      {lines.map((l, i) => (
+        <text key={i} x={x + 8} y={56 + i * 11} fontFamily={MONO} fontSize="6" fill={INK}>
+          {l}
+        </text>
+      ))}
+      <text x={x} y="120" fontFamily={MONO} fontSize="6.2" fill={colour}>
+        {who}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="When two replicas hold different values for the same item, somebody must decide the reconciled result. In Chapter 5 that decision was handed to the application, which had to write a merge function per data type and get it right. Here the decision is a property of the data type itself, so there is no merge function to write and nothing to get wrong."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        two copies disagree — who decides what the answer is
+      </text>
+      {side(14, 'Chapter 5’s answer', 'the application, per type', [
+        'the store hands back',
+        'both versions',
+        '',
+        'you write the merge,',
+        'you get it wrong once',
+      ], TERRA)}
+      {side(184, 'this chapter’s answer', 'nobody — the type already did', [
+        'the type admits only',
+        'one merged value',
+        '',
+        'there is no function',
+        'to write',
+      ], DENIM)}
+
+      <line x1="14" y1="130" x2="330" y2="130" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="148" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the shopping cart that resurrected deleted items is cited by name
+      </text>
+      <text x="14" y="162" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        in this paper, as the thing an ad-hoc approach does to you
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        convergence stops being a judgement call and becomes a property
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 27 — the shape that forces agreement. Merge is a least upper bound, and
+ *  a LUB is commutative, idempotent and associative — so it cannot matter what
+ *  order the updates arrived in, how many times, or how they were grouped. */
+export function SemilatticeDiagram() {
+  const node = (x: number, y: number, t: string, colour: string) => (
+    <>
+      <rect x={x - 46} y={y - 10} width="92" height="20" fill="none" stroke={colour} strokeWidth="1.4" />
+      <text x={x} y={y + 3} textAnchor="middle" fontFamily={MONO} fontSize="6" fill={colour}>
+        {t}
+      </text>
+    </>
+  )
+  const arrow = (x1: number, y1: number, x2: number, y2: number) => {
+    const dx = x2 - x1
+    const dy = y2 - y1
+    const l = Math.hypot(dx, dy)
+    return (
+      <>
+        <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={DENIM} strokeWidth="1.3" />
+        <path
+          d={`M${x2} ${y2} l${(-dx / l) * 6 - (dy / l) * 3} ${(-dy / l) * 6 + (dx / l) * 3} l${(dy / l) * 6} ${(-dx / l) * 6} z`}
+          fill={DENIM}
+        />
+      </>
+    )
+  }
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="Two replicas start from the same state and apply different updates. Merging is defined as the least upper bound of the two states, which is commutative, idempotent and associative — so both replicas reach the same value regardless of the order updates arrive in, how many times they arrive, or how they are grouped."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        both sides climb, and there is only one place to land
+      </text>
+      {node(172, 32, 'the state they shared', MUTED)}
+      {node(70, 74, 'Alice applied hers', INK)}
+      {node(274, 74, 'Bob applied his', INK)}
+      {node(172, 116, 'the least upper bound', DENIM)}
+      {arrow(150, 40, 92, 64)}
+      {arrow(194, 40, 252, 64)}
+      {arrow(92, 84, 150, 108)}
+      {arrow(252, 84, 194, 108)}
+
+      <line x1="14" y1="140" x2="330" y2="140" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="156" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        a least upper bound is commutative, idempotent and associative
+      </text>
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        so order, duplication and batching are all incapable of mattering
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        which is why the channel is allowed to be as bad as it likes
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 27 — the honest part. Convergence is forced; WHAT it converges to is
+ *  not. Concurrent add and remove of the same element has several answers,
+ *  all of them convergent, and picking one is a semantic decision. */
+export function AddWinsDiagram() {
+  const opt = (y: number, label: string, result: string, colour: string) => (
+    <>
+      <text x="16" y={y} fontFamily={MONO} fontSize="6.4" fill={colour}>
+        {label}
+      </text>
+      <text x="176" y={y} fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        {result}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="One replica adds an element while another concurrently removes it. Add-wins, remove-wins, last-writer-wins by identifier, and resetting to a distinguished value are all convergent answers. The mathematics forces the replicas to agree; it does not say what they should agree on, and that choice belongs to the application."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one replica adds it, another removes it, at the same moment
+      </text>
+      <line x1="14" y1="22" x2="330" y2="22" stroke={MUTED} strokeWidth="0.8" />
+      {opt(40, 'the add wins', 'in the set — a removal only kills what it saw', DENIM)}
+      {opt(58, 'the remove wins', 'not in the set — deletion is final', DENIM)}
+      {opt(76, 'highest id wins', 'convergent, and arbitrary to everyone', MUTED)}
+      {opt(94, 'reset to a marker', 'convergent, and now the app must cope', MUTED)}
+
+      <line x1="14" y1="110" x2="330" y2="110" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="128" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        all four converge — the theorem is satisfied by every one of them
+      </text>
+      <text x="14" y="142" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        so the maths forces agreement and says nothing about what on
+      </text>
+      <text x="14" y="164" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        what moved is the failure mode: not a wrong answer that diverges,
+      </text>
+      <text x="14" y="178" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        but an agreed answer somebody has to have meant
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 27 — the result that stops this being "eventual consistency, tidied up".
+ *  A converged state can be one that no sequential execution could ever have
+ *  produced, which means SEC is not a weakening of the usual ordering — it is
+ *  off to the side of it. */
+export function NotSequentialDiagram() {
+  const rep = (x: number, who: string, ops: string[], colour: string) => (
+    <>
+      <text x={x} y="36" fontFamily={MONO} fontSize="6.4" fill={colour}>
+        {who}
+      </text>
+      {ops.map((o, i) => (
+        <text key={i} x={x} y={52 + i * 12} fontFamily={MONO} fontSize="6.2" fill={INK}>
+          {o}
+        </text>
+      ))}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="One replica adds e then removes e-prime; concurrently another adds e-prime then removes e. Under add-wins both elements survive the merge — a final state in which nothing was removed, which no sequential ordering of those four operations could produce."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        two replicas, four operations, nobody waiting for anybody
+      </text>
+      <line x1="14" y1="22" x2="330" y2="22" stroke={MUTED} strokeWidth="0.8" />
+      {rep(16, 'replica one', ['add     e', 'remove  e′'], DENIM)}
+      {rep(140, 'replica two', ['add     e′', 'remove  e'], DENIM)}
+      {rep(258, 'they merge', ['e  is in', 'e′ is in'], TERRA)}
+
+      <line x1="14" y1="88" x2="330" y2="88" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="106" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        put those four in any single order and one removal comes last,
+      </text>
+      <text x="14" y="120" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        so something is missing from the answer
+      </text>
+      <text x="14" y="142" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        this state is reachable here and unreachable in any sequence
+      </text>
+      <text x="14" y="164" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        so it is not weaker ordering — it is a different question,
+      </text>
+      <text x="14" y="178" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        and the comparison people reach for does not apply
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 28 — the scorecard, compressed. The paper's table runs ten technologies
+ *  against seven ideals; the argument is the shape of the table rather than
+ *  any row, so this keeps the shape and drops the detail. */
+export function SevenIdealsDiagram() {
+  const IDEALS = ['fast', 'devices', 'offline', 'together', 'lasts', 'private', 'yours']
+  /* rows read off Table 1: true / partial / false per ideal */
+  const ROWS: Array<[string, number[]]> = [
+    ['files by email', [2, 1, 2, 0, 2, 2, 2]],
+    ['Google Docs', [0, 2, 0, 2, 0, 0, 0]],
+    ['Dropbox', [2, 2, 2, 0, 2, 0, 1]],
+    ['Git + GitHub', [2, 2, 2, 1, 2, 0, 2]],
+    ['a web app', [0, 2, 0, 2, 0, 0, 0]],
+  ]
+  const cell = (x: number, y: number, v: number) =>
+    v === 2 ? (
+      <rect x={x} y={y - 5} width="7" height="7" fill={DENIM} />
+    ) : v === 1 ? (
+      <rect x={x} y={y - 5} width="7" height="7" fill="none" stroke={DENIM} strokeWidth="1.1" />
+    ) : (
+      <line x1={x} y1={y - 1.5} x2={x + 7} y2={y - 1.5} stroke={MUTED} strokeWidth="1.1" />
+    )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="Ten ways of storing and sharing data scored against seven ideals: fast, works across devices, works offline, supports collaboration, lasts, private, and under the user's control. Files and Git score well on ownership and badly on collaboration; web apps score well on collaboration and badly on everything else. Nothing scores well on all seven."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        nothing you already use gets full marks
+      </text>
+      {IDEALS.map((t, i) => (
+        <text
+          key={t}
+          x={126 + i * 30}
+          y="34"
+          textAnchor="middle"
+          fontFamily={MONO}
+          fontSize="5.4"
+          fill={MUTED}
+        >
+          {t}
+        </text>
+      ))}
+      <line x1="14" y1="40" x2="330" y2="40" stroke={MUTED} strokeWidth="0.8" />
+      {ROWS.map(([name, vals], r) => (
+        <g key={name}>
+          <text x="14" y={56 + r * 16} fontFamily={MONO} fontSize="6.2" fill={INK}>
+            {name}
+          </text>
+          {vals.map((v, i) => (
+            <g key={i}>{cell(122 + i * 30, 56 + r * 16, v)}</g>
+          ))}
+        </g>
+      ))}
+      <line x1="14" y1="140" x2="330" y2="140" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="156" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the top half owns its data and cannot collaborate
+      </text>
+      <text x="14" y="170" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the bottom half collaborates and owns nothing
+      </text>
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        filled = meets it · outline = partly · dash = does not
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 28 — the inversion, which is the whole paper in one picture. Not "no
+ *  servers": the server stops being the authoritative copy and becomes a peer
+ *  that happens to always be awake. */
+export function CloudPeerDiagram() {
+  const box = (x: number, y: number, w: number, t: string, sub: string, colour: string, bold?: boolean) => (
+    <>
+      <rect x={x} y={y} width={w} height="26" fill={bold ? '#eae3d7' : 'none'} stroke={colour} strokeWidth={bold ? 1.7 : 1} />
+      <text x={x + w / 2} y={y + 12} textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={colour}>
+        {t}
+      </text>
+      <text x={x + w / 2} y={y + 21} textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        {sub}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="In a cloud app the server holds the authoritative copy and every device holds a cache, so a modification that has not reached the server did not happen. Local-first swaps the roles: the copy on your device is primary, and servers hold secondary copies that help with backup, discovery and reaching devices that are not awake at the same time."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same three boxes, and which one is telling the truth
+      </text>
+
+      <text x="14" y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        the cloud app
+      </text>
+      {box(14, 42, 96, 'your laptop', 'a cache', MUTED)}
+      {box(124, 42, 96, 'the server', 'the truth', TERRA, true)}
+      {box(234, 42, 96, 'your phone', 'a cache', MUTED)}
+      <line x1="110" y1="55" x2="124" y2="55" stroke={TERRA} strokeWidth="1.2" />
+      <line x1="220" y1="55" x2="234" y2="55" stroke={TERRA} strokeWidth="1.2" />
+      <text x="14" y="84" fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        an edit that has not reached the middle box did not happen
+      </text>
+
+      <text x="14" y="110" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        local-first
+      </text>
+      {box(14, 118, 96, 'your laptop', 'the truth', DENIM, true)}
+      {box(124, 118, 96, 'a server', 'a peer that is awake', MUTED)}
+      {box(234, 118, 96, 'your phone', 'the truth', DENIM, true)}
+      <line x1="110" y1="131" x2="124" y2="131" stroke={DENIM} strokeWidth="1.2" />
+      <line x1="220" y1="131" x2="234" y2="131" stroke={DENIM} strokeWidth="1.2" />
+      <text x="14" y="160" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+        every edit already happened — syncing is how others find out
+      </text>
+
+      <line x1="14" y1="170" x2="330" y2="170" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="188" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the difference is not fewer servers — it is what a server is for
+      </text>
+    </svg>
+  )
+}

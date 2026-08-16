@@ -116,6 +116,8 @@ export const CHAPTER_LINES: Record<string, string> = {
   differential: 'Incremental computation stops at loops because versions were modelled as a line. Index them by a partial order and one edge leaving a day of Twitter costs 67 differences.',
   noria: 'Compile every query into one running graph, so writes update the answers and reads are lookups. The state does not fit, so keep only what somebody asked for.',
   dbsp: 'Forty years of one algorithm per class of query, replaced by five mechanical steps — and semi-naive evaluation falls out of them as a corollary nobody designed.',
+  crdt: 'Chapter 5 handed the merge function to the application and it was wrong in public. Make the data type such that no reconciliation is expressible, and it cannot be.',
+  'local-first': 'The server holds the primary copy, so an edit that has not reached it did not happen. Swap that, and six properties you gave up for collaboration come back.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */
