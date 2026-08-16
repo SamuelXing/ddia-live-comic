@@ -42,8 +42,12 @@ export interface Think {
 }
 
 export interface Step {
-  /** badge text, e.g. "Step 01" or "Detail" */
-  n: string
+  /**
+   * Badge text, e.g. "Step 01" or "Detail". Optional, and absent on the season
+   * close: numbering a summary's sections implies they are a sequence you work
+   * through, which is what a chapter is and what a summary is not.
+   */
+  n?: string
   title: string
   accent?: Accent
   /** a quiet "you are here" ladder tag, e.g. "Rung 1 · Intuition" */

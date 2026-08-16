@@ -17,7 +17,7 @@ import { ArcTable, ThroughLines } from '../SeasonBlocks'
 
 export const season1: Chapter = {
   slug: 'season-1',
-  act: 'Epilogue',
+  act: 'The Close',
   paperNo: 'The close',
   title: 'The Season, in One Page',
   dek: 'Seventeen papers, and the same three moves under all of them. What the acts add up to, and the five or six ideas that cross every one of them without ever getting a chapter of their own.',
@@ -26,10 +26,8 @@ export const season1: Chapter = {
     'Read the season straight through and the chapters look like seventeen different problems. They are not. **Every act makes the same three moves** — it runs into a limit, gives up a guarantee to get past it, and then spends years buying that guarantee back in a form it can afford. What changes between acts is which guarantee, and what the buying-back costs. This page is that shape, and the handful of ideas that show up in act after act without ever being the subject of one.',
   steps: [
     {
-      n: 'Step 01',
       title: 'One move, seven times',
       accent: 'denim',
-      rung: 'Rung 1 · The arc',
       body: [
         'Nobody in this book solved the problem they opened with. They **moved the bill to somewhere it could be paid** — and then the next act ran into the place they moved it to. That is the whole plot, and it is why the season has six acts instead of one long argument.',
         'Read the rows below the way the chapters were written: the wall is the world, and nobody chose it. The other three columns are decisions, and every one of them is arguable.',
@@ -37,9 +35,7 @@ export const season1: Chapter = {
       diagram: <OneMoveDiagram />,
     },
     {
-      n: 'Step 02',
       title: 'The acts, as the trade each one made',
-      rung: 'Rung 2 · The ledger',
       span: 2,
       body: [
         'Four cells per act. **What forced it, what got sold, what that bought, and what it cost** — and the cost column is worth reading on its own, top to bottom, because it is a list of the things engineers now spend their weeks on. Compaction. Merge functions. Round trips to a quorum. Pipelines. Staleness budgets. None of that is incidental; each one is the receipt for a decision somebody made deliberately, a decade or more ago, for a reason that was good at the time.',
@@ -47,10 +43,8 @@ export const season1: Chapter = {
       diagram: <ArcTable />,
     },
     {
-      n: 'Step 03',
       title: 'What kept coming back',
       accent: 'denim',
-      rung: 'Rung 3 · The through-lines',
       span: 2,
       body: [
         'These are the ideas that never got a chapter, because they are not any one paper’s idea. They surface in act after act, usually without being named, and each one is worth more than the system it happened to appear in. *If you remember six things from the season, these are a defensible six.*',
@@ -58,10 +52,8 @@ export const season1: Chapter = {
       diagram: <ThroughLines />,
     },
     {
-      n: 'Step 04',
       title: 'What the season left out, on purpose and otherwise',
       accent: 'terra',
-      rung: 'Rung 4 · The gaps',
       body: [
         '**The Prologue is not written.** Chapter 0 — the thirty years when one machine was enough, and the relational model, B-trees and transactions that every later chapter spends — is a row in the contents and nothing else yet. That is an odd hole to have at the front of a finished season, and it is the honest state of the book rather than a structural choice.',
         '**Whole families of systems are one sentence here.** CRDTs get a paragraph in Chapter 5 and deserve a chapter. Riak, Voldemort, MongoDB and VoltDB are descendants and sidebars. Spark is a hook at the end of Chapter 2 and nothing more, deliberately: it belongs to a season about computation rather than storage.',

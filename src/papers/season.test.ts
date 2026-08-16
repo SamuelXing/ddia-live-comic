@@ -67,10 +67,12 @@ describe('the through-lines', () => {
 
 describe('the arc', () => {
   it('covers every act that has a live chapter, in the book’s order', () => {
-    const actsWithChapters = TOC.filter((a) =>
-      a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]),
+    /* Acts that read a paper — the close is an act with a live page in it and
+       has no row in its own ledger, which is the correct amount of recursion. */
+    const actsWithPapers = TOC.filter((a) =>
+      a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper),
     ).map((a) => a.act)
-    expect(ARC.map((r) => r.act)).toEqual(actsWithChapters)
+    expect(ARC.map((r) => r.act)).toEqual(actsWithPapers)
   })
 
   it('gives every act all four cells', () => {
