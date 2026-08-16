@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
-import { BOOK, progressLabel } from '../papers/book'
+import { BOOK, SEASONS, progressLabel, progressOf, remainingLabel } from '../papers/book'
 
 /* ============================================================
    The bookshelf — the front door of systemscomic.com.
@@ -11,7 +11,17 @@ import { BOOK, progressLabel } from '../papers/book'
    same way a book's table of contents is.
    ============================================================ */
 
-const LIVE_BOOKS = [
+interface ShelfBook {
+  to: string
+  kicker: string
+  title: string
+  dek: string
+  meta: string
+  /** only the books that have them — one card lists its seasons, one does not */
+  seasons?: { n: string; subject: string; count: string }[]
+}
+
+const LIVE_BOOKS: ShelfBook[] = [
   {
     to: '/ddia',
     kicker: 'Book one · complete and growing',
@@ -24,7 +34,24 @@ const LIVE_BOOKS = [
     kicker: 'Book two · being written',
     title: BOOK.title,
     dek: BOOK.dek,
-    meta: `${progressLabel()} · Season 1 · Where Data Lives`,
+    /* Two labels rather than a fraction, which is the same call the papers
+       masthead made: "23 of 31" invites arithmetic and reads as an off-by-one,
+       because the chapters are numbered from Ch 0. How much there is to read
+       and what is still missing are separate facts, so they get separate
+       words. */
+    meta: `${progressLabel()} · ${remainingLabel()}`,
+    /* The seasons, listed. This card used to carry the literal "· Season 1 ·
+       Where Data Lives" beside a count of every chapter in the book — true on
+       the day it was typed, and a claim about the wrong thing the moment there
+       were two seasons. Splitting the book was the other way to fix it and
+       costs more than it buys: 26 prose back-references and 11 cross-links run
+       from season 2 into season 1, and the numbering runs straight on so that
+       "Chapter 5" means one thing. So the shelf shows the structure instead,
+       derived, and `bookshelf.test.ts` keeps a season name out of the source. */
+    seasons: SEASONS.map((s) => {
+      const [n, subject] = s.label.split(' · ')
+      return { n, subject, count: `${progressOf(s).live} chapters` }
+    }),
   },
 ]
 
@@ -88,6 +115,17 @@ export default function Bookshelf() {
               <div className="bk">{b.kicker}</div>
               <h2>{b.title}</h2>
               <p>{b.dek}</p>
+              {b.seasons && (
+                <div className="bs-seasons">
+                  {b.seasons.map((s) => (
+                    <div className="row" key={s.n}>
+                      <span className="sn">{s.n}</span>
+                      <span className="ss">{s.subject}</span>
+                      <span className="sc">{s.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="bm">{b.meta} →</div>
             </Link>
           ))}

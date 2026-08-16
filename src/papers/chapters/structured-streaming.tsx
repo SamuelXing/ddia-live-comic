@@ -365,5 +365,5 @@ export const structuredStreaming: Chapter = {
     title: 'The dial, and the assumption underneath it',
     body: 'Act I set out to get from hours to seconds and it did, in three moves with three prices: keep the middle in memory and give up writing to a location; keep the state hot and give up partial recovery; keep the query declarative and give up the loop. What this last chapter adds is the thing that makes the whole ladder usable — one program, one log, one set of guarantees, and a trigger that moves you from ten milliseconds to once a quarter of a day without a rewrite. It is worth noticing that the cheapest rung and the freshest rung are the same code. What none of these chapters has questioned is that the order records arrive in is the order things happened in. That has been true because the inputs were files, or a message bus in a datacentre. It stops being true the moment the source is a phone, and the next act is about the gap between when something happened and when you heard about it.',
   },
-  next: { title: 'One Record at a Time, Forever', unwritten: true },
+  next: { title: 'One Record at a Time, Forever', slug: 'millwheel' },
 }

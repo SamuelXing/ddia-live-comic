@@ -89,6 +89,17 @@ export const seasonProgress = () => {
 }
 
 /**
+ * The same count for one season, so the shelf can list them separately. The
+ * rule lives here rather than at the call site because it has one subtlety —
+ * interludes are pages and are not chapters — and a second copy of that rule
+ * somewhere else is a second place for it to drift.
+ */
+export const progressOf = (s: Season) => {
+  const chapters = s.acts.flatMap((a) => a.entries).filter((e) => !e.interlude)
+  return { live: chapters.filter((e) => e.slug).length, total: chapters.length }
+}
+
+/**
  * Interludes are pages, and they are deliberately *not* chapters. They carry a
  * slug like any other live page, and counting them would make "4 of 18" drift
  * away from a table of contents that plainly numbers eighteen chapters. So both
@@ -107,6 +118,16 @@ export const seasonProgress = () => {
  * those are now two separate labels that say what they mean.
  */
 export const progressLabel = () => `${seasonProgress().live} chapters live`
+
+/**
+ * The other half of that pair: what is still missing. Kept as its own label
+ * for the reason above — "23 of 31" invites arithmetic and reads as an
+ * off-by-one; two plain statements do not.
+ */
+export const remainingLabel = () => {
+  const { live, total } = seasonProgress()
+  return `${total - live} still to write`
+}
 
 
 const SEASON_1_ACTS: TocAct[] = [
@@ -232,10 +253,10 @@ const SEASON_2_ACTS: TocAct[] = [
       'A phone was in a tunnel. The purchase happened at 09:14 and reaches you at 13:40, long after you published the total for the morning and told everyone it was final. Every system so far has quietly assumed that the order things arrive in is the order they happened in, and at this speed that assumption stops being harmless. The act is about the gap between those two clocks: how long you wait for stragglers, what you promise before they arrive, and what you owe anyone you already answered.',
     next: 'Next: the answer is a few seconds old, and somebody asks why it is recomputed at all.',
     entries: [
-      { no: 'Ch 21', title: 'One Record at a Time, Forever', paper: 'MillWheel — VLDB 2013' },
-      { no: '—', title: 'Interlude: The Three Times', interlude: true },
-      { no: 'Ch 22', title: 'When It Happened, and When You Heard', paper: 'The Dataflow Model — VLDB 2015' },
-      { no: 'Ch 23', title: 'A Photograph of a Moving System', paper: 'Flink snapshots — 2015' },
+      { no: 'Ch 21', title: 'One Record at a Time, Forever', paper: 'MillWheel — VLDB 2013', slug: 'millwheel' },
+      { no: '—', title: 'Interlude: The Three Times', interlude: true, slug: 'three-times' },
+      { no: 'Ch 22', title: 'When It Happened, and When You Heard', paper: 'The Dataflow Model — VLDB 2015', slug: 'dataflow' },
+      { no: 'Ch 23', title: 'A Photograph of a Moving System', paper: 'Flink snapshots — 2015', slug: 'flink-snapshots' },
     ],
   },
   {
