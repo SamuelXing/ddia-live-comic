@@ -220,9 +220,9 @@ const SEASON_2_ACTS: TocAct[] = [
       'The batch job is correct and it takes six hours, and it takes six hours again tomorrow for a day that differs by one per cent. Worse, anything iterative — and most useful analysis is iterative — writes the whole intermediate result to disk and reads it back on every pass, because the only thing the machinery trusts is a file. This act is about keeping the middle of the computation in memory without giving up the one property that made batch worth having: that a machine can die and nobody has to care.',
     next: 'Next: the answers arrive in seconds now, and some of the events they were counting arrive after them.',
     entries: [
-      { no: 'Ch 18', title: 'The Cost of Starting Over', paper: 'Spark / RDDs — NSDI 2012' },
-      { no: 'Ch 19', title: 'One Engine, Both Shapes', paper: 'Naiad — SOSP 2013' },
-      { no: 'Ch 20', title: 'The Same Query, Twice a Second', paper: 'Structured Streaming — SIGMOD 2018' },
+      { no: 'Ch 18', title: 'The Cost of Starting Over', paper: 'Spark / RDDs — NSDI 2012', slug: 'spark' },
+      { no: 'Ch 19', title: 'One Engine, Both Shapes', paper: 'Naiad — SOSP 2013', slug: 'naiad' },
+      { no: 'Ch 20', title: 'The Same Query, Twice a Second', paper: 'Structured Streaming — SIGMOD 2018', slug: 'structured-streaming' },
     ],
   },
   {

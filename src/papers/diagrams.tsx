@@ -1974,3 +1974,497 @@ export function OneMoveDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   SEASON 2 · ACT I — the job that ran all night.
+   Season 1's figures drew topology: who talks to whom, and what
+   is a copy of what. From here the subject is time, so these
+   draw duration, order and the cost of freshness instead. Same
+   palette and the same two accents; terra is now "you paid for
+   this again" and denim is "kept, and reused."
+   ============================================================ */
+
+/** Ch 18 — the arithmetic that made a company. The same logistic regression
+ *  over the same 256 MB, and twelve of the fifteen seconds go to turning bytes
+ *  into objects that were objects a moment ago. Numbers are Figure 9 and the
+ *  paper's own breakdown of it (§6.1). */
+export function WhereTheTimeWentDiagram() {
+  const X = 14
+  const U = 19.6 // viewBox units per second
+  const seg = (x: number, w: number, y: number, fill: string) => (
+    <rect x={x} y={y} width={w} height="20" fill={fill} fillOpacity="0.22" stroke={fill} strokeWidth="1.2" />
+  )
+  const key = (y: number, c: string, label: string, n: string) => (
+    <>
+      <rect x={X} y={y - 6} width="8" height="8" fill={c} fillOpacity="0.22" stroke={c} strokeWidth="1.1" />
+      <text x={X + 14} y={y} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {label}
+      </text>
+      <text x="330" y={y} textAnchor="end" fontFamily={MONO} fontSize="6.2" fill={c}>
+        {n}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 210"
+      role="img"
+      aria-label="One logistic regression pass over 256 megabytes takes 15.4 seconds when the records are read as text through HDFS: 2 seconds of HDFS overhead, 7 seconds of parsing, 3 seconds turning binary into Java objects, and only about 3 seconds of actual regression. The same pass over records already held as objects in memory takes 2.9 seconds."
+    >
+      <text x={X} y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one pass over 256 MB — where the seconds went
+      </text>
+
+      <text x={X} y="34" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        read it back the way the batch job does
+      </text>
+      {seg(X, 2.0 * U, 42, TERRA)}
+      {seg(X + 2.0 * U, 7.0 * U, 42, TERRA)}
+      {seg(X + 9.0 * U, 3.0 * U, 42, TERRA)}
+      {seg(X + 12.0 * U, 3.4 * U, 42, DENIM)}
+      <text x={X + 15.4 * U + 6} y="56" fontFamily={MONO} fontSize="6.6" fill={TERRA}>
+        15.4s
+      </text>
+
+      <text x={X} y="86" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the same records, still objects in RAM
+      </text>
+      {seg(X, 2.9 * U, 94, DENIM)}
+      <text x={X + 2.9 * U + 6} y="108" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        2.9s
+      </text>
+
+      <line x1={X} y1="128" x2="330" y2="128" stroke={MUTED} strokeWidth="0.8" />
+      {key(144, TERRA, 'getting the bytes out of HDFS', '2.0s')}
+      {key(158, TERRA, 'parsing the text', '7.0s')}
+      {key(172, TERRA, 'binary → Java objects', '3.0s')}
+      {key(186, DENIM, 'the regression itself', '~3.4s')}
+
+      <text x={X} y="204" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        nine more iterations, and it does all four again
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 18 — the reframe the chapter is built on. Making memory survivable was
+ *  assumed to mean copying it; RDDs copy the recipe instead. Both numbers are
+ *  from §6.3: a 100 GB working set against lineage graphs under 10 KB. */
+export function LineageNotDataDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 208"
+      role="img"
+      aria-label="To make in-memory data survive a failure you can replicate the working set — 100 gigabytes copied across a network slower than RAM, twice the memory — or you can keep the sequence of operations that produced it, which for these jobs was under 10 kilobytes."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        a machine died. how do you get its share back?
+      </text>
+
+      <rect x="14" y="28" width="150" height="86" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x="24" y="44" fontFamily={MONO} fontSize="6.8" fill={TERRA}>
+        keep a second copy
+      </text>
+      <text x="24" y="60" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        of the data itself
+      </text>
+      <rect x="24" y="70" width="130" height="14" fill={TERRA} fillOpacity="0.22" stroke={TERRA} strokeWidth="1" />
+      <text x="28" y="80" fontFamily={MONO} fontSize="6" fill={TERRA}>
+        100 GB, over the network
+      </text>
+      <text x="24" y="98" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        twice the RAM, and the wire
+      </text>
+      <text x="24" y="108" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        is far slower than RAM
+      </text>
+
+      <rect x="180" y="28" width="150" height="86" fill="none" stroke={DENIM} strokeWidth="1.6" />
+      <text x="190" y="44" fontFamily={MONO} fontSize="6.8" fill={DENIM}>
+        keep the recipe
+      </text>
+      <text x="190" y="60" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        how it was made, in order
+      </text>
+      <rect x="190" y="70" width="9" height="14" fill={DENIM} fillOpacity="0.22" stroke={DENIM} strokeWidth="1" />
+      <text x="204" y="80" fontFamily={MONO} fontSize="6" fill={DENIM}>
+        under 10 KB
+      </text>
+      <text x="190" y="98" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        recompute only the lost
+      </text>
+      <text x="190" y="108" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        pieces, on every machine at once
+      </text>
+
+      <line x1="14" y1="132" x2="330" y2="132" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="150" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the two bars are not to scale — 10 KB against 100 GB is ten
+      </text>
+      <text x="14" y="162" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        million to one, and no page is wide enough to draw that
+      </text>
+      <text x="14" y="184" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the right-hand copy is small enough to keep on every machine,
+      </text>
+      <text x="14" y="196" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        for every dataset, all the time. that is the whole idea
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 18 — the bill. "Degrades gracefully" is true and it is not free: losing a
+ *  quarter of the memory costs more than doubling the machines gave back.
+ *  Numbers are Figure 12 — logistic regression, 100 GB, 25 machines. */
+export function MemoryCliffDiagram() {
+  const pts: Array<[number, number, string]> = [
+    [0, 68.8, '0%'],
+    [25, 58.1, '25%'],
+    [50, 40.7, '50%'],
+    [75, 29.7, '75%'],
+    [100, 11.5, '100%'],
+  ]
+  const x = (p: number) => 40 + (p / 100) * 268
+  const y = (s: number) => 148 - (s / 70) * 96
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="Iteration time for logistic regression on 100 gigabytes across 25 machines, as the share of the dataset held in memory rises: 68.8 seconds with none of it cached, 58.1 at a quarter, 40.7 at half, 29.7 at three quarters, and 11.5 seconds with all of it in memory."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        iteration time vs. how much of the data fits
+      </text>
+      <line x1="40" y1="148" x2="322" y2="148" stroke={MUTED} strokeWidth="0.8" />
+      <line x1="40" y1="44" x2="40" y2="148" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="54" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        70s
+      </text>
+      <text x="14" y="150" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        0
+      </text>
+      <path
+        d={pts.map((p, i) => `${i ? 'L' : 'M'}${x(p[0])} ${y(p[1])}`).join(' ')}
+        fill="none"
+        stroke={DENIM}
+        strokeWidth="1.8"
+      />
+      {pts.map((p) => (
+        <circle key={p[2]} cx={x(p[0])} cy={y(p[1])} r="2.6" fill={DENIM} />
+      ))}
+      <text x={x(0) + 4} y={y(68.8) - 4} fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        68.8s
+      </text>
+      <text x={x(100)} y={y(11.5) - 8} textAnchor="end" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        11.5s
+      </text>
+      {pts.map((p) => (
+        <text
+          key={'t' + p[2]}
+          x={x(p[0])}
+          y="160"
+          textAnchor="middle"
+          fontFamily={MONO}
+          fontSize="5.8"
+          fill={MUTED}
+        >
+          {p[2]}
+        </text>
+      ))}
+      <text x="181" y="174" textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        share of the dataset held in RAM
+      </text>
+      <text x="14" y="190" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        it degrades gracefully, and the last quarter is worth 2.6× on its own
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 19 — what a timestamp has to be if one engine is going to do both jobs.
+ *  A plain sequence number cannot say "third time round the loop, on the second
+ *  batch of input"; a coordinate can, and the three system vertices are the only
+ *  places it ever changes. */
+export function TimelyTimestampDiagram() {
+  const rule = (y: number, name: string, effect: string, accent: string) => (
+    <>
+      <text x="20" y={y} fontFamily={MONO} fontSize="6.4" fill={accent}>
+        {name}
+      </text>
+      <text x="96" y={y} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {effect}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 214"
+      role="img"
+      aria-label="A timely dataflow timestamp is a pair: the input epoch a record came from, and one counter per enclosing loop. An ingress vertex appends a fresh loop counter, a feedback vertex increments the innermost one, and an egress vertex drops it. Only those three vertices ever change a timestamp."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        every message carries a coordinate, not a position
+      </text>
+
+      <rect x="14" y="26" width="316" height="44" fill="none" stroke={INK} strokeWidth="1.6" />
+      <text x="26" y="48" fontFamily={MONO} fontSize="8.4" fill={INK}>
+        ( epoch , ⟨ c₁ , … , c_k ⟩ )
+      </text>
+      <text x="26" y="62" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        which batch of input
+      </text>
+      <text x="150" y="62" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        which time round each enclosing loop
+      </text>
+
+      <text x="14" y="90" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        three vertices, and nothing else, may touch it
+      </text>
+      <line x1="14" y1="96" x2="330" y2="96" stroke={MUTED} strokeWidth="0.8" />
+      {rule(112, 'ingress', 'entering a loop — append a counter, at 0', DENIM)}
+      {rule(128, 'feedback', 'round again — add 1 to the innermost', DENIM)}
+      {rule(144, 'egress', 'leaving the loop — drop the counter', DENIM)}
+
+      <line x1="14" y1="158" x2="330" y2="158" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="176" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        t₁ ≤ t₂ only when both parts agree, so the order is partial
+      </text>
+      <text x="14" y="190" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and a partial order is exactly what lets the system prove that
+      </text>
+      <text x="14" y="202" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        no message at time t can ever arrive again
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 19 — the claim, drawn. A batch engine walks down one column; a stream
+ *  processor walks along one row; the argument of the paper is that these are
+ *  the same picture with different corners filled in. */
+export function BothShapesDiagram() {
+  const panel = (x: number, title: string, filled: (c: number, r: number) => boolean, accent: string) => (
+    <>
+      <text x={x} y="34" fontFamily={MONO} fontSize="6.4" fill={accent}>
+        {title}
+      </text>
+      {[0, 1, 2, 3].map((r) =>
+        [0, 1, 2, 3, 4].map((c) => (
+          <circle
+            key={`${x}-${r}-${c}`}
+            cx={x + 8 + c * 17}
+            cy={48 + r * 17}
+            r={filled(c, r) ? 3.4 : 2}
+            fill={filled(c, r) ? accent : 'none'}
+            stroke={filled(c, r) ? accent : MUTED}
+            strokeWidth="1"
+          />
+        )),
+      )}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 176"
+      role="img"
+      aria-label="Three grids with input epochs across and loop iterations down. A batch engine fills one column: many iterations over one fixed input. A stream processor fills one row: many inputs, no iteration. Timely dataflow fills the whole grid, running iterations of one epoch while a later epoch is still arriving."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        across: which batch of input · down: which time round the loop
+      </text>
+      {panel(14, 'batch, in memory', (c) => c === 0, TERRA)}
+      {panel(126, 'a stream processor', (_c, r) => r === 0, TERRA)}
+      {panel(238, 'timely dataflow', () => true, DENIM)}
+
+      <line x1="14" y1="132" x2="330" y2="132" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="150" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the third one is not a third system — it is the first two, unrestricted
+      </text>
+      <text x="14" y="166" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        iteration 4 of epoch 1 can run while epoch 3 is still arriving
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 19 — the season's ladder, measured for the first time. The same query
+ *  against the same graph: insist on the freshest answer and you queue behind
+ *  the work that makes it; accept one second of age and the wait is gone.
+ *  Numbers are §6.4 — 32,000 tweets/s, 10 queries/s. */
+export function StalenessDialDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="Interactive queries against a streaming graph computation. Asking for the freshest possible answer returns in 500 to 900 milliseconds because the query waits behind the update that makes it correct. Asking for data one second old returns in under 10 milliseconds, with occasional peaks near 100."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        same question, same data, one dial moved
+      </text>
+
+      <text x="14" y="36" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        &ldquo;answer from the very latest input&rdquo;
+      </text>
+      <rect x="14" y="44" width="272" height="18" fill={TERRA} fillOpacity="0.22" stroke={TERRA} strokeWidth="1.2" />
+      <text x="22" y="57" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        500–900 ms
+      </text>
+      <text x="14" y="76" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        the query is correct, and it waits behind the work that makes it correct
+      </text>
+
+      <text x="14" y="102" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        &ldquo;answer from data one second old&rdquo;
+      </text>
+      <rect x="14" y="110" width="7" height="18" fill={DENIM} fillOpacity="0.22" stroke={DENIM} strokeWidth="1.2" />
+      <text x="28" y="123" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        under 10 ms, mostly
+      </text>
+      <text x="14" y="142" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        equally consistent — just describing a moment that has passed
+      </text>
+
+      <line x1="14" y1="158" x2="330" y2="158" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="176" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        one second of age, and the wait falls by roughly fifty times
+      </text>
+      <text x="14" y="192" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        this is the trade the whole season is about, with a number on it
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 20 — the same sentence, compiled twice. The user writes the query they
+ *  would have written for a finished table; the planner turns it into something
+ *  that maintains a running answer. The point of the drawing is that the top
+ *  line is identical in both columns. */
+export function IncrementalizeDiagram() {
+  const col = (x: number, head: string, rows: string[], accent: string) => (
+    <>
+      <text x={x} y="72" fontFamily={MONO} fontSize="6.4" fill={accent}>
+        {head}
+      </text>
+      <rect x={x} y="78" width="146" height="62" fill="none" stroke={accent} strokeWidth="1.4" />
+      {rows.map((r, i) => (
+        <text key={r} x={x + 8} y={94 + i * 14} fontFamily={MONO} fontSize="6" fill={i === rows.length - 1 ? accent : INK}>
+          {r}
+        </text>
+      ))}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="One SQL query written once. Compiled as a batch plan it scans the whole table and groups it. Compiled as a streaming plan it reads only what arrived, updates a stored aggregate, and writes out what changed. The query text is the same in both cases."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what the user writes
+      </text>
+      <rect x="14" y="22" width="316" height="30" fill="none" stroke={INK} strokeWidth="1.6" />
+      <text x="24" y="42" fontFamily={MONO} fontSize="7" fill={INK}>
+        select country, count(*) from clicks group by country
+      </text>
+
+      <line x1="120" y1="52" x2="88" y2="66" stroke={MUTED} strokeWidth="1" />
+      <line x1="224" y1="52" x2="256" y2="66" stroke={MUTED} strokeWidth="1" />
+
+      {col(14, 'run it over a table', ['scan every row', 'group and count', 'write the answer', 'once, from scratch'], MUTED)}
+      {col(184, 'run it over a stream', ['read what arrived', 'add to the stored counts', 'write what changed', 'again, every trigger'], DENIM)}
+
+      <text x="14" y="164" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the difference is a compiler decision, not a second program
+      </text>
+      <text x="14" y="180" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        which is why the backfill and the live job cannot drift apart
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 20 — the result table is one thing; how it reaches the outside world is
+ *  a separate decision. Keeping them separate is the whole argument against
+ *  making the user annotate every operator. */
+export function OutputModeDiagram() {
+  const mode = (y: number, name: string, what: string, cost: string) => (
+    <>
+      <text x="18" y={y} fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        {name}
+      </text>
+      <text x="90" y={y} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {what}
+      </text>
+      <text x="90" y={y + 11} fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        {cost}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 186"
+      role="img"
+      aria-label="The result table is defined by the query alone. Writing it out is a separate choice: complete mode rewrites the whole table each time, append mode adds only new rows and cannot be used where a row might change later, update mode writes only the keys whose values moved."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one definition, three ways of writing it down
+      </text>
+      <rect x="14" y="24" width="316" height="26" fill="none" stroke={INK} strokeWidth="1.6" />
+      <text x="24" y="41" fontFamily={MONO} fontSize="6.6" fill={INK}>
+        the result table = the query, over everything received so far
+      </text>
+
+      <line x1="14" y1="62" x2="330" y2="62" stroke={MUTED} strokeWidth="0.8" />
+      {mode(80, 'complete', 'rewrite the whole table', 'correct always, and priced by the size of the answer')}
+      {mode(110, 'append', 'add rows, never revise one', 'refused where a row could still change — including this query')}
+      {mode(140, 'update', 'write the keys that moved', 'needs a sink that can be updated by key')}
+
+      <line x1="14" y1="156" x2="330" y2="156" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="176" fontFamily={MONO} fontSize="6.2" fill={INK}>
+        the reader never annotates an operator — the planner refuses the bad pairs
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 20 — the act's closing argument, as a ladder with prices on it. Same API,
+ *  same query, same guarantees; three settings of one dial, and each rung buys
+ *  its freshness with a different thing. */
+export function FreshnessPriceDiagram() {
+  const BAR = 126
+  const rung = (y: number, w: number, label: string, lat: string, price: string, accent: string) => (
+    <>
+      <text x="14" y={y + 12} fontFamily={MONO} fontSize="6.2" fill={accent}>
+        {label}
+      </text>
+      <rect x={BAR} y={y} width={w} height="18" fill={accent} fillOpacity="0.2" stroke={accent} strokeWidth="1.2" />
+      <text x={BAR + w + 6} y={y + 12} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {lat}
+      </text>
+      <text x="14" y={y + 30} fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        {price}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 212"
+      role="img"
+      aria-label="Three settings of one dial in the same system. Running a single batch every few hours is hours stale and up to ten times cheaper because no servers run around the clock. Microbatching is seconds stale and recovers a dead node one task at a time. Continuous operators are under ten milliseconds and give up shuffles, rescaling and straggler mitigation."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        one query, one API, three settings of the same dial
+      </text>
+
+      {rung(30, 150, 'one batch, every few hours', 'hours', 'and up to 10× cheaper — nothing runs between times', MUTED)}
+      {rung(84, 92, 'microbatches', 'seconds', 'a dead machine costs one task, not the cluster', DENIM)}
+      {rung(138, 30, 'continuous operators', 'under 10 ms', 'no shuffles, no rescaling, no straggler cover', TERRA)}
+
+      <line x1="14" y1="182" x2="330" y2="182" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="202" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        nobody rewrites anything to move between them — that is the argument
+      </text>
+    </svg>
+  )
+}

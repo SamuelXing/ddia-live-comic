@@ -174,6 +174,21 @@ export const ROUTES = {
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',
   },
 
+  '/papers/spark': {
+    title: 'The Cost of Starting Over',
+    desc: 'The job is correct and it runs for six hours, and nine tenths of that is reading back what it just wrote. Keeping it in memory was obvious \u2014 making the memory survive a dead machine was not.',
+  },
+
+  '/papers/naiad': {
+    title: 'One Engine, Both Shapes',
+    desc: 'A loop that never finishes, over input that never stops, answering questions from the middle of it. No system could do all three \u2014 and the reason was what a timestamp is allowed to be.',
+  },
+
+  '/papers/structured-streaming': {
+    title: 'The Same Query, Twice a Second',
+    desc: 'Two chapters of engines, and the hard part turned out to be who has to understand them. Write the query you would have written for a finished table, and let the planner do the rest.',
+  },
+
   '/ddia/components': {
     title: 'Component deep-dives',
     desc: 'Six pieces of infrastructure taken apart: animated request traces, a hardware envelope you can drag, failure cascades, and the papers behind each one.',
