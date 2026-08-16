@@ -149,6 +149,14 @@ export const ROUTES = {
     title: 'The Log Made Literal',
     desc: 'Stop writing pages entirely, ship only the redo log, and let the storage tier work out what the pages should say. The paper’s own section heading: “The Log Is the Database.”',
   },
+  '/papers/columnar': {
+    title: 'Reading Sideways',
+    desc: 'Every layout in this book was built to find a record. Now somebody wants one field out of a billion of them — which means turning the data ninety degrees and rebuilding the database around it.',
+  },
+  '/papers/snowflake': {
+    title: 'Elasticity as the Product',
+    desc: 'Build the analytical half again for a world where machines are rented by the second — and find out that the thing customers are buying is not the query engine.',
+  },
   '/papers/bigtable': {
     title: 'The Database GFS Deserved',
     desc: 'Google has to store the web on a file system that can’t edit a byte. Design your way out first — then see how close you got to the LSM tree.',

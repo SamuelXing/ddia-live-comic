@@ -1526,3 +1526,239 @@ export function AzQuorumDiagram() {
     </svg>
   )
 }
+
+/** Ch 15 — the whole argument, drawn once. A row store interleaves every
+ *  column on every page, so a query touching two fields still drags 200
+ *  through the I/O path. Turning the data ninety degrees means the fields you
+ *  did not ask for are never read at all. */
+export function ColumnLayoutDiagram() {
+  const cell = (x: number, y: number, w: number, fill: string, op: number) => (
+    <rect x={x} y={y} width={w} height="9" fill={fill} opacity={op} stroke={INK} strokeWidth="0.5" />
+  )
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="Row layout puts every column of a record together, so reading two fields still pulls whole records off disk. Column layout stores each field contiguously, so a query reads only the two stripes it asked for and never touches the rest."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        a query wants 2 fields out of 200
+      </text>
+
+      <text x="12" y="38" fontFamily={MONO} fontSize="6.6" fill={TERRA}>
+        by row — one record at a time
+      </text>
+      {[0, 1, 2].map((r) =>
+        [0, 1, 2, 3, 4, 5, 6, 7].map((c) => (
+          <g key={`r${r}c${c}`}>{cell(16 + c * 38, 46 + r * 12, 36, c === 1 || c === 5 ? DENIM : MUTED, c === 1 || c === 5 ? 0.8 : 0.18)}</g>
+        )),
+      )}
+      <text x="16" y="96" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        every read drags the whole record through
+      </text>
+
+      <text x="12" y="124" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        by column — one field at a time
+      </text>
+      {[0, 1, 2, 3, 4, 5, 6, 7].map((c) => (
+        <g key={`c${c}`}>
+          <rect
+            x={16 + c * 38}
+            y="132"
+            width="36"
+            height="34"
+            fill={c === 1 || c === 5 ? DENIM : MUTED}
+            opacity={c === 1 || c === 5 ? 0.8 : 0.12}
+            stroke={INK}
+            strokeWidth="0.5"
+          />
+        </g>
+      ))}
+      <text x="16" y="182" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        the other 198 fields are never opened
+      </text>
+      <text x="16" y="196" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and a stripe is all one type, so it compresses far harder
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 15 — the second paper's actual contribution, which is the part people
+ *  skip. Values alone cannot say where in a nested record they sat, so each
+ *  one carries two small integers. This is Figure 3 of the Dremel paper for
+ *  one column, and it is worth reading a row at a time. */
+export function RepetitionLevelDiagram() {
+  const rows: [string, string, string][] = [
+    ['en-us', '0', '2'],
+    ['en', '2', '2'],
+    ['NULL', '1', '1'],
+    ['en-gb', '1', '2'],
+    ['NULL', '0', '1'],
+  ]
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="One column of nested values, each carrying a repetition level and a definition level. Repetition says which repeated field the value repeated at; definition says how many optional levels were actually present. Together they encode the record structure losslessly."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        column: Name.Language.Code — two records, striped
+      </text>
+      <text x="16" y="40" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        value
+      </text>
+      <text x="150" y="40" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        r
+      </text>
+      <text x="186" y="40" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        d
+      </text>
+      <line x1="16" y1="46" x2="220" y2="46" stroke={MUTED} strokeWidth="0.8" />
+      {rows.map(([v, r, d], i) => (
+        <g key={i}>
+          <text x="16" y={62 + i * 16} fontFamily={MONO} fontSize="6.6" fill={v === 'NULL' ? MUTED : INK}>
+            {v}
+          </text>
+          <text x="150" y={62 + i * 16} fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+            {r}
+          </text>
+          <text x="186" y={62 + i * 16} fontFamily={MONO} fontSize="6.6" fill={TERRA}>
+            {d}
+          </text>
+        </g>
+      ))}
+      <text x="228" y="62" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        r = 0 starts
+      </text>
+      <text x="228" y="72" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        a new record
+      </text>
+      <text x="228" y="94" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        NULLs are never
+      </text>
+      <text x="228" y="104" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        stored — d says
+      </text>
+      <text x="228" y="114" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        they were absent
+      </text>
+
+      <text x="16" y="158" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        r: at which repeated field did this value repeat
+      </text>
+      <text x="16" y="172" fontFamily={MONO} fontSize="6.2" fill={TERRA}>
+        d: how many optional ancestors were actually present
+      </text>
+      <text x="16" y="190" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        two small integers, packed to as few bits as the schema needs
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 16 — the sentence that turned out to be the product. Paying by the
+ *  compute-hour makes the two bars cost the same, and one of them finishes
+ *  before lunch. The paper puts this in a single aside and then says elasticity
+ *  is the biggest differentiator of the whole architecture. */
+export function ElasticityDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 190"
+      role="img"
+      aria-label="A data load taking fifteen hours on four nodes takes about two hours on thirty-two. Both consume a similar number of compute-hours, so the price is roughly the same, but the wall-clock time differs by more than sevenfold."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the same bill, a different afternoon
+      </text>
+
+      <text x="12" y="44" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        4 nodes
+      </text>
+      <rect x="76" y="34" width="240" height="16" fill={TERRA} opacity="0.3" stroke={TERRA} strokeWidth="1.2" />
+      <text x="82" y="46" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        15 hours
+      </text>
+
+      <text x="12" y="82" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        32 nodes
+      </text>
+      <rect x="76" y="72" width="32" height="16" fill={DENIM} opacity="0.85" stroke={DENIM} strokeWidth="1.2" />
+      <text x="116" y="84" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        2 hours
+      </text>
+
+      <line x1="12" y1="108" x2="332" y2="108" stroke={MUTED} strokeWidth="0.8" />
+      <text x="12" y="128" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        4 × 15 = 60 node-hours · 32 × 2 = 64 node-hours
+      </text>
+      <text x="12" y="148" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        you rent by the node-hour, so these cost about the same
+      </text>
+      <text x="12" y="166" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        which makes wall-clock time nearly free — and that turned out to be
+      </text>
+      <text x="12" y="180" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        the feature people were buying, rather than the query engine
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 16 — why the coupling had to go. In shared-nothing the data lives on the
+ *  node, so changing the number of nodes means moving data with the same
+ *  machines that are meant to be answering queries. Put the data somewhere else
+ *  and resizing costs nothing to move. */
+export function SharedDataDiagram() {
+  const node = (x: number, y: number, withDisk: boolean, accent: string) => (
+    <>
+      <rect x={x} y={y} width="26" height="14" fill={accent} opacity="0.75" stroke={INK} strokeWidth="0.8" />
+      {withDisk && <rect x={x + 4} y={y + 16} width="18" height="8" fill={MUTED} opacity="0.5" stroke={INK} strokeWidth="0.6" />}
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 206"
+      role="img"
+      aria-label="In a shared-nothing cluster each node owns the data on its own disk, so adding or removing a node means reshuffling data using the same machines that answer queries. With the data in an object store, the compute nodes hold only caches, so resizing moves nothing."
+    >
+      <text x="12" y="16" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        what happens when you add a node
+      </text>
+
+      <text x="12" y="38" fontFamily={MONO} fontSize="6.6" fill={TERRA}>
+        shared-nothing — the data is on the node
+      </text>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>{node(20 + i * 46, 48, true, TERRA)}</g>
+      ))}
+      <text x="212" y="60" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        + 1 node ⇒ reshuffle,
+      </text>
+      <text x="212" y="72" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        using these same nodes
+      </text>
+
+      <text x="12" y="112" fontFamily={MONO} fontSize="6.6" fill={DENIM}>
+        shared-data — the node holds only a cache
+      </text>
+      {[0, 1, 2, 3].map((i) => (
+        <g key={i}>{node(20 + i * 46, 122, false, DENIM)}</g>
+      ))}
+      <text x="212" y="132" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        + 1 node ⇒ nothing moves
+      </text>
+      <rect x="20" y="152" width="292" height="16" fill={MUTED} opacity="0.22" stroke={INK} strokeWidth="0.8" />
+      <text x="26" y="164" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        object storage — immutable files, shared by every cluster
+      </text>
+
+      <text x="12" y="190" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        so resizing, failing over and upgrading stop being data-movement problems
+      </text>
+      <text x="12" y="204" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        and start being scheduling problems, which are much easier
+      </text>
+    </svg>
+  )
+}

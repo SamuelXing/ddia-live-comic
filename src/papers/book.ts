@@ -150,8 +150,8 @@ export const TOC: TocAct[] = [
       'Everything up to here has been tuned for finding a record. But another question was always in the building: not “what is in this order” but “what did we sell in Ontario last March”. That one reads a single field out of every row, and every layout in Act I is wrong for it. So the data gets turned ninety degrees, stored by column instead of by row — and the split turns permanent. Two systems, two copies of everything, and a pipeline between them that becomes somebody’s entire job.',
     next: 'Next: twenty years on, the two families that split in Act II start to look like each other again.',
     entries: [
-      { no: 'Ch 15', title: 'Reading Sideways', paper: 'C-Store 2005 · Dremel 2010' },
-      { no: 'Ch 16', title: 'Elasticity as the Product', paper: 'Snowflake — SIGMOD 2016' },
+      { no: 'Ch 15', title: 'Reading Sideways', paper: 'C-Store 2005 · Dremel 2010', slug: 'columnar' },
+      { no: 'Ch 16', title: 'Elasticity as the Product', paper: 'Snowflake — SIGMOD 2016', slug: 'snowflake' },
     ],
   },
   {
