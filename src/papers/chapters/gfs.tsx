@@ -318,5 +318,5 @@ export const gfs: Chapter = {
     title: 'The refusal that propagated',
     body: 'GFS did not set out to change how databases are built. It set out to keep the crawl on machines that keep dying, and the shortest path there was to stop pretending a file can be edited. Everything stacked on top then had to live inside that refusal — which is where immutable files, background merges and repair-as-a-chore come from, and why they are still in your storage engine tonight. Next: the same machines that hold the chunks are asked to *compute* something, and the answer is a pattern so plain that a decade of people mistake it for a product.',
   },
-  next: { title: 'MapReduce — the Pattern, Not the Product', unwritten: true },
+  next: { title: 'MapReduce: the Pattern, Not the Product', slug: 'mapreduce' },
 }

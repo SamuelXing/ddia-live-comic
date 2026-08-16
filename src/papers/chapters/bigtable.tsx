@@ -278,6 +278,7 @@ export const bigtable: Chapter = {
   ],
   seenIn: [
     { label: 'The File System That Refused to Edit — Ch 1', to: '/papers/gfs', live: true },
+    { label: 'MapReduce: the Pattern, Not the Product — Ch 2', to: '/papers/mapreduce', live: true },
     { label: 'B-trees vs LSM-trees — the comic', to: '/ddia/read/storage', live: true },
     { label: 'Choosing the Partition Key — the comic', to: '/ddia/read/partition-key', live: true },
     { label: 'The wide-column ring, priced out — capacity calculator', to: '/calculator/capacity', live: true },
