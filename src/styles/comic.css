@@ -60,6 +60,16 @@
 .gn-mast h1 { font-family: var(--gn-display); font-weight: 900; letter-spacing: -.02em;
   font-size: clamp(40px,7vw,74px); line-height: .97; margin: 12px 0 0; max-width: 16ch; position: relative; }
 .gn-mast .dek { font-size: clamp(16px,2.2vw,20px); color: var(--ink-2); max-width: 56ch; margin: 16px 0 0; position: relative; }
+/* Attribution, in the masthead rather than the footer. Sized below the dek and
+   above a footnote: it has to be legible without competing with the headline,
+   because a disclaimer nobody reads is the same as no disclaimer. `position:
+   relative` for the same reason as its neighbours — the halftone wash on
+   .gn-mast::before is painted over the box, and anything without a stacking
+   context of its own goes under it. */
+.gn-mast .gn-attrib { font-size: 14px; line-height: 1.5; color: var(--ink-2); max-width: 62ch;
+  margin: 14px 0 0; position: relative; }
+.gn-mast .gn-attrib a { color: var(--denim-ink); text-underline-offset: 2px; }
+
 .gn-tags { display: flex; gap: 8px; margin-top: 20px; position: relative; flex-wrap: wrap; }
 .gn-tag { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
   border: 2px solid var(--ink-line); padding: 3px 10px; background: var(--paper); font-weight: 500; }

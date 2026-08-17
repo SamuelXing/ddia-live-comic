@@ -118,11 +118,26 @@ export default function IndexPage() {
 
       <div className="gn-sheet">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">The concept lens · inspired by DDIA, 1st edition</div>
+          <div className="gn-kicker">The concept lens</div>
           <h1>The hard ideas, drawn out.</h1>
           <p className="dek">
             Distributed systems are full of arcane ideas — replication, partitioning, consensus. Read each one as a
             short comic, then follow it into the real machines and architectures where it actually lives.
+          </p>
+          {/* The kicker used to end "· inspired by DDIA, 1st edition", which is
+              the vaguest phrasing available and reads like a page working out
+              how to avoid the question. Meanwhile "unofficial" and "not
+              affiliated" sat in the footer, past twelve cards — and this is the
+              page a shared link opens, so most readers met the site without
+              ever meeting the disclaimer. It says who wrote the book, that this
+              is not his, and what a reader is actually getting. */}
+          <p className="gn-attrib">
+            An unofficial companion to{' '}
+            <a href="https://dataintensive.net" target="_blank" rel="noreferrer">
+              <i>Designing Data-Intensive Applications</i>
+            </a>{' '}
+            by Martin Kleppmann — drawn and written from the ideas rather than from the text, with chapter numbers
+            following the 1st edition. Not affiliated with the author or O’Reilly.
           </p>
           <div className="gn-tags">
             {/* counted, not typed — the last comic shipped with this still
@@ -174,7 +189,9 @@ export default function IndexPage() {
         ))}
 
         <div className="gn-foot">
-          <span>DDIA, as a live comic — an unofficial, illustrated companion to the book</span>
+          {/* "the book" named no book. The masthead carries the full statement
+              now, so this one only has to not be vague. */}
+          <span>DDIA, as a live comic — an unofficial companion to Kleppmann’s book, not affiliated with it</span>
           <span>
             <Link to="/ddia">← DDIA home</Link>
           </span>

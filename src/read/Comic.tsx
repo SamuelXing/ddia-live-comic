@@ -187,7 +187,13 @@ export default function ComicView({ comic }: { comic: Comic }) {
 
       <div className="gn-sheet reading">
         <header className="gn-mast box" data-obs>
-          <div className="gn-kicker">Inspired by DDIA, 1st ed. · {comic.chapter}</div>
+          {/* A comic is what a shared link opens, and this page renders no site
+              footer — so "Inspired by DDIA, 1st ed." was very nearly the whole
+              of the attribution, in the one phrasing that sounds like it is
+              dodging the question. "Unofficial" answers what a reader wants to
+              know at a glance; the full statement is at the foot of the page,
+              which they reach because they have just read the thing. */}
+          <div className="gn-kicker">Unofficial · DDIA 1st ed. · {comic.chapter}</div>
           <h1>{comic.title}</h1>
           <p className="dek">{comic.dek}</p>
           <div className="gn-tags">
@@ -312,7 +318,10 @@ export default function ComicView({ comic }: { comic: Comic }) {
           </section>
 
           <div className="gn-next">
-            <span>DDIA, as a live comic — inspired by the book by Martin Kleppmann</span>
+            <span>
+              An unofficial companion to <i>Designing Data-Intensive Applications</i> by Martin Kleppmann, drawn from
+              the ideas rather than the text. Not affiliated with the author or O’Reilly.
+            </span>
             {comic.next && <Link to={'/ddia/read/' + comic.next.slug}>Next: {comic.next.title} →</Link>}
           </div>
         </main>
