@@ -66,7 +66,7 @@ export const snowflake: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three questions. The first is the architectural break; the second is what the storage system forces on you; and the third is how you get the performance back after giving away the thing that made shared-nothing fast.',
+        'One architectural break, one thing the storage system forces on you whether you like it or not, and then the awkward part: getting the performance back after giving away the very thing that made shared-nothing fast.',
       ],
       diagram: (
         <DesignIt
@@ -345,7 +345,7 @@ export const snowflake: Chapter = {
   ],
   finale: {
     title: 'Act VI closes: the layout was the easy part',
-    body: 'Two chapters, and they answer different halves of the same divorce. Chapter 15 was about the layout — one field of every row rather than every field of one row, which is a genuinely different problem needing a genuinely different database, and the split it created is still with us. This chapter rebuilt the analytical half for machines you rent, and the surprise is where the value landed. Not in the engine, which is good and which the authors say users rarely noticed, but in the fact that compute owns nothing: so clusters can be created for one job and destroyed after it, so two workloads share every byte without sharing a machine, so wall-clock time is something you buy at a flat rate. Next: the epilogue, and an argument this book started in Act II. Amazon threw away the master to keep the checkout button alive, and fifteen years later the system that carries its name runs a leader per partition group, splits ranges when they get hot, and will sell you a strongly consistent read. Nobody announced it. The argument ended in a draw.',
+    body: 'This chapter and the last one answer different halves of the same divorce. Chapter 15 was about the layout — one field of every row rather than every field of one row, which is a genuinely different problem needing a genuinely different database, and the split it created is still with us. This chapter rebuilt the analytical half for machines you rent, and the surprise is where the value landed. Not in the engine, which is good and which the authors say users rarely noticed, but in the fact that compute owns nothing: so clusters can be created for one job and destroyed after it, so two workloads share every byte without sharing a machine, so wall-clock time is something you buy at a flat rate. Next: the epilogue, and an argument this book started in Act II. Amazon threw away the master to keep the checkout button alive, and fifteen years later the system that carries its name runs a leader per partition group, splits ranges when they get hot, and will sell you a strongly consistent read. Nobody announced it. The argument ended in a draw.',
   },
   next: { title: 'The Retreat', slug: 'dynamodb' },
 }

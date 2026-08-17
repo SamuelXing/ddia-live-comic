@@ -42,7 +42,7 @@ export const unbundling: Chapter = {
     url: 'https://martin.kleppmann.com/papers/kafka-debull15.pdf',
   },
   caption:
-    'Here is a claim that sounds like arrogance and is closer to an apology. **You have spent two seasons building a database and nobody told you.** A log that is the record of what happened. Copies of it in other shapes, each behind by a different amount. Answers kept up to date as changes arrive. A cache that fills on demand. Indexes that make one access pattern fast at the cost of another. Those are not systems you assembled around a database — *they are the parts of one*, taken out of the box and spread across a datacentre, with the wiring between them left as an exercise. This paper says that is not a failure to be corrected. It says it is the correct response to a fact the previous chapter has to work around: **different workloads want genuinely different storage, and no single product is going to serve all of them well.**',
+    'Here is a claim that sounds like arrogance and is closer to an apology. **You have spent two seasons building a database and nobody told you.** A log that is the record of what happened. Copies of it in other shapes, none of them quite caught up. Answers kept up to date as changes arrive. A cache that fills on demand. Indexes that make one access pattern fast at the cost of another. Those are not systems you assembled around a database — *they are the parts of one*, taken out of the box and spread across a datacentre, with the wiring between them left as an exercise. This paper says that is not a failure to be corrected. It says it is the correct response to a fact the previous chapter has to work around: **different workloads want genuinely different storage, and no single product is going to serve all of them well.**',
   steps: [
     {
       n: 'Step 01',
@@ -63,7 +63,7 @@ export const unbundling: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions. The first is what the seam between systems is; the second is where a stateful operator keeps what it knows; the third is the one people get wrong, because the correct answer looks like negligence.',
+        'What the seam between systems is, then where a stateful operator keeps what it knows. The last one is the one people get wrong, because the correct answer looks like negligence.',
       ],
       diagram: (
         <DesignIt
@@ -214,7 +214,7 @@ export const unbundling: Chapter = {
       body: [
         '**Reads are stale, structurally.** Write to the log, then read from a store maintained by consuming that log, and you may get the old value. This is not a defect to be fixed — it is the same decoupling that stops a slow consumer hurting anybody, so removing it removes the benefit. The paper notes linearizable structures can be built over a totally ordered log if you need them, which is true and is a different system than the one you were just admiring.',
         '**Crashes reprocess.** A restarted job resumes from its last checkpointed offset, so everything between that checkpoint and the crash is processed twice. For an idempotent operation that is invisible; for the counter in the paper’s own worked example it means the counts come out *slightly wrong*, and the paper says so about its own figure. Exactly-once is listed as work in progress — the transactional protocol landed in Kafka afterwards, which is worth knowing when reading the 2015 text.',
-        '**Ordering is per partition and nowhere else.** Total order within a partition, no ordering guarantee across them, which is exactly what buys the linear scaling. So the partition key decides what can be ordered together and what can be parallelised, it is as painful to change as a primary key, and Chapter 6 already told you that.',
+        '**Ordering is per partition and nowhere else.** Total order within a partition, no ordering guarantee across them, which is exactly what buys the linear scaling. So the partition key fixes which records can be ordered against each other and which can be worked on at once, it is as unpleasant to change as a primary key, and Chapter 6 already told you that.',
         '**And it is a lot of machinery to hold in your head.** The programming model is one message at a time, which the paper calls flexible and also harder to use, more error-prone, and less amenable to automatic optimisation than a declarative language. That is the honest summary of the whole approach, not just the API: **you have taken the lid off a database, and now you are responsible for the parts.** Nobody optimises across your five systems. Nobody enforces a constraint that spans them. Nobody hands you a query plan.',
       ],
       callout: {
@@ -241,7 +241,7 @@ export const unbundling: Chapter = {
       rung: 'Rung 7 · The close',
       body: [
         'Season 2 asked one question in four acts: **how long after something happens can somebody see it, and what does each way of shortening that cost?** Act I got from hours to minutes by keeping the middle of a computation in memory and finding a way to recover it that did not require writing it down. Act II got from minutes to seconds and paid for it with the discovery that the time an event happened and the time it arrived are different numbers, and that most of the difficulty in stream processing is that gap. Act III got to *now*, by treating the change as the unit of work so an answer is updated rather than recomputed. Act IV got to before the network, by making convergence a property of the data rather than a protocol.',
-        'And every one of those rungs was paid for in the same currency. Memory that is resident and cannot be spilled. State that has to be kept because a late record might still arrive. Indexes that keep every difference because a later version may need a different subset. A change history that cannot be truncated because somebody may reconnect after six months. *Freshness is bought with state you have to keep hot*, over and over, in four different disguises.',
+        'And every one of those rungs was paid for in the same currency. Memory that is resident and cannot be spilled. State that has to be kept because a late record might still arrive. Indexes holding every difference, because a later version may want a different subset of them. Edit histories with no ceiling, since the collaborator who vanished in March is entitled to come back in September. *Freshness is bought with state you have to keep hot*, over and over, in four different disguises.',
         '**Then the epilogue asked what you had built by doing all that, and got two answers.** One says the pieces are a database that got taken apart by accident, and the accident is fixable — put a transaction log under the storage and the parts fit back together. The other says they are a database that was taken apart on purpose, because the workloads genuinely differ, and the useful move is to standardise the joint rather than reassemble the machine. Both are in production. Both are right about the thing they measured.',
         '*And they agree about the mechanism completely.* One ordered log of changes that anybody may replay from any point — a `_delta_log` directory of numbered JSON objects, or a partitioned topic on a broker. Season 1 named an act after that idea in 2011 and this is where it lands: **not as a component you install, but as the thing the argument is conducted in.** Whichever ending you prefer, the log is underneath it, and that is the least surprising and most durable result in this book.',
       ],
@@ -322,8 +322,8 @@ export const unbundling: Chapter = {
     {
       year: '1978',
       title: 'UNIX Time-Sharing System: Foreword — McIlroy, Pinson & Tague (Bell System Technical Journal)',
-      url: 'https://archive.org/details/bstj57-6-1899',
-      note: 'The origin of both maxims the paper leans on — make each program do one thing well, and expect the output of every program to become the input to another, as yet unknown, program. Three pages. Worth reading in the original to see how much of it is about *organisational* pressure inside Bell Labs, which is exactly the argument this paper is making forty years later.',
+      url: 'https://doi.org/10.1002/j.1538-7305.1978.tb02135.x',
+      note: 'The origin of both maxims the paper leans on — make each program do one thing well, and expect the output of every program to become the input to another, as yet unknown, program. Three pages, and the Internet Archive holds a free scan of the whole 1978 UNIX issue if the publisher’s copy is behind a wall. Worth reading in the original to see how much of it is about *organisational* pressure inside Bell Labs, which is exactly the argument this paper is making forty years later.',
     },
     {
       year: '2013',

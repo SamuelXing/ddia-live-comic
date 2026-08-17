@@ -66,7 +66,7 @@ export const spanner: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three questions. The first has four wrong-looking answers because the right one is not a mechanism at all — it is a change in what the clock is allowed to say.',
+        'Google wants one database spanning continents that can still say which transaction came first without lying about it. Four of the answers below look wrong, and the reason the right one looks strangest is that it is not a mechanism — it is a change in what a clock is permitted to claim.',
       ],
       diagram: (
         <DesignIt
@@ -347,7 +347,7 @@ export const spanner: Chapter = {
   ],
   finale: {
     title: 'Act IV closes: both promises bought back, at very different prices',
-    body: 'Two chapters, one demand, two currencies. Chapter 10 paid in software — a library, locks parked beside the data, a commit point hidden in one row, and cleanup left to strangers — and it worked because a web index will wait. This one paid in hardware and in patience, buying an honest error bar on the clock and then sitting still for its width on every write. What both of them really did was fix the order in which writes are allowed to have happened, and then defend that order with everything they had. Next: an act that stops treating the order as machinery in the basement. The log has been inside every system in this book, quietly, doing the actual work. What happens if you promote it — if the table, the cache and the index become readers of one sequence, each behind by a different amount?',
+    body: 'One demand, paid for twice in two different currencies. Chapter 10 paid in software — a library, locks parked beside the data, a commit point hidden in one row, and cleanup left to strangers — and it worked because a web index will wait. This one paid in hardware and in patience, buying an honest error bar on the clock and then sitting still for its width on every write. What both of them really did was fix the order in which writes are allowed to have happened, and then defend that order with everything they had. Next: an act that stops treating the order as machinery in the basement. The log has been inside every system in this book, quietly, doing the actual work. What happens if you promote it — if the table, the cache and the index all become subscribers to one ordering, each lagging it by however much they lag it?',
   },
   next: { title: 'The Most Common Derived Copy', slug: 'memcache' },
 }

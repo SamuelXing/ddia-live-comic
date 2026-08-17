@@ -253,7 +253,7 @@ export const mapreduce: Chapter = {
   ],
   finale: {
     title: 'A smaller language, a bigger runtime',
-    body: 'Two chapters in, Google can store the web and sweep it. What it still cannot do is *look something up* — this model reads everything to answer anything, and the crawler wants to update one page while a user waits on one row. Both of those want the same thing: a place where a single record has an address. Next, that place gets built, on a file system that will not let anything be edited.',
+    body: 'Google can store the web now, and sweep it. What it still cannot do is *look something up* — this model reads everything to answer anything, and the crawler wants to update one page while a user waits on one row. Both of those want the same thing: a place where a single record has an address. Next, that place gets built, on a file system that will not let anything be edited.',
   },
   next: { title: 'The Database GFS Deserved', slug: 'bigtable' },
 }

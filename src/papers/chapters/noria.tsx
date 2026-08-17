@@ -58,7 +58,7 @@ export const noria: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions. The first is the premise, the second is the paper, and the third is the one that turns a good idea into a correctness problem — which is where most of the eight pages of mechanism actually go.',
+        'Nearly every request a web application serves is a read. What follows is what happens if you stop answering them one at a time — and most of the paper’s eight pages of mechanism go on the last decision here, which is where a good idea turns into a correctness problem.',
       ],
       diagram: (
         <DesignIt

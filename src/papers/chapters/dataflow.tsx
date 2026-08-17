@@ -43,7 +43,7 @@ export const dataflow: Chapter = {
       accent: 'terra',
       rung: 'Rung 1 · The constraint',
       body: [
-        'Take the example the paper opens with, because it makes the conflict unavoidable. A video service shows ads and bills advertisers for how much was watched. Views happen **online and offline** — somebody watches on a phone in a field and the device uploads hours later. Advertisers want to adjust budgets in near real time. **And since money is involved, correctness is paramount.**',
+        'The paper opens on an example worth borrowing, because it makes the conflict unavoidable. A video service shows ads and bills advertisers for how much was watched. Views happen **online and offline** — somebody watches on a phone in a field and the device uploads hours later. Advertisers want to adjust budgets in near real time. **And since money is involved, correctness is paramount.**',
         'Now try to serve that with one bound and one timer. **Too fast:** a footnote in the paper is the whole problem in three sentences — if somebody takes their device into the wilderness, the system has no practical way of knowing when they might come back, regain connection and upload. So the watermark for that window will pass before the data does, and no tuning fixes it, because the missing information is *not in your system.*',
         '**Too slow:** the bound is a global progress metric, so it is held back for everyone by whoever is furthest behind. And even in a healthy pipeline the baseline skew may be minutes. A billing team in the paper hit exactly this, with watermark lags caused by stragglers in their input. So the advertiser waiting for a number waits for the slowest device on the internet.',
         'And notice what the two failures want. Too-fast wants **to emit again later**. Too-slow wants **to emit sooner, before you are sure.** One signal cannot want both, which means the design was never going to work by getting the bound more accurate. *The mistake was asking one number to decide when to speak at all.*',
@@ -56,7 +56,7 @@ export const dataflow: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions, and unusually for this book the first one is about vocabulary rather than mechanism. That is the paper: almost nothing here is a new algorithm, and the contribution is what it lets people say.',
+        'Almost nothing below is a new algorithm. What the paper contributes is vocabulary — a strange thing to sit down and design, and the reason it has outlived the system it describes.',
       ],
       diagram: (
         <DesignIt

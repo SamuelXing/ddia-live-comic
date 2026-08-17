@@ -60,7 +60,7 @@ export const crdt: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions. The first is where the problem is, the second is the shape that dissolves it, and the third is the one that separates people who have used these from people who have read about them.',
+        'Locate the problem, then find the shape that dissolves it. What is left after that is the question separating people who have used these from people who have read about them.',
       ],
       diagram: (
         <DesignIt

@@ -67,7 +67,7 @@ export const memcache: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three questions. The first is the one every engineer answers wrong at least once, and the third has an answer that quietly sets up the rest of this act.',
+        'A billion requests a second arrive at a tier of caches sitting in front of MySQL, and every decision below is about what happens when the two disagree. Most engineers get the first one wrong at least once, usually in production and usually at night.',
       ],
       diagram: (
         <DesignIt

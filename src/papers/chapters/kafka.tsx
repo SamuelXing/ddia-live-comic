@@ -31,7 +31,7 @@ export const kafka: Chapter = {
     url: 'https://www.microsoft.com/en-us/research/wp-content/uploads/2017/09/Kafka.pdf',
   },
   caption:
-    'Chapter 12 ended with a daemon tailing MySQL’s commit log so that a cache could be told what changed — chosen over sending messages because **a stream can be replayed and a message cannot.** Hold that thought and look around. Every system in this book has a log inside it doing the real work: GFS appends, Bigtable’s memtable, the Paxos log, Spanner’s ordered writes, Percolator’s write records. In every one of them the log is private plumbing. So here is the question this chapter is about, asked at LinkedIn in 2011 by people drowning in point-to-point data pipelines: **why is the log a private implementation detail? Make it a service, and let anything subscribe.**',
+    'Chapter 12 ended with a daemon tailing MySQL’s commit log so that a cache could be told what changed — chosen over sending messages for one reason: **you can rewind a stream, and a message is gone once it is delivered.** Hold that thought and look around. Every system in this book has a log inside it doing the real work: GFS appends, Bigtable’s memtable, the Paxos log, Spanner’s ordered writes, Percolator’s write records. In every one of them the log is private plumbing. So here is the question this chapter is about, asked at LinkedIn in 2011 by people drowning in point-to-point data pipelines: **why is the log a private implementation detail? Make it a service, and let anything subscribe.**',
   steps: [
     {
       n: 'Step 01',
@@ -69,7 +69,7 @@ export const kafka: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three questions, and the first one decides the other two. Notice as you go that each answer is arrived at by **removing** something every competing system had.',
+        'LinkedIn is drowning in point-to-point pipelines, one per pair of systems, each written by somebody who has since changed teams. Notice as you go that every answer below is reached by **taking something away** that each competing system had.',
       ],
       diagram: (
         <DesignIt
@@ -337,7 +337,7 @@ export const kafka: Chapter = {
   ],
   finale: {
     title: 'The log stopped being an implementation detail',
-    body: 'Two documents, one system, and the gap between them is the interesting part. The paper removed everything a message queue normally does — the ids, the index, the per-consumer bookkeeping, the copies into user space — and was left with a file you append to and read at an offset, which turned out to be four hundred thousand messages a second. The post then said what that file was: not a buffer but the primary record, with tables, caches, indexes and warehouses as views of it that have fallen behind by different amounts. Next: a relational database takes that claim completely literally. It stops writing pages over the network altogether, ships nothing but redo log records to its storage tier, and lets the storage work out what the pages should say. The section of the paper where this happens is titled, without any hedging, "The Log Is the Database."',
+    body: 'The interesting part is not the system — it is the four-year gap between the paper and the post that explained what the paper had built. The paper removed everything a message queue normally does — the ids, the index, the per-consumer bookkeeping, the copies into user space — and was left with a file you append to and read at an offset, which turned out to be four hundred thousand messages a second. The post then said what that file was: not a buffer but the primary record, with tables, caches, indexes and warehouses as views of it that have fallen behind by different amounts. Next: a relational database takes that claim completely literally. It stops writing pages over the network altogether, ships nothing but redo log records to its storage tier, and lets the storage work out what the pages should say. The section of the paper where this happens is titled, without any hedging, "The Log Is the Database."',
   },
   next: { title: 'The Log Made Literal', slug: 'aurora' },
 }

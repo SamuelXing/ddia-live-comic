@@ -67,7 +67,7 @@ export const columnar: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three questions. The first has an answer you can probably guess; the second is where most attempts die; and the third is the one that decides whether this works on real data or only on the tutorial schema.',
+        'Turning the data ninety degrees is the part you can guess. What decides whether this survives a real schema, rather than the four-column one in the tutorial, is the decision at the end — and most attempts die on the one before it.',
       ],
       diagram: (
         <DesignIt
@@ -337,7 +337,7 @@ export const columnar: Chapter = {
   ],
   finale: {
     title: 'The data turned ninety degrees, and the industry split in half',
-    body: 'Two papers, five years and several orders of magnitude apart, arriving at the same instruction: stop storing records and start storing fields. C-Store argued that doing it properly means a different database — different executor, different optimizer, different redundancy — and produced a 164× benchmark to prove the point. Dremel made it work on nested records, which is what put the format under every analytical tool you use, and added a serving tree to turn a cheap scan into an interactive answer. What neither paper says out loud is what the split cost: two systems, two copies of everything, and a pipeline between them that is now an industry. Next: somebody builds the analytical half again, for a world where you rent machines by the hour — and discovers that the thing customers are actually buying is not the query engine.',
+    body: 'Five years and several orders of magnitude separate these two papers, and they arrive at the same instruction: stop storing records and start storing fields. C-Store argued that doing it properly means a different database — different executor, different optimizer, different redundancy — and produced a 164× benchmark to prove the point. Dremel made it work on nested records, which is what put the format under every analytical tool you use, and added a serving tree to turn a cheap scan into an interactive answer. What neither paper says out loud is what the split cost: two systems, two copies of everything, and a pipeline between them that is now an industry. Next: somebody builds the analytical half again, for a world where you rent machines by the hour — and discovers that the thing customers are actually buying is not the query engine.',
   },
   next: { title: 'Elasticity as the Product', slug: 'snowflake' },
 }

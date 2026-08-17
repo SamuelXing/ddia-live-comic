@@ -65,7 +65,7 @@ export const percolator: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions, and the first two are the same question asked twice: when there is no server you are allowed to add, where does the state of a transaction live? Answer those and the system falls out almost mechanically.',
+        'You are not allowed to add a server, so the whole design turns on one question asked twice over: where does the state of a transaction live? Answer it and the rest falls out almost mechanically.',
       ],
       diagram: (
         <DesignIt
