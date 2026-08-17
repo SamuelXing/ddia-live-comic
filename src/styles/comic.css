@@ -144,19 +144,27 @@
 /* diagram layout inside a wide panel */
 /* a step's drawing sits beside its prose and carries real weight — it's a
    comic panel, not a thumbnail. Framed on paper so it reads as inked art. */
-/* The drawing goes UNDER its prose, at the panel's full width, and this is a
-   legibility fix rather than a taste one. It used to sit in a side column
-   capped at 340px. The diagrams are drawn on a 344-unit canvas with labels
-   between 5.1 and 7 units, so at 340px those labels render at five to seven
-   CSS pixels — measured across the book, 81 figures out of 81 had type under
-   nine pixels, which is to say none of them was readable. Nothing short of a
-   much wider render fixes that: at the full panel the same canvas scales
-   about 2.8x and the smallest label lands near 14px.
+/* The drawing runs the panel's full width, and this is a legibility fix rather
+   than a taste one. It used to sit in a side column capped at 340px. The
+   diagrams are drawn on a 344-unit canvas with labels between 5.1 and 7 units,
+   so at 340px those labels render at five to seven CSS pixels — measured
+   across the book, 81 figures out of 81 had type under nine pixels, which is
+   to say none of them was readable. Nothing short of a much wider render fixes
+   that: at the full panel the same canvas scales about 2.8x and the smallest
+   label lands near 14px.
 
    The interactive instruments were already exempted here by name. Now that
    every figure gets the same treatment they need no special case, which is
-   also why the book stops looking like it changed its mind halfway. */
-.gn-diagram { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+   also why the book stops looking like it changed its mind halfway.
+
+   Position is set in Panel: the figure follows the opening paragraph with the
+   rest of the prose underneath it. The 18px here is what the two-column grid
+   used to put between prose and drawing, kept so the vertical rhythm is the
+   one the panels were already built around. */
+.gn-diagram { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; margin: 18px 0; }
+/* the figure is last on a single-paragraph step; the panel's own padding is
+   the space under it there */
+.gn-panel > .gn-diagram:last-child { margin-bottom: 0; }
 /* Same automatic-minimum-size trap as .gn-page: without this, a napkin-math
    block's min-content width (white-space: pre, so it has no wrap points)
    inflates its grid track and the page scrolls sideways. With it, .gn-code's
@@ -164,6 +172,18 @@
 .gn-diagram > * { min-width: 0; }
 .gn-diagram svg { width: 100%; height: auto; display: block; border: 2px solid var(--ink-line);
   background: var(--paper-2); padding: 10px; }
+/* ...but not the whole panel. A 344-unit canvas stretched to 808px renders its
+   ordinary labels at 16.4px against 15.5px body text, so the figure shouts
+   over the paragraph explaining it — a caption is meant to sit under the
+   running text, not above it. At 660 the same labels land near 13px and the
+   smallest near 10, still clear of the nine-pixel floor the lint enforces.
+   660 is also roughly where .gn-prose stops, so the drawing and the text share
+   a left and a right edge instead of the figure hanging past the measure.
+
+   Direct children only: a trace player and the designer widget are DOM and
+   canvas at the panel's full width, and their own SVG bits must not be caught
+   by a cap meant for a standalone drawing. */
+.gn-diagram > svg { max-width: 660px; }
 
 /* The reading measure. A panel runs the width of the page now, and body text
    at 15.5px across 1000px is about 120 characters a line — unreadable in a
@@ -455,10 +475,11 @@
 /* These were capped at 420 and 400px, which on a 344-unit canvas is barely
    over life size and put the labels at six pixels — the same fault as the
    step figures, in a corner where nobody looked. They are still narrower than
-   a step figure, because a bullet's drawing should not read as the section's,
-   but wide enough to be read. */
-.gn-wild-fig { margin: 10px 0 14px; max-width: 720px; }
-.gn-deeper-fig { margin: 10px 0 12px; max-width: 720px; }
+   a step figure's 660, because a bullet's drawing should not read as the
+   section's, but wide enough to be read: 600 puts the smallest label just
+   under ten pixels. */
+.gn-wild-fig { margin: 10px 0 14px; max-width: 600px; }
+.gn-deeper-fig { margin: 10px 0 12px; max-width: 600px; }
 .gn-wild-fig svg, .gn-deeper-fig svg { display: block; width: 100%; height: auto;
   background: var(--paper-2); border: 1.5px solid var(--ink-line); }
 
