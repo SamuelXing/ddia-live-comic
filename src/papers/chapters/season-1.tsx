@@ -41,7 +41,7 @@ export const season1: Chapter = {
       body: [
         'Four cells per act. **What forced it, what got sold, what that bought, and what it cost** — and the cost column is worth reading on its own, top to bottom, because it is a list of the things engineers now spend their weeks on. Compaction. Merge functions. Round trips to a quorum. Pipelines. Staleness budgets. None of that is incidental; each one is the receipt for a decision somebody made deliberately, a decade or more ago, for a reason that was good at the time.',
       ],
-      diagram: <ArcTable />,
+      diagram: <ArcTable season={1} />,
     },
     {
       title: 'What kept coming back',
@@ -50,7 +50,7 @@ export const season1: Chapter = {
       body: [
         'These are the ideas that never got a chapter, because they are not any one paper’s idea. They surface in act after act, usually without being named, and each one is worth more than the system it happened to appear in. *If you remember six things from the season, these are a defensible six.*',
       ],
-      diagram: <ThroughLines />,
+      diagram: <ThroughLines season={1} />,
     },
     {
       title: 'The eight shapes, side by side',

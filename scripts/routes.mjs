@@ -237,6 +237,16 @@ export const ROUTES = {
     title: 'The Database, With the Lid Off',
     desc: 'Nobody is going to ship the one database, because the workloads want different layouts. The other ending: standardise the seam between systems instead of merging them.',
   },
+  '/papers/season-2': {
+    title: 'The Season, in One Page',
+    desc: 'Four acts, four ways of shortening the delay, and one bill under all of them — plus an ending the season declines to settle, because the field has not settled it either.',
+    /* Season 2's contents live at `/papers/season/2`, which slugifies to the
+       same `papers-season-2` this path already spells with a hyphen. Two
+       different pages, one PNG, and whichever the renderer wrote last decided
+       what both of them unfurled as. Season 1 never hit it, because its
+       contents are at `/papers`. */
+    card: 'papers-season-2-close',
+  },
 
   '/ddia/components': {
     title: 'Component deep-dives',
@@ -315,7 +325,15 @@ for (const [path, entry] of Object.entries(ROUTES)) {
    renderer and the emitter cannot disagree about what a page's picture is.
    --------------------------------------------------------------------------- */
 
-/** A route's card filename, without extension. `/` is `home`. */
+/**
+ * A route's card filename, without extension. `/` is `home`.
+ *
+ * Not injective, and cannot be made so without renaming every committed PNG:
+ * a slash becomes a hyphen, so `/papers/season/2` and `/papers/season-2` both
+ * arrive at `papers-season-2`. An entry may set `card` to break a tie — see
+ * the season-2 close — and routes.test.ts fails the build if two distinct
+ * pages still land on one name.
+ */
 export function cardName(path) {
   return path === '/' ? 'home' : path.replace(/^\//, '').replace(/\//g, '-')
 }
@@ -331,8 +349,9 @@ const CARD_OF = new Map()
     // longest path wins: `/ddia/read/x` names the file, its legacy `/read/x`
     // twin borrows it, so moving a page does not orphan its card
     const canonical = [...ps].sort((a, b) => b.length - a.length)[0]
-    for (const p of ps) CARD_OF.set(p, cardName(canonical))
-    void entry
+    // an explicit `card` wins, for the pages whose paths slugify to the same name
+    const name = entry.card ?? cardName(canonical)
+    for (const p of ps) CARD_OF.set(p, name)
   }
 }
 

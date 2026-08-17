@@ -29,6 +29,7 @@ export interface ArcRow {
   cost: string
 }
 
+/** Season 1's ledger: one move repeated — sell a guarantee, buy it back later. */
 export const ARC: ArcRow[] = [
   {
     act: 'Act I · The Web Breaks the Box',
@@ -82,6 +83,55 @@ export const ARC: ArcRow[] = [
 ]
 
 /**
+ * Season 2's ledger, and it is not the same argument. These rows read as a
+ * ladder rather than as one move repeated: each act removes one delay between
+ * something happening and somebody being able to see it, and every one of them
+ * is billed in the same currency — state that has to be kept hot, in four
+ * different disguises. The epilogue row is the only one in either season that
+ * holds two answers instead of one, because that is what the epilogue does.
+ */
+export const ARC_S2: ArcRow[] = [
+  {
+    act: 'Act I · Nobody Wants to Wait Until Morning',
+    wall: 'A correct answer that takes six hours, produced again tomorrow for a day that differs by one per cent — and every iterative pass writing the whole intermediate result to disk and reading it back.',
+    gave: 'Materialising the middle of the computation.',
+    got: 'The intermediate results held in memory, with recovery by keeping the recipe rather than the dish.',
+    cost: 'Memory becomes the resource that runs out, and the recipe is a graph that grows until somebody decides where to cut it.',
+  },
+  {
+    act: 'Act II · Time Is Not When It Arrived',
+    wall: 'Records turn up late and out of order, and nothing in a stream ever says that was the last one.',
+    gave: 'The idea that a result is final.',
+    got: 'Answers keyed to when things happened rather than when they arrived, emitted before the input is complete and corrected afterwards.',
+    cost: 'Windows held open for data that might still come, and a watermark that is a bet — placed by somebody, in public, on how late is late enough.',
+  },
+  {
+    act: 'Act III · The Answer That Maintains Itself',
+    wall: 'Ten thousand dashboards running the same query over data that barely moved, and a cache in front of it whose invalidation nobody gets right.',
+    gave: 'Recomputing. The query stops being something you run and becomes something that is running.',
+    got: 'Reads that are a lookup into an answer already maintained, updated by the change rather than by the data.',
+    cost: 'Every difference kept and indexed instead of folded away, and a maintained view that can outgrow the tables it was derived from.',
+  },
+  {
+    act: 'Act IV · Everybody’s Copy Is Live',
+    wall: 'Two people editing one document on a train, with the writes already committed on devices that cannot reach each other.',
+    gave: 'The authority. No leader, no quorum, nobody to ask.',
+    got: 'Convergence forced by the shape of the data, so a replica alone in a tunnel is correct rather than degraded.',
+    cost: 'A change history nobody may truncate, because somebody could reconnect after six months — and semantics that are still a person’s decision, made once when the type is designed.',
+  },
+  {
+    act: 'Epilogue · What You Were Building All Along',
+    wall: 'Four acts of parts, wired together by hand. Nobody ever sat down and decided to build a database this way.',
+    gave: 'Nothing yet — this is the row where the season stops agreeing with itself.',
+    got: 'Two answers. Put a commit log under one storage layer and the parts fit back together; or accept that the parts were never going to merge, and standardise the seam between them.',
+    cost: 'A few commits a second and no transaction spanning two tables — or stale reads, work reprocessed after a crash, and no optimiser that can see across the seam.',
+  },
+]
+
+/** Both ledgers, by season. The close pages read this; the tests walk it. */
+export const ARC_BY_SEASON: Record<number, ArcRow[]> = { 1: ARC, 2: ARC_S2 }
+
+/**
  * One line per live page, keyed by slug — the argument, not the summary.
  * Interludes included: they are pages a reader walks through.
  */
@@ -120,6 +170,7 @@ export const CHAPTER_LINES: Record<string, string> = {
   'local-first': 'The server holds the primary copy, so an edit that has not reached it did not happen. Swap that, and six properties you gave up for collaboration come back.',
   delta: 'Half of one company’s support escalations were people asking how to undo a crashed job. Demote the data objects to candidates and let a log say which of them count.',
   unbundling: 'Nobody is going to ship the one database, because the workloads want different layouts. So standardise the seam between the systems instead of merging them.',
+  'season-2': 'Four acts, four ways of shortening the delay, and one bill under all of them — plus an ending the season does not resolve, because the field has not.',
 }
 
 /** An idea that crosses acts without ever getting a chapter of its own. */
@@ -162,3 +213,47 @@ export const THREADS: Thread[] = [
     chapters: ['snowflake', 'dynamodb'],
   },
 ]
+
+/**
+ * Season 2's through-lines. Same rule as season 1's — an idea that surfaces in
+ * act after act without being any one paper's contribution — and deliberately
+ * no overlap with the list above, even where a season 1 thread does resurface.
+ * "The log is the real artifact" comes back hard in the epilogue, and it is
+ * already written; repeating it here would make this list look longer than it
+ * is.
+ */
+export const THREADS_S2: Thread[] = [
+  {
+    name: 'Freshness is bought with state you keep hot',
+    body: 'Four acts, four mechanisms, one bill. Spark keeps the middle of the computation resident and recovers by replaying the recipe. The windowing work holds a window open for arrivals that may never come. Differential dataflow keeps every difference indexed by version instead of folding it away, and measured its own index at a few per cent on top of the data — resident, deserialized, and not spillable. The convergent types keep a change history nobody may truncate because a collaborator might return after six months. Every rung down the ladder is paid for in memory that cannot be spilled, and it is worth noticing that not one of these papers frames it that way.',
+    chapters: ['spark', 'dataflow', 'differential', 'local-first'],
+  },
+  {
+    name: 'Nothing ever says that was the last one',
+    body: 'A batch job knows its input is complete because somebody closed the file. Nothing else in this season does. MillWheel computes the oldest unfinished work anywhere behind it and calls that the answer, while being explicit that it is a bet. The Dataflow model gives up on completeness as a concept and splits the question into three — where data is grouped, when you speak, and what a later answer does to an earlier one. Flink’s snapshots work because in a dataflow graph what is on the wires is a consequence rather than a fact. **The advances in this season are mostly better ways of being honest about not knowing**, not better ways of knowing.',
+    chapters: ['millwheel', 'dataflow', 'flink-snapshots'],
+  },
+  {
+    name: 'Recovery by replay, not by copying',
+    body: 'Ask any of these systems what happens when a machine dies and the answer is the same: read something back. Spark stores the lineage rather than the data and recomputes the lost partition. Flink takes a snapshot without stopping anything and restarts from it. A Samza task rebuilds its local store by replaying its own compacted changelog. Delta Lake’s reader reconstructs the current table from a checkpoint plus the records after it. The shared premise is that **history is cheaper to keep than state is to protect** — and the systems that got this wrong are the ones that ended up running a second replication protocol beside the one they already had.',
+    chapters: ['spark', 'flink-snapshots', 'delta', 'unbundling'],
+  },
+  {
+    name: 'Correctness stopped meaning one answer',
+    body: 'Season 1 argued about which answer was right. Season 2 mostly stops asking. The Dataflow model emits a result and then refines it, so a consumer has to know whether a later answer replaces the earlier one or adds to it. Convergent data types guarantee that replicas agree and say nothing about what they should agree on — concurrent add and remove has four convergent answers and picking one is a person’s job. A stream processor that restarts from a checkpoint processes some messages twice, and a non-idempotent counter comes out slightly wrong. *In each case the honest move was to name what is being promised instead of widening the word "correct" until it covered it.*',
+    chapters: ['dataflow', 'crdt', 'unbundling'],
+  },
+  {
+    name: 'The machine is built first, and the language arrives later',
+    body: 'It happens three times here and nobody comments on it. Structured Streaming exists because writing the incremental version of a query by hand is a thing almost nobody gets right, so you write the batch query and let the planner do it. DBSP arrives a decade into incremental view maintenance and supplies the procedure that forty years of one-algorithm-per-query-class never produced. And the Kafka paper’s own limitations section says the one-message-at-a-time model is error-prone and hard to optimise, with a declarative interface listed as work in progress. **The declarative layer is not the beginning of a field, it is a late symptom of one** — and its arrival is the clearest sign the machinery underneath has stopped moving.',
+    chapters: ['structured-streaming', 'dbsp', 'unbundling'],
+  },
+  {
+    name: 'The partition key is still deciding everything',
+    body: 'Chapter 6 said the partition key is a schema decision you cannot take back, and Season 2 keeps proving it in new places. MillWheel’s key is the unit of state and of ordering, so it fixes what may be aggregated together. Noria shards its operator graph, and a query whose key does not match the sharding pays for a shuffle on every write. Samza requires both sides of a join to be partitioned the same way into the same number of partitions, and joining on a second key means a whole extra stage. Two decades and four architectures later, **the earliest and least reversible decision is still the same one.**',
+    chapters: ['millwheel', 'noria', 'unbundling'],
+  },
+]
+
+/** Both lists, by season — same shape as ARC_BY_SEASON, and walked by the tests. */
+export const THREADS_BY_SEASON: Record<number, Thread[]> = { 1: THREADS, 2: THREADS_S2 }

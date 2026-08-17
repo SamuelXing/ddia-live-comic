@@ -314,6 +314,7 @@ const SEASON_2_ACTS: TocAct[] = [
         title: 'The Season, in One Page',
         interlude: true,
         note: 'the close · no new paper',
+        slug: 'season-2',
       },
     ],
   },

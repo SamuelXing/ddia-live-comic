@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { SEASONS, TOC } from './book'
 import { CHAPTER_BY_SLUG } from './chapters'
-import { ARC, CHAPTER_LINES, THREADS } from './season'
+import { ARC_BY_SEASON, CHAPTER_LINES, THREADS_BY_SEASON } from './season'
+
+/* Every season gets a close of its own, so everything below walks both
+   ledgers instead of one. The scoping that used to be a comment — "ARC is
+   season 1's" — is now the key of the map, which means adding a season 3
+   ledger gets it checked without anybody remembering to widen a test. */
+const THREADS = Object.values(THREADS_BY_SEASON).flat()
 
 /* The season close is hand-written prose keyed by slug, which is the exact
    shape that rots: a chapter ships and the summary silently omits it, or a
@@ -66,24 +72,49 @@ describe('the through-lines', () => {
 })
 
 describe('the arc', () => {
-  it('covers every act that has a live chapter, in the book’s order', () => {
-    /* Acts that read a paper — the close is an act with a live page in it and
-       has no row in its own ledger, which is the correct amount of recursion.
+  it.each(Object.keys(ARC_BY_SEASON).map(Number))(
+    'season %i covers every act that has a live chapter, in the book’s order',
+    (n) => {
+      /* Acts that read a paper — the close is an act with a live page in it and
+         has no row in its own ledger, which is the correct amount of recursion.
 
-       Scoped to season 1, because ARC is season 1's ledger: it lives inside
-       /papers/season-1 and its last row is the epilogue. Left unscoped this
-       assertion fails the moment any season-2 chapter ships, which reads as
-       "the close is out of date" when the truth is that a later season is
-       being written — and every season gets a close of its own. */
-    const season = SEASONS.find((s) => s.n === 1)!
-    const actsWithPapers = season.acts
-      .filter((a) => a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper))
-      .map((a) => a.act)
-    expect(ARC.map((r) => r.act)).toEqual(actsWithPapers)
-  })
+         Per season, because a ledger belongs to the close page it renders on.
+         Comparing the whole of ARC against the whole of TOC failed the moment
+         any season-2 chapter shipped, which read as "the close is out of date"
+         when the truth was that a later season was being written. */
+      const season = SEASONS.find((s) => s.n === n)!
+      const actsWithPapers = season.acts
+        .filter((a) => a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug]?.paper))
+        .map((a) => a.act)
+      expect(ARC_BY_SEASON[n].map((r) => r.act)).toEqual(actsWithPapers)
+    },
+  )
 
   it('gives every act all four cells', () => {
-    const holes = ARC.filter((r) => !r.wall || !r.gave || !r.got || !r.cost).map((r) => r.act)
+    const holes = Object.values(ARC_BY_SEASON)
+      .flat()
+      .filter((r) => !r.wall || !r.gave || !r.got || !r.cost)
+      .map((r) => r.act)
     expect(holes).toEqual([])
+  })
+
+  /* Which seasons have a close page live. Derived rather than listed, so a
+     season 3 close would be picked up the day it ships. */
+  const seasonsWithAClose = SEASONS.filter((s) =>
+    s.acts.some((a) => a.act.startsWith('The Close') && a.entries.some((e) => e.slug && CHAPTER_BY_SLUG[e.slug])),
+  ).map((s) => s.n)
+
+  it('found the close pages to check', () => {
+    /* Without this the next assertion passes loudest when the search above is
+       broken — an empty list has no missing ledgers. */
+    expect(seasonsWithAClose).toEqual([1, 2])
+  })
+
+  it('gives every season with a close page both of its ledgers', () => {
+    /* The quiet failure: ARC_BY_SEASON[n] is undefined for a season whose
+       close page has shipped, and ArcTable throws at render time on a page
+       that every data-only test says is fine. */
+    const missing = seasonsWithAClose.filter((n) => !ARC_BY_SEASON[n] || !THREADS_BY_SEASON[n])
+    expect(missing).toEqual([])
   })
 })
