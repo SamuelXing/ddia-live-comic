@@ -188,6 +188,30 @@ describe('the book does not repeat itself across chapters', () => {
     expect(counting.length).toBeLessThanOrEqual(4)
   })
 
+  it('never tells the reader which way to look for a figure', () => {
+    /* "The measured result is the figure below" was true for as long as the
+       drawing sat under the prose, and became a lie the afternoon the figure
+       moved up to follow the opening paragraph. One sentence in thirty-six
+       chapters, and nothing could have caught it: it typechecks, it lints, it
+       reads fine in a diff.
+
+       The prose does not get to know where the CSS put the picture. There is
+       exactly one figure in a panel, so "the figure" always names it — and a
+       chapter that needs more precision than that should say what the figure
+       shows rather than where it is. */
+    const directional = CHAPTERS.flatMap((c) => {
+      const m = prose(c).match(
+        /* "below" on its own is not the tell — the book says "what sits below"
+           about a dataflow graph and "almost nothing below" about the rest of
+           a chapter, and both are about the material, not the layout. The
+           thing to forbid is a direction attached to a figure. */
+        /\b(figure|diagram|drawing|picture|trace)\s+(below|above)\b|\b(below|above)[,:]?\s+(is|are)\s+(the\s+)?(figure|diagram|drawing|picture|trace)\b/gi,
+      )
+      return m ? m.map((hit) => `${c.slug}: “${hit}”`) : []
+    })
+    expect(directional).toEqual([])
+  })
+
   it('reserves “unusual for this book” for something that is', () => {
     /* Said about four different papers in the same season, which is the
        self-describing framing the house rule bans: it tells the reader the

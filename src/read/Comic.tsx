@@ -79,22 +79,35 @@ export function Panel({ step }: { step: Step }) {
   const wide = true
   void step.span
   const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
-  const body = (
-    /* .gn-prose caps the measure. A panel is ~1000px wide and body text is
-       15.5px, which is 120 characters a line without it — and capping the
-       paragraphs individually would also squeeze the callout and the code
-       block, which want the full width. */
-    <div className="gn-prose">
-      {step.body?.map((p, i) => <p key={i}>{rich(p)}</p>)}
-      {step.code && <CodeBlock code={step.code} />}
-      {step.callout && (
-        <div className={'gn-callout ' + (step.callout.kind === 'good' ? 'good' : 'bad')}>
-          <span className="big">{step.callout.big}</span>
-          <span className="t">{rich(step.callout.text)}</span>
-        </div>
-      )}
-    </div>
-  )
+  /* The figure sits after the opening paragraph, not under the whole panel.
+     Every step opens by naming its claim — that is what the eight-beat
+     template is for — so one paragraph is enough to know what you are being
+     shown, and the paragraphs that follow can then annotate a picture the
+     reader has already looked at. Stacked at the bottom instead, a figure on a
+     four-paragraph step arrives after the argument it was meant to carry, and
+     the panel reads as a wall of text with an illustration filed behind it.
+     Steps with a single paragraph (forty of them, mostly the designer widget)
+     end up with the figure last, which for one paragraph is the same thing. */
+  const paras = step.body ?? []
+  /* .gn-prose caps the measure. A panel is ~1000px wide and body text is
+     15.5px, which is 120 characters a line without it — and capping the
+     paragraphs individually would also squeeze the callout and the code
+     block, which want the full width. */
+  const prose = (ps: string[], tail = false) =>
+    ps.length || (tail && (step.code || step.callout)) ? (
+      <div className="gn-prose">
+        {ps.map((p, i) => (
+          <p key={i}>{rich(p)}</p>
+        ))}
+        {tail && step.code && <CodeBlock code={step.code} />}
+        {tail && step.callout && (
+          <div className={'gn-callout ' + (step.callout.kind === 'good' ? 'good' : 'bad')}>
+            <span className="big">{step.callout.big}</span>
+            <span className="t">{rich(step.callout.text)}</span>
+          </div>
+        )}
+      </div>
+    ) : null
   return (
     <article className={'gn-panel box lift' + accent + (wide ? ' gn-span2' : '')} data-obs>
       {step.rung && <div className="gn-layertag">{step.rung}</div>}
@@ -103,12 +116,13 @@ export function Panel({ step }: { step: Step }) {
         <span className="ht">{step.title}</span>
       </div>
       {step.diagram ? (
-        <div className="gn-diagram">
-          <div>{body}</div>
-          {step.diagram}
-        </div>
+        <>
+          {prose(paras.slice(0, 1))}
+          <div className="gn-diagram">{step.diagram}</div>
+          {prose(paras.slice(1), true)}
+        </>
       ) : (
-        body
+        prose(paras, true)
       )}
       {step.deeper && <DeeperAside d={step.deeper} />}
       {step.think && <ThinkPrompt t={step.think} />}
