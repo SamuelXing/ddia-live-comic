@@ -4466,3 +4466,58 @@ export function TwoEndingsDiagram() {
     </svg>
   )
 }
+
+/** The close of Season 2. Four acts as four rungs, and the whole reason the
+ *  figure exists is the right-hand column: each rung removes a different delay
+ *  by a completely different mechanism, and every one of them is paid for in
+ *  state somebody has to keep resident. No chapter can draw this, because each
+ *  chapter only ever stands on its own rung. */
+export function StalenessLadderDiagram() {
+  const rung = (y: number, act: string, from: string, to: string, bill: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        {act}
+      </text>
+      <text x="14" y={y + 11} fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        {from}
+      </text>
+      <text x="96" y={y + 11} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        →
+      </text>
+      <text x="108" y={y + 11} fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        {to}
+      </text>
+      <text x="182" y={y + 11} fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        {bill}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 214"
+      role="img"
+      aria-label="The four acts of Season 2 as four rungs. Act I takes the delay from hours to minutes and pays in resident memory. Act II takes it from minutes to seconds and pays in windows held open for late data. Act III takes it to now and pays in every difference kept and indexed. Act IV removes the network and pays in a change history that cannot be truncated. Four mechanisms, one currency."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        each act removes one delay — and charges for it the same way
+      </text>
+      <text x="182" y="28" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        what it is paid for in
+      </text>
+      <line x1="176" y1="20" x2="176" y2="176" stroke={MUTED} strokeWidth="0.8" strokeDasharray="2 3" />
+
+      {rung(40, 'Act I', 'hours', 'minutes', 'memory that cannot spill')}
+      {rung(72, 'Act II', 'minutes', 'seconds', 'windows held open')}
+      {rung(104, 'Act III', 'seconds', 'now', 'every difference, indexed')}
+      {rung(136, 'Act IV', 'now', 'no network', 'a history nobody may cut')}
+
+      <line x1="14" y1="182" x2="330" y2="182" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="198" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        four unrelated mechanisms, and one currency underneath all of them
+      </text>
+      <text x="14" y="210" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        none of the four papers says so — you only see it from up here
+      </text>
+    </svg>
+  )
+}

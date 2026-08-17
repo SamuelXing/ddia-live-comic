@@ -152,9 +152,22 @@ describe('every route has a social card', () => {
   })
 
   it('names every card safely and uniquely', () => {
-    const names = cards().map((c) => c.name)
+    /* Read one name per distinct ENTRY, not off cards() — which de-duplicates
+       by name, so two different pages colliding on one filename came back as a
+       single row and the uniqueness assertion below could not fail. It could
+       not fail for four months, and then `/papers/season-2` (the close) and
+       `/papers/season/2` (the contents) both slugified to `papers-season-2`:
+       one PNG, and whichever page the renderer wrote last decided what both of
+       them unfurled as in a link preview. Nothing else notices — the emitter
+       only checks that a file of that name exists, and it did. */
+    const byEntry = new Map<object, string>()
+    for (const [path, entry] of Object.entries(ROUTES))
+      if (!byEntry.has(entry)) byEntry.set(entry, cardFor(path)!)
+    const names = [...byEntry.values()]
+
     expect(names.filter((n) => !/^[a-z0-9-]+$/.test(n))).toEqual([])
-    expect(new Set(names).size).toBe(names.length)
+    const collisions = names.filter((n, i) => names.indexOf(n) !== i)
+    expect(collisions).toEqual([])
   })
 
   it('renders one card per distinct page, not per URL', () => {

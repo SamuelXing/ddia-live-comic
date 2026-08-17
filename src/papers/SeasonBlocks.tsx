@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ARC, THREADS } from './season'
+import { ARC_BY_SEASON, THREADS_BY_SEASON } from './season'
 import { CHAPTER_BY_SLUG } from './chapters'
 import { rich } from '../read/rich'
 
@@ -12,12 +12,14 @@ import { rich } from '../read/rich'
    exists. Both carry .pb-close so .gn-diagram drops to a single column; a
    four-across table squeezed into the 340px figure column is unreadable. */
 
-/** The arc: one act per row, as the move it makes. */
-export function ArcTable() {
+/** The arc: one act per row, as the move it makes. Takes the season rather
+ *  than reading a module-level constant, because there are two ledgers now and
+ *  a close page that silently rendered the other season's would look correct. */
+export function ArcTable({ season }: { season: number }) {
   return (
     <div className="pb-close">
       <div className="pb-arc">
-        {ARC.map((r) => (
+        {ARC_BY_SEASON[season].map((r) => (
           <div className="pb-arc-row" key={r.act}>
             <div className="ac">{r.act}</div>
             <div className="cells">
@@ -46,11 +48,11 @@ export function ArcTable() {
 }
 
 /** The ideas that cross acts without ever owning a chapter. */
-export function ThroughLines() {
+export function ThroughLines({ season }: { season: number }) {
   return (
     <div className="pb-close">
       <div className="pb-threads">
-        {THREADS.map((t) => (
+        {THREADS_BY_SEASON[season].map((t) => (
           <div className="pb-thread" key={t.name}>
             <h3>{t.name}</h3>
             <p>{rich(t.body)}</p>
