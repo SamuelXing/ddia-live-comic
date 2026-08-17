@@ -89,6 +89,10 @@ export const ROUTES = {
     title: 'The Papers That Broke the Database',
     desc: 'Follow the history of distributed systems, and dig deep into the papers that made it.',
   },
+  '/papers/prologue': {
+    title: 'One Machine Was Enough',
+    desc: 'Three ideas from around 1970 the rest of the book spends without introducing: describe rather than navigate, index wide enough to beat the disc, and all-or-nothing.',
+  },
   '/papers/gfs': {
     title: 'The File System That Refused to Edit',
     desc: 'Google’s machines die weekly and its files outgrew every disk. Design the file system that falls out of that — then read the 2003 paper and see how close you got.',

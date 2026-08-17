@@ -4521,3 +4521,239 @@ export function StalenessLadderDiagram() {
     </svg>
   )
 }
+
+/* ============================================================
+   PROLOGUE — one machine was enough.
+   Written last and read first. These four draw the three ideas
+   the rest of the book spends without ever introducing them,
+   and the single physical constant underneath all of them.
+   ============================================================ */
+
+/** Ch 0 — the number every design on the page is arguing with. Bayer and
+ *  McCreight measured it on a 2311 disc in 1970; Gray is still quoting the
+ *  same figure eight years later. The ratio in the middle is their two
+ *  numbers put together, and it is the whole argument for a wide tree. */
+export function SeekBudgetDiagram() {
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="On an IBM 2311 disc the average access delay is about 50 milliseconds, after which index entries transfer at about 90 microseconds each. One seek therefore costs as much as transferring roughly 555 entries, which is why an index page holds many keys rather than few. Gray's monthly statement over 160 million records would take 80 days done naively, at 50 milliseconds per seek, and had to finish in a few hours."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        the constant underneath every decision in this chapter
+      </text>
+
+      <rect x="14" y="26" width="150" height="40" fill="none" stroke={TERRA} strokeWidth="1.6" />
+      <text x="89" y="46" textAnchor="middle" fontFamily={MONO} fontSize="11" fill={TERRA}>
+        50 ms
+      </text>
+      <text x="89" y="59" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        to reach one page — IBM 2311
+      </text>
+
+      <rect x="180" y="26" width="150" height="40" fill="none" stroke={DENIM} strokeWidth="1.6" />
+      <text x="255" y="46" textAnchor="middle" fontFamily={MONO} fontSize="11" fill={DENIM}>
+        90 µs
+      </text>
+      <text x="255" y="59" textAnchor="middle" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        per entry, once you are there
+      </text>
+
+      <text x="172" y="84" textAnchor="middle" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        one seek buys the transfer of about 555 entries
+      </text>
+      <text x="172" y="96" textAnchor="middle" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        so an index page holds hundreds of keys, not two
+      </text>
+
+      <line x1="14" y1="112" x2="330" y2="112" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="128" fontFamily={MONO} fontSize="6.4" fill={MUTED}>
+        the same number, eight years later, in a bank:
+      </text>
+      <text x="14" y="146" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        one monthly statement job · 160,000,000 records
+      </text>
+      <text x="14" y="160" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        a seek per record · 2,000,000 seeks a day · 80 days
+      </text>
+      <text x="14" y="174" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        and it has to be finished before the post goes out
+      </text>
+      <text x="14" y="192" fontFamily={MONO} fontSize="6.2" fill={MUTED}>
+        every idea in this chapter is a way of not doing a seek
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 0 — why the tree is wide rather than tall, in the authors' own table.
+ *  Figure 9 of the Boeing report: with k=60 a page holds 120 entries, and
+ *  each row is the largest index a tree of that height can address. */
+export function BTreeReachDiagram() {
+  const ROWS: Array<[string, string]> = [
+    ['1 level', '120'],
+    ['2 levels', '14,640'],
+    ['3 levels', '1,771,560'],
+    ['4 levels', '214,358,880'],
+  ]
+  return (
+    <svg
+      viewBox="0 0 344 196"
+      role="img"
+      aria-label="With 120 entries in a page, a single page indexes 120 keys, two levels index 14,640, three levels index 1,771,560, and four levels index 214,358,880. Four levels is four seeks, so any key in a two-hundred-million-key index is four disc accesses away, and fewer once the upper levels are cached."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        120 entries to a page — how far that reaches
+      </text>
+      <text x="14" y="30" fontFamily={MONO} fontSize="5.6" fill={MUTED}>
+        height of the tree, and the largest index it can hold
+      </text>
+
+      {ROWS.map(([h, n], i) => {
+        const y = 54 + i * 26
+        /* the first row has to be wide enough for its own label: at 6pt
+           mono "1 level" is ~25 units, and a 26-unit box straddled it */
+        const w = 42 + i * 56
+        return (
+          <g key={h}>
+            <rect x="14" y={y - 12} width={w} height="17" fill="none" stroke={i === 3 ? DENIM : MUTED} strokeWidth={i === 3 ? 1.6 : 1} />
+            <text x="20" y={y} fontFamily={MONO} fontSize="6" fill={i === 3 ? DENIM : INK}>
+              {h}
+            </text>
+            <text x="230" y={y} fontFamily={MONO} fontSize="6.4" fill={i === 3 ? DENIM : MUTED}>
+              {n} keys
+            </text>
+          </g>
+        )
+      })}
+
+      <line x1="14" y1="166" x2="330" y2="166" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        four levels is four seeks — a fifth of a second, for any of them
+      </text>
+      <text x="14" y="194" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+        and the upper levels stay in memory, so in practice it is one or two
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 0 — Codd's own example, and the reason the relational model is about
+ *  people rather than about sets. Parts and projects can be filed as a
+ *  hierarchy five different ways; every one is defensible, and every program
+ *  ever written is married to whichever one somebody picked. */
+export function FiveStructuresDiagram() {
+  const tree = (x: number, top: string, under: string, label: string) => (
+    <>
+      <text x={x} y="34" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        {label}
+      </text>
+      <rect x={x} y="40" width="64" height="14" fill="none" stroke={TERRA} strokeWidth="1.2" />
+      <text x={x + 32} y="50" textAnchor="middle" fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        {top}
+      </text>
+      <line x1={x + 32} y1="54" x2={x + 32} y2="64" stroke={TERRA} strokeWidth="1" />
+      <rect x={x + 10} y="64" width="44" height="14" fill="none" stroke={MUTED} strokeWidth="1" />
+      <text x={x + 32} y="74" textAnchor="middle" fontFamily={MONO} fontSize="5.6" fill={INK}>
+        {under}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 200"
+      role="img"
+      aria-label="The same information about parts and projects can be filed as a hierarchy in five different ways — projects under parts, parts under projects, and three arrangements where they are peers. Each is defensible, and every application program is written against whichever one was chosen. The relational answer is to store parts, projects and the commitment between them as three flat relations and let the query say what it wants."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        parts, projects, and how much of each part a project has taken
+      </text>
+
+      {tree(14, 'PART', 'project', 'one way')}
+      {tree(96, 'PROJECT', 'part', 'another')}
+      {tree(178, 'PART', 'commitment', 'a third')}
+      <text x="256" y="34" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        …and two more
+      </text>
+      <text x="256" y="52" fontFamily={MONO} fontSize="6.4" fill={TERRA}>
+        five in all
+      </text>
+      <text x="256" y="66" fontFamily={MONO} fontSize="5.4" fill={MUTED}>
+        each defensible
+      </text>
+
+      <text x="14" y="98" fontFamily={MONO} fontSize="5.8" fill={TERRA}>
+        pick one, and every program written against it knows the shape by heart
+      </text>
+
+      <text x="14" y="120" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the other answer: stop filing, start describing
+      </text>
+      {['PART', 'PROJECT', 'COMMITMENT'].map((t, i) => (
+        <g key={t}>
+          <rect x={14 + i * 106} y="128" width="96" height="16" fill="none" stroke={DENIM} strokeWidth="1.4" />
+          <text x={62 + i * 106} y="139" textAnchor="middle" fontFamily={MONO} fontSize="5.8" fill={DENIM}>
+            {t}
+          </text>
+        </g>
+      ))}
+      <text x="14" y="158" fontFamily={MONO} fontSize="5.8" fill={MUTED}>
+        three relations · no ordering, no pointers, nothing about discs
+      </text>
+
+      <line x1="14" y1="170" x2="330" y2="170" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="186" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        the model is not really about sets — it is about who may change
+      </text>
+      <text x="14" y="198" fontFamily={MONO} fontSize="6.4" fill={DENIM}>
+        the layout later without rewriting everybody else’s programs
+      </text>
+    </svg>
+  )
+}
+
+/** Ch 0 — the shape of the whole book, seen from the front. Each of the three
+ *  ideas is given away by a later act to get past a wall, and paid for again
+ *  somewhere further on. Nothing is refuted; it goes on loan. */
+export function ThreeLoansDiagram() {
+  const row = (y: number, idea: string, gone: string, back: string) => (
+    <>
+      <text x="14" y={y} fontFamily={MONO} fontSize="6.2" fill={INK}>
+        {idea}
+      </text>
+      <text x="20" y={y + 13} fontFamily={MONO} fontSize="5.6" fill={TERRA}>
+        {gone}
+      </text>
+      <text x="20" y={y + 25} fontFamily={MONO} fontSize="5.6" fill={DENIM}>
+        {back}
+      </text>
+    </>
+  )
+  return (
+    <svg
+      viewBox="0 0 344 202"
+      role="img"
+      aria-label="Each of the three ideas is given up by a later act and bought back further on. Asking for data by describing it is given up in Act I, where the key is the whole interface, and bought back in Act VI and again in Season 2's third act. The index you update in place is given up in Act I on a file system that cannot edit, and the trade is named in the RUM interlude. All-or-nothing across rows is given up in Act I and bought back twice in Act IV, once in software and once with hardware clocks."
+    >
+      <text x="14" y="14" fontFamily={MONO} fontSize="7" fill={MUTED}>
+        three ideas, and what the rest of the book does with them
+      </text>
+
+      {row(38, 'ask by describing, not by navigating',
+        'given up · Act I — the key becomes the whole interface',
+        'bought back · Act VI, and again in Season 2’s third act')}
+      {row(92, 'an index you update in place',
+        'given up · Act I — the file system will not edit a byte',
+        'the trade named outright · the RUM interlude')}
+      {row(146, 'all of it happens, or none of it does',
+        'given up · Act I — one row at a time, and no further',
+        'bought back · Act IV, twice, in two currencies')}
+
+      <line x1="14" y1="180" x2="330" y2="180" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="196" fontFamily={MONO} fontSize="6.4" fill={INK}>
+        nothing here gets refuted — it goes on loan, at interest
+      </text>
+    </svg>
+  )
+}
