@@ -8,11 +8,18 @@ import { flinkSnapshotsTrace } from './flink-snapshots-trace'
    algorithm, one graph of results. The chapter is worth an evening for two
    reasons that are not "here is how Flink checkpoints".
 
-   First, it is the payoff for Chapter 7. Chandy-Lamport has been sitting in
-   this book since Act III of season 1 as a beautiful thing nobody used, and
-   this is what it was for — with the channel states dropped, because a
-   dataflow graph with ordered channels makes them redundant. That deletion is
-   the contribution and it is one paragraph long.
+   First, it is the payoff for the argument Chapter 7 makes. Note what that
+   chapter does and does not contain: it is Lamport's 1978 Time, Clocks — the
+   happens-before relation and the replicated state machine. Chandy-Lamport is
+   a different paper, 1985, with a co-author, and this book never covers it.
+   Six sentences here used to say Chapter 7 did, which made a 1978 chapter the
+   parent of a 1985 result and told a reader they had already met an algorithm
+   they had not. What is true is better anyway: Chapter 7 established why a
+   consistent cut needs something in the data to define "now", and the snapshot
+   algorithm built on that spent thirty years as a result nobody ran. This is
+   what it was for — with the channel states dropped, because a dataflow graph
+   with ordered channels makes them redundant. That deletion is the
+   contribution and it is one paragraph long.
 
    Second, it settles Act I's argument. Chapter 18 recovered by recomputing and
    could only do it because nothing was mutable; chapter 19 recovered by
@@ -35,7 +42,7 @@ export const flinkSnapshots: Chapter = {
     url: 'https://arxiv.org/abs/1506.08603',
   },
   caption:
-    'Everything this act has built is state. Windows held open in case something late arrives; panes buffered so a correction can be routed; emitted values kept so they can be retracted; per-key counts that are the answer itself. None of it can be recomputed the way Chapter 18 recomputed a lost partition, because it depends on which records arrived and in what order. So a machine is going to die holding it, and the two answers this book has offered so far are both unavailable. Chapter 18 replayed a recipe, which needs immutability. Chapter 19 **stopped every worker in the cluster**, wrote everything down, and started again — which works, and means the price of being safe rises in direct proportion to how often you want to be safe. This paper is eight pages long and deletes most of that price, using an algorithm that has been sitting in this book since Chapter 7 waiting for somebody to need it.',
+    'Everything this act has built is state. Windows held open in case something late arrives; panes buffered so a correction can be routed; emitted values kept so they can be retracted; per-key counts that are the answer itself. None of it can be recomputed the way Chapter 18 recomputed a lost partition, because it depends on which records arrived and in what order. So a machine is going to die holding it, and the two answers this book has offered so far are both unavailable. Chapter 18 replayed a recipe, which needs immutability. Chapter 19 **stopped every worker in the cluster**, wrote everything down, and started again — which works, and means the price of being safe rises in direct proportion to how often you want to be safe. This paper is eight pages long and deletes most of that price, using an algorithm published in 1985 that spent thirty years waiting for somebody to need it.',
   steps: [
     {
       n: 'Step 01',
@@ -45,7 +52,7 @@ export const flinkSnapshots: Chapter = {
       body: [
         'You need a **consistent** picture of a running distributed computation — one where, if an operator’s state reflects having consumed a record, the operator that sent that record shows it as sent. Anything less and recovery produces a result that never could have happened: a count that includes a record its source will replay, or excludes one nobody will send again.',
         'The obvious way is to stop. Pause every worker, drain the queues, write the state, resume — which is what the previous engine in this book does, and it is correct. Its cost is not the writing; it is the **not processing.** The paper measures it directly: on a ten-node cluster the runtime penalty for stopping the world grows sharply as snapshots get more frequent, because the system spends more of its life not working. And the cost lands in bursts of a second or two, which for a latency-critical pipeline is worse than a steady tax, *because an SLA is violated by the bad seconds and not by the average one.*',
-        'The other classical way is a distributed snapshot algorithm, and there has been one since 1985. **Chandy–Lamport**, which Chapter 7 covered and which nothing in Season 1 actually used, records a consistent cut without any global pause. Its cost is different and also real: it captures the **state of every channel** — every message in flight between every pair of processes — as part of the snapshot. For a high-throughput dataflow with full network shuffles, that is a great deal of data whose only purpose is to be replayed into operators that will consume it immediately.',
+        'The other classical way is a distributed snapshot algorithm, and there has been one since 1985. **Chandy–Lamport** — Chapter 7’s author again, seven years later, and nothing in this book has needed it until now — records a consistent cut without any global pause. Its cost is different and also real: it captures the **state of every channel** — every message in flight between every pair of processes — as part of the snapshot. For a high-throughput dataflow with full network shuffles, that is a great deal of data whose only purpose is to be replayed into operators that will consume it immediately.',
         'So the constraint is a genuine fork with no obvious third road. **Pause and pay in throughput, or do not pause and pay in the size of what you store.** The paper’s whole contribution is noticing that the second cost is avoidable in this particular shape of system, and that the reason is something the system already guarantees for other purposes.',
       ],
       diagram: <SnapshotCostDiagram />,
@@ -148,7 +155,7 @@ export const flinkSnapshots: Chapter = {
         </div>
       ),
       think: {
-        q: 'Chapter 7 covered Chandy–Lamport in 1985 and nothing in Season 1 used it. Why did it take thirty years to find a home?',
+        q: 'Chandy–Lamport was published in 1985 and nothing in Season 1 needed it. Why did it take thirty years to find a home?',
         a: '**Because the algorithm needs a property that general distributed systems do not have and dataflow systems get for free.** Chandy–Lamport works on any system of processes exchanging messages, and that generality is exactly what makes it expensive: with an arbitrary communication graph, arbitrary message ordering and processes that may talk to anyone at any time, there is no way to know what a marker’s arrival implies about the messages that came before it — so the algorithm has to capture them explicitly, and channel state is the price of assuming nothing. Now look at what a dataflow graph gives you. The topology is **fixed and known** before execution starts. Channels are **FIFO**. Data flows in one direction, from sources toward sinks. Operators consume from their inputs and produce to their outputs and communicate no other way. Under those conditions the marker’s arrival implies everything you needed the channel state for: everything ahead of it has been consumed and is already in somebody’s state; everything behind it has not been consumed and can be read again from a source that remembers its offset. *The channel contents were never information. They were a consequence.* And that is the general lesson, which is worth more than the algorithm: **a famous general result often has an expensive component that exists to cover a case your system cannot produce.** The engineering is not inventing something new — it is identifying which of your constraints makes part of the general answer redundant, and then being willing to say so. Notice too that the cyclic case is where the constraint breaks: a loop means a record can be in flight on an edge whose contents are not implied by anything, and the fix is to log exactly those edges. **The deletion is justified by a property, so it survives exactly as far as the property does.**',
       },
     },
@@ -228,7 +235,7 @@ export const flinkSnapshots: Chapter = {
       rung: 'Rung 7 · The end of the act',
       body: [
         '**This is how stateful stream processing recovers, essentially everywhere.** It is Flink’s checkpointing mechanism and it has been extended rather than replaced: incremental checkpoints that write only what changed, unaligned checkpoints that trade a little channel state back for the removal of the stall under backpressure, and savepoints — an operator-triggered snapshot you can restart a modified program from, which turned "deploy a new version of a streaming job" from an outage into an operation.',
-        '**And Chapter 7 finally got its payoff.** Chandy–Lamport spent thirty years as the elegant result everybody teaches and nobody runs. What it needed was not a better algorithm but a system whose constraints made its expensive half unnecessary — which is worth remembering next time a classical result looks impractical. *The question to ask is not whether it is too expensive, but which of its costs is paying for a case you have ruled out.*',
+        '**And Chapter 7’s argument finally got its payoff.** Chandy–Lamport spent thirty years as the elegant result everybody teaches and nobody runs. What it needed was not a better algorithm but a system whose constraints made its expensive half unnecessary — which is worth remembering next time a classical result looks impractical. *The question to ask is not whether it is too expensive, but which of its costs is paying for a case you have ruled out.*',
         '**What this act settled.** Act I got the delay from hours to seconds and left one assumption untouched: that a record’s place in the queue tells you when it happened. This act removed it. You can now compute a bound on completeness instead of guessing a timeout; you can name which of three clocks you meant; you can decide separately where data is grouped, when you speak about it, and what a later answer does to an earlier one; and you can survive a machine dying in the middle of all that without stopping to protect yourself. **The delay is down to seconds and the answers are now right about a world that is out of order**, which is a different achievement from making them fast.',
         '**And here is the assumption this act leaves standing.** Every chapter so far has taken a query and re-run it — over a smaller batch, over a window, over a pane, but re-run. The advertiser’s dashboard recomputes its window when a trigger fires. Ten thousand of those dashboards recompute the same thing over data that barely moved. *Nothing in this book has yet asked why an answer should be computed at all, rather than maintained.* The next act treats a change as the unit of work, so that a write updates the answer instead of invalidating it — and the argument starts from the observation that Chapter 12 already told us invalidation is the hard part.',
       ],
@@ -303,7 +310,7 @@ export const flinkSnapshots: Chapter = {
       year: '1985',
       title: 'Distributed Snapshots: Determining Global States of Distributed Systems — Chandy & Lamport (ACM TOCS)',
       url: 'https://lamport.azurewebsites.net/pubs/chandy.pdf',
-      note: 'Chapter 7, and the thirty-year-old parent. Read it directly before the paper above and the deletion becomes obvious rather than clever: the channel recording is right there, doing work that a fixed FIFO topology makes unnecessary. It is also just a beautiful piece of writing, and short.',
+      note: 'The thirty-year-old parent, by Chapter 7’s author and a co-author, seven years after the paper that chapter reads. Read it directly before the paper above and the deletion becomes obvious rather than clever: the channel recording is right there, doing work that a fixed FIFO topology makes unnecessary. It is also just a beautiful piece of writing, and short.',
     },
     {
       year: '2013',
