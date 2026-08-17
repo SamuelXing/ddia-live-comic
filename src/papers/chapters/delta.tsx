@@ -73,7 +73,7 @@ export const delta: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions. The first is the one everything else hangs off, and the third is where the honest limits of the whole approach get set.',
+        'A table on an object store is a directory of Parquet files and an act of faith. Everything below follows from deciding what is allowed to say which of those files are currently in the table — and stay for the end, where the honest limits get set by the paper itself rather than by a critic.',
       ],
       diagram: (
         <DesignIt

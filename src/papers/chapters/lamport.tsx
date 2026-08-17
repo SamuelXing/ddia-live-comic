@@ -341,7 +341,7 @@ export const lamport: Chapter = {
   ],
   finale: {
     title: 'The order was never out there to be found',
-    body: 'Two acts spent their energy working around a missing definition, and the definition turns out to withhold most of what people wanted from it. There is no true sequence waiting to be discovered; there is a partial order that genuinely stops, and past that point any order will do provided everybody computes the same one. Which relocates the whole problem, and names the rest of this act: not *what happened first*, but *how does a group of machines settle on one answer when some of them have stopped and nobody can tell which*. Next: the algorithm that solves it, told twice, because the first telling was famously incomprehensible.',
+    body: 'A definition was missing, two acts spent their energy working around the hole, and when it finally arrives it withholds most of what anybody wanted from it. There is no true sequence waiting to be discovered; there is a partial order that genuinely stops, and past that point any order will do provided everybody computes the same one. Which relocates the whole problem, and names the rest of this act: not *what happened first*, but *how does a group of machines settle on one answer when some of them have stopped and nobody can tell which*. Next: the algorithm that solves it, told twice, because the first telling was famously incomprehensible.',
   },
   next: { title: 'Consensus, Twice Told', slug: 'consensus' },
 }

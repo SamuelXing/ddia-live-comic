@@ -55,7 +55,7 @@ export const spark: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions, and they are not independent — the answer to the first one only works if you have already made the sacrifice in the second. That is the shape of this paper, and it is why it is a paper rather than a benchmark.',
+        'These do not come apart. Keeping the data in memory only works once you have given something up in the decision after it — which is the shape of the paper, and the reason it is a paper rather than a benchmark.',
       ],
       diagram: (
         <DesignIt
@@ -366,7 +366,7 @@ export const spark: Chapter = {
   ],
   finale: {
     title: 'Cheap enough to keep everywhere',
-    body: 'The round trip is gone, and the way it went is worth more than the speed it bought. Nobody made memory reliable; they made reliability cheap enough to stop caring, by storing the recipe instead of the dish. That only works because of a sacrifice most summaries leave out — you may no longer write to a location, only transform a whole collection at once, and every dividend in the chapter falls out of that one restriction. What has not changed is the shape of the work. The input still holds still, you still start the computation when you have all of it, and new records still mean starting again. The next paper asks why the state should ever be torn down at all.',
+    body: 'The round trip is gone, and the way it went is worth more than the speed it bought. Nobody made memory reliable; they made reliability cheap enough to stop caring, by storing the recipe instead of the dish. That only works because of a sacrifice most summaries leave out — you may no longer write to a location, only transform a whole collection at once, and every dividend in the chapter falls out of that one restriction. What has not moved is the shape of the job. The input still holds still, you still start the computation when you have all of it, and new records still mean starting again. The next paper asks why the state should ever be torn down at all.',
   },
   next: { title: 'One Engine, Both Shapes', slug: 'naiad' },
 }

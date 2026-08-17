@@ -61,7 +61,7 @@ export const dynamo: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'It is 2006. You have read every paper in Act I, and each one solves your problem by appointing somebody. That option is gone. What you keep from Act I is the ring from consistent hashing and the habit of replicating three ways; what you have to invent is what happens when two machines both said yes.',
+        'Every paper in Act I solves your problem by appointing somebody, and in 2006 at Amazon that option is gone. What you keep from Act I is the ring from consistent hashing and the habit of replicating three ways; what you have to invent is what happens when two machines both said yes.',
       ],
       diagram: (
         <DesignIt

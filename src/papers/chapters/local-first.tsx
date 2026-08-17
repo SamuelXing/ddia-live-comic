@@ -58,7 +58,7 @@ export const localFirst: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Two decisions, and neither is an algorithm — which is the honest shape of this paper. Both are about what a piece of software is arranged around.',
+        'Neither of these is an algorithm, which is the honest shape of this paper. Both ask what a piece of software is arranged around.',
       ],
       diagram: (
         <DesignIt

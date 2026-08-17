@@ -52,7 +52,7 @@ export const naiad: Chapter = {
       rung: 'Rung 2 · Design it yourself',
       span: 2,
       body: [
-        'Three decisions. The first is the one everything else hangs off, and it is a question about data types rather than about distributed systems — which is a good sign that you are near the actual idea.',
+        'You want one engine that runs batch, streaming and loops without treating any of them as a special case of the others — and what stands in the way turns out to be a data type rather than a distributed systems problem, which is usually a sign you are near the real idea.',
       ],
       diagram: (
         <DesignIt

@@ -19,7 +19,7 @@ export const bigtable: Chapter = {
     url: 'https://static.googleusercontent.com/media/research.google.com/en//archive/bigtable-osdi06.pdf',
   },
   caption:
-    'It is 2004 and Google holds a copy of the web. Crawlers rewrite millions of pages a day; MapReduce wants to sweep them back **in order**; serving wants one row **in milliseconds**. And the only durable storage in the building is GFS — a file system whose files can be created, appended to, read, and deleted, but **never edited**. Every database you could buy in 2004 is built on the one operation GFS refuses to offer. *You have been handed the job of building the one it deserves.*',
+    'The crawl from the last two chapters is sitting in GFS, and it will not hold still. Crawlers rewrite millions of pages a day; MapReduce wants to sweep them back **in order**; serving wants one row **in milliseconds**. And the only durable storage in the building is GFS — a file system whose files can be created, appended to, read, and deleted, but **never edited**. Every database you could buy in 2004 is built on the one operation GFS refuses to offer. *You have been handed the job of building the one it deserves.*',
   steps: [
     {
       n: 'Step 01',
@@ -144,7 +144,7 @@ export const bigtable: Chapter = {
       rung: 'Rung 3 · The reveal',
       span: 2,
       body: [
-        'Here is the machine the paper actually shipped — your three decisions, plus the parts you did not have to invent: where durability comes from before the flush, and what happens when the server holding the memtable dies. **Watch the last step twice.** It is the whole argument for putting the log in GFS instead of on a local disk.',
+        'Here is what the paper actually shipped: your three decisions, wired up with the pieces nobody made you design — where durability comes from before the flush, and what happens when the server holding the memtable dies. **Watch the last step twice.** It is the whole argument for putting the log in GFS instead of on a local disk.',
       ],
       diagram: (
         <div className="gn-figure">
@@ -191,7 +191,7 @@ export const bigtable: Chapter = {
       accent: 'terra',
       rung: 'Rung 6 · What it gave up',
       body: [
-        'Every design in this book pays for what it gets. Read Bigtable’s bill before you admire the machine.',
+        'Read Bigtable’s bill before you admire the machine. Four of these are still charged to somebody, somewhere, tonight.',
         '**Atomicity ends at one row.** A row’s cells live contiguously inside one tablet, so updating them together is free — and that is where the promise stops. No transaction touches two rows, ever. This is not an oversight; a cross-row transaction needs a coordinator, and this design *has no one who could play the part*. Google will spend two more papers buying the promise back — hand-rolled 2PC on top of Bigtable (Percolator, Ch 10), then clocks and Paxos (Spanner, Ch 11).',
         '**Queries the key does not serve, do not exist.** No joins, no secondary indexes: “every page linking to cnn.com” is easy, “every page written in French” is a full scan. In a sorted map, *dimensions left out of the key are queries you surrendered.*',
         '**And the hot spots are yours.** Range partitioning keeps key adjacency, so it keeps load adjacency too — see the drawer above. The system splits what grows; *you* design keys so that what grows can be split.',
