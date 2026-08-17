@@ -126,7 +126,12 @@ export const progressLabel = () => `${seasonProgress().live} chapters live`
  */
 export const remainingLabel = () => {
   const { live, total } = seasonProgress()
-  return `${total - live} still to write`
+  /* Ch 0 was the last hole, and the day it shipped this said "0 still to
+     write" — arithmetically right and the sort of line a reader assumes is a
+     bug. It also would have been the wrong claim: "complete" says nobody will
+     add to it, which nobody has decided. What is true is that both seasons
+     are finished, so say that. */
+  return total - live === 0 ? 'both seasons finished' : `${total - live} still to write`
 }
 
 
@@ -137,7 +142,14 @@ const SEASON_1_ACTS: TocAct[] = [
     summary:
       'For about thirty years the answer to almost any data question was one machine running one database, and it was a good answer. The relational model, B-trees underneath it, transactions that either happened or did not. It all fit on one disk, under one clock. Every promise the rest of this book gives up gets made here first.',
     next: 'Next: the web arrives, and it does not fit.',
-    entries: [{ no: 'Ch 0', title: 'One Machine Was Enough', paper: 'Codd 1970 · B-trees 1970 · Gray on transactions' }],
+    entries: [
+      {
+        no: 'Ch 0',
+        title: 'One Machine Was Enough',
+        paper: 'Codd 1970 · B-trees 1970 · Gray on transactions',
+        slug: 'prologue',
+      },
+    ],
   },
   {
     act: 'Act I · The Web Breaks the Box',

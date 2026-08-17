@@ -32,6 +32,13 @@ export interface ArcRow {
 /** Season 1's ledger: one move repeated — sell a guarantee, buy it back later. */
 export const ARC: ArcRow[] = [
   {
+    act: 'Prologue',
+    wall: 'Ten million records on a disc that takes fifty milliseconds to answer, and a room of people who will still be writing programs against that data in twenty years.',
+    gave: 'Any prospect of the data outgrowing one machine. Every guarantee here is defined in terms of one clock, one memory and one disc.',
+    got: 'Ask by describing instead of navigating, an index four seeks deep over two hundred million keys, and changes that either all happen or leave no trace.',
+    cost: 'A ceiling — roughly a hundred and fifty transactions a second and a hundred gigabytes. Nobody minded for thirty years, and then somebody wanted a copy of the web.',
+  },
+  {
     act: 'Act I · The Web Breaks the Box',
     wall: 'More web than fits on any machine you can buy, running on hardware that dies weekly.',
     gave: 'The ability to edit a byte you have already written.',
@@ -136,6 +143,7 @@ export const ARC_BY_SEASON: Record<number, ArcRow[]> = { 1: ARC, 2: ARC_S2 }
  * Interludes included: they are pages a reader walks through.
  */
 export const CHAPTER_LINES: Record<string, string> = {
+  prologue: 'Three ideas from around 1970 that the whole book spends — describe rather than navigate, index wide enough to beat the disc, and all-or-nothing.',
   gfs: 'A file system that refuses to edit, and a decade of systems built around the refusal.',
   mapreduce: 'The part worth keeping is not the API. It is that computation moves to the data, and that failure is handled by doing the work again.',
   bigtable: 'A sorted map with no joins — and the bargain your database is still making tonight: writes go to memory and a log, reads pay for it later.',

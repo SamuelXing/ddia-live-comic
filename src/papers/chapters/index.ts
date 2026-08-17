@@ -1,4 +1,5 @@
 import type { Chapter } from '../types'
+import { prologue } from './prologue'
 import { gfs } from './gfs'
 import { mapreduce } from './mapreduce'
 import { bigtable } from './bigtable'
@@ -38,6 +39,6 @@ import { season2 } from './season-2'
 /** Chapters that exist, in reading order — interludes included, since they are
  *  pages a reader walks through. The season's full map, including everything
  *  unwritten, lives in book.ts (TOC); this is only what is live. */
-export const CHAPTERS: Chapter[] = [gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb, season1, spark, naiad, structuredStreaming, millwheel, threeTimes, dataflow, flinkSnapshots, differential, noria, dbsp, crdt, localFirst, delta, unbundling, season2]
+export const CHAPTERS: Chapter[] = [prologue, gfs, mapreduce, bigtable, rum, chubby, dynamo, cap, cassandra, lamport, consensus, zookeeper, percolator, spanner, memcache, kafka, aurora, columnar, snowflake, dynamodb, season1, spark, naiad, structuredStreaming, millwheel, threeTimes, dataflow, flinkSnapshots, differential, noria, dbsp, crdt, localFirst, delta, unbundling, season2]
 
 export const CHAPTER_BY_SLUG: Record<string, Chapter> = Object.fromEntries(CHAPTERS.map((c) => [c.slug, c]))

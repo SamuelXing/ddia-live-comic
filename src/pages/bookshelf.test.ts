@@ -76,7 +76,11 @@ describe('the shelf card summarises the whole book', () => {
        from Ch 0 and the highest one a reader can see is one less than the
        total. Two plain statements do not have that problem. */
     const { live, total } = seasonProgress()
-    expect(remainingLabel()).toBe(`${total - live} still to write`)
+    const left = total - live
+    expect(remainingLabel()).toBe(left === 0 ? 'both seasons finished' : `${left} still to write`)
     expect(`${progressLabel()} · ${remainingLabel()}`).not.toMatch(/ of /)
+    /* the specific line this pair exists to prevent: a count of nothing,
+       printed as though it were a count of something */
+    expect(remainingLabel()).not.toMatch(/^0 /)
   })
 })

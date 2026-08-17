@@ -64,7 +64,7 @@ export const season1: Chapter = {
       title: 'What the season left out, on purpose and otherwise',
       accent: 'terra',
       body: [
-        '**The Prologue is not written.** Chapter 0 — the thirty years when one machine was enough, and the relational model, B-trees and transactions that every later chapter spends — is a row in the contents and nothing else yet. That is an odd hole to have at the front of a finished season, and it is the honest state of the book rather than a structural choice.',
+        '**The Prologue arrived late.** Chapter 0 — the thirty years when one machine was enough, and the relational model, B-trees and transactions that every later chapter spends — was a row in the contents and nothing else for months after the rest of this season was finished. It is written now, and it is worth reading *after* the season rather than before, because its subject is what the following seventeen chapters give away.',
         '**Whole families of systems are one sentence here.** CRDTs get a paragraph in Chapter 5 and deserve a chapter. Riak, Voldemort, MongoDB and VoltDB are descendants and sidebars. Spark is a hook at the end of Chapter 2 and nothing more, deliberately: it belongs to a season about computation rather than storage.',
         '**And the reading is one-sided by construction.** Nearly every paper here was written by the organisation that shipped the system, about the version that worked. There are no papers about the two designs they tried first, and very few numbers anybody outside could reproduce. *Treat every measurement in this book as a claim by an interested party* — which is not a reason to disbelieve it, and is a reason to notice how rarely the claim is one you could check.',
       ],
