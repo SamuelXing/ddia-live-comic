@@ -102,7 +102,7 @@ export const chubby: Chapter = {
                   {
                     label: 'Ship a consensus library each team links into their binary',
                     verdict: 'dead',
-                    why: 'The answer that should win, and did not — Google shipped exactly this library, standalone, and it went largely unused. A consensus library assumes your service can be **restructured as a state machine**, and services are written first and made highly available later, once the prototype has users. You cannot retrofit something that dictates the shape of a program into a program that already has one.',
+                    why: 'The answer that should win, and the paper says outright that they built it — a client Paxos library, independent of Chubby — and then spends its Rationale section arguing for the service anyway. A consensus library assumes your service can be **restructured as a state machine**, and services are written first and made highly available later, once the prototype has users. You cannot retrofit something that dictates the shape of a program into a program that already has one.',
                   },
                   {
                     label: 'Have each team implement it from the paper',
@@ -296,7 +296,7 @@ export const chubby: Chapter = {
   misconception: {
     think: '“Paxos is notoriously hard to implement, so Google implemented it once, correctly, and let everyone share it. That is what Chubby is for.”',
     actually:
-      'Difficulty is real — the same team wrote a whole paper about how much harder a working Paxos is than the published algorithm — but it is not the argument, and the evidence is in the paper itself: **Google also shipped a standalone consensus library, independent of Chubby, and it went largely unused.** So "implement it once and share it" was available, taken, and still lost. What a library cannot do is arrive late. Services get built first and made highly available afterwards, by which point the code is not structured as a state machine and nobody is going to restructure it. **The winning argument was about adoption, not about correctness** — which is a strange thing for a distributed systems paper to be right about, and the reason this one is worth reading.',
+      'Difficulty is real — the same team wrote a whole paper about how much harder a working Paxos is than the published algorithm — but it is not the argument, and the paper rules it out in one clause: **"Indeed, we provide such a client library that is independent of Chubby."** They built the shareable Paxos library too. Having built it, they still argue for the service, and the reasons are all about when the decision gets made rather than how hard the algorithm is. What a library cannot do is arrive late. Services get built first and made highly available afterwards, by which point the code is not structured as a state machine and nobody is going to restructure it. **The winning argument was about adoption, not about correctness** — which is a strange thing for a distributed systems paper to be right about, and the reason this one is worth reading.',
   },
   sources: [
     {

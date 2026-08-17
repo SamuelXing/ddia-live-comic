@@ -169,7 +169,7 @@ export const crdt: Chapter = {
       rung: 'Rung 3 · The reveal',
       span: 2,
       body: [
-        'Watch for the symmetry: there is no master side of this picture and no arrow that only points one way, which is the first time that has been true in this book. Step 4 is why the channel is allowed to be terrible, step 6 is the guarantee that beats consensus, and step 7 is the part that is still a human decision.',
+        'Watch for the symmetry: there is no master side of this picture and no arrow that only points one way. Chapter 7’s three processes were symmetric too — but every one of them had to hear from every other, so one silent machine stopped the algorithm dead. Here a replica that hears from nobody is not stalled and not degraded; it is correct. Step 4 is why the channel is allowed to be terrible, step 6 is the guarantee that beats consensus, and step 7 is the part that is still a human decision.',
       ],
       diagram: (
         <div className="gn-figure">
