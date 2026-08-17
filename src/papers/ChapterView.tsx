@@ -71,7 +71,7 @@ export default function ChapterView({ chapter }: { chapter: Chapter }) {
 
       <SiteNav />
 
-      <div className="gn-sheet">
+      <div className="gn-sheet reading">
         <header className="gn-mast box" data-obs>
           <div className="gn-kicker">
             {season?.label ?? BOOK.title} · {chapter.act}

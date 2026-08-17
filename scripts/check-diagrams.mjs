@@ -62,7 +62,22 @@ for (const s of pages){
       const plates=[...svg.querySelectorAll('rect')].filter(r=>(r.getAttribute('fill')||'none')!=='none').map(box);
       const discs=[...svg.querySelectorAll('circle')].filter(c=>(c.getAttribute('fill')||'none')!=='none')
         .map(c=>({cx:+c.getAttribute('cx'),cy:+c.getAttribute('cy'),r:+c.getAttribute('r')}));
-      const texts=[...svg.querySelectorAll('text')].map(t=>({bb:box(t),s:t.textContent.trim().slice(0,26)}));
+      const texts=[...svg.querySelectorAll('text')].map(t=>({bb:box(t),s:t.textContent.trim().slice(0,26),
+        fs:parseFloat(t.getAttribute('fontSize')||t.getAttribute('font-size')||getComputedStyle(t).fontSize)}));
+
+      /* Rendered type size. Everything else in this file measures the drawing
+         in its own coordinates, which is exactly why this fault survived: the
+         geometry inside a 344-unit canvas is perfect whatever width the page
+         gives it, and for a long time the page gave it 340px — so every label
+         between 5 and 7 units rendered at five to seven CSS pixels. 81 figures
+         out of 81, none of them readable, and nothing complained. The canvas
+         cannot know how large it will be drawn, so the check has to happen
+         here, where a real browser has already laid it out. */
+      const scale=svg.getBoundingClientRect().width/vw;
+      texts.forEach(({s:label,fs})=>{
+        if(fs&&fs*scale<9) out.push(`[TYPE-TOO-SMALL] "${label}" renders at ${(fs*scale).toFixed(1)}px`);
+      });
+
       texts.forEach(({bb,s:label})=>{
         if(bb.x<vx-P||bb.y<vy-P||bb.x+bb.width>vx+vw+P||bb.y+bb.height>vy+vh+P)
           out.push(`[OUT-OF-FRAME] "${label}"`);

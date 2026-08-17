@@ -31,6 +31,14 @@
    on every route — paper pages and token-flipped pages alike. */
 
 .gn-sheet { max-width: 1060px; margin: 0 auto; padding: 34px 22px 96px; }
+/* Chapters and comics read in a narrower sheet than the index pages do. The
+   index is a grid of cards and wants the room; a chapter is one column of
+   prose with drawings under it, and at 1060px the text stopped about 350px
+   short of the panel edge, which is the empty right-hand margin that made the
+   page look broken rather than composed. At 900 the measure very nearly fills
+   the panel, and a figure still renders about 2.4x its 344-unit canvas, which
+   keeps the smallest label above 12px. */
+.gn-sheet.reading { max-width: 900px; }
 
 /* ---- shared primitives ---- */
 .gn .box { border: 2px solid var(--ink-line); background: var(--paper-2); box-shadow: 3px 3px 0 var(--ink-line);
@@ -57,11 +65,16 @@
   border: 2px solid var(--ink-line); padding: 3px 10px; background: var(--paper); font-weight: 500; }
 
 /* ---- comic page panel grid ---- */
-.gn-page { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; margin-top: 22px; }
-/* minmax(0,1fr), not 1fr: a grid item's default min-width is `auto`, so one
+/* One column. This was two, and two-thirds of the panels already opted out of
+   it — any step with a diagram sets gn-span2 — so what the second column
+   mostly produced was a hole: across eighteen chapters, 41 half-width panels
+   and 29 of them sitting beside an empty cell, because their neighbour was
+   full width and could not move up.
+
+   minmax(0,1fr), not 1fr: a grid item's default min-width is `auto`, so one
    unbreakable token — a long <code> span, an equation — makes its track wider
    than the column and the whole page scrolls sideways on a phone. */
-@media (max-width: 780px) { .gn-page { grid-template-columns: minmax(0, 1fr); } }
+.gn-page { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; margin-top: 22px; }
 .gn-page > * { min-width: 0; }
 .gn-span2 { grid-column: 1 / -1; }
 
@@ -131,12 +144,19 @@
 /* diagram layout inside a wide panel */
 /* a step's drawing sits beside its prose and carries real weight — it's a
    comic panel, not a thumbnail. Framed on paper so it reads as inked art. */
-.gn-diagram { display: grid; grid-template-columns: 1fr minmax(280px, 340px); gap: 24px; align-items: center; }
-@media (max-width: 700px) { .gn-diagram { grid-template-columns: 1fr; } }
-/* Interactive instruments (the papers book's designer widget and dark figure
-   panels) are not side-column illustrations — they get the panel's full width,
-   body text above them. */
-.gn-diagram:has(> .gn-design), .gn-diagram:has(> .gn-figure) { grid-template-columns: 1fr; }
+/* The drawing goes UNDER its prose, at the panel's full width, and this is a
+   legibility fix rather than a taste one. It used to sit in a side column
+   capped at 340px. The diagrams are drawn on a 344-unit canvas with labels
+   between 5.1 and 7 units, so at 340px those labels render at five to seven
+   CSS pixels — measured across the book, 81 figures out of 81 had type under
+   nine pixels, which is to say none of them was readable. Nothing short of a
+   much wider render fixes that: at the full panel the same canvas scales
+   about 2.8x and the smallest label lands near 14px.
+
+   The interactive instruments were already exempted here by name. Now that
+   every figure gets the same treatment they need no special case, which is
+   also why the book stops looking like it changed its mind halfway. */
+.gn-diagram { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 /* Same automatic-minimum-size trap as .gn-page: without this, a napkin-math
    block's min-content width (white-space: pre, so it has no wrap points)
    inflates its grid track and the page scrolls sideways. With it, .gn-code's
@@ -144,6 +164,14 @@
 .gn-diagram > * { min-width: 0; }
 .gn-diagram svg { width: 100%; height: auto; display: block; border: 2px solid var(--ink-line);
   background: var(--paper-2); padding: 10px; }
+
+/* The reading measure. A panel runs the width of the page now, and body text
+   at 15.5px across 1000px is about 120 characters a line — unreadable in a
+   different way from the figures. This caps the prose and deliberately does
+   NOT cap the callout, the code block, the designer widget or the figure,
+   which all want the room. */
+.gn-prose { max-width: 68ch; }
+.gn-prose .gn-callout, .gn-prose .gn-code { max-width: none; }
 
 /* ---- live panels ---------------------------------------------------------
    Five diagrams move, because the thing they explain IS a process: replication
@@ -424,8 +452,13 @@
 /* A bullet's own figure. Capped rather than full-bleed: these sit inside a
    list item, and a drawing as wide as the section would read as the section's
    figure instead of that bullet's. */
-.gn-wild-fig { margin: 10px 0 14px; max-width: 420px; }
-.gn-deeper-fig { margin: 10px 0 12px; max-width: 400px; }
+/* These were capped at 420 and 400px, which on a 344-unit canvas is barely
+   over life size and put the labels at six pixels — the same fault as the
+   step figures, in a corner where nobody looked. They are still narrower than
+   a step figure, because a bullet's drawing should not read as the section's,
+   but wide enough to be read. */
+.gn-wild-fig { margin: 10px 0 14px; max-width: 720px; }
+.gn-deeper-fig { margin: 10px 0 12px; max-width: 720px; }
 .gn-wild-fig svg, .gn-deeper-fig svg { display: block; width: 100%; height: auto;
   background: var(--paper-2); border: 1.5px solid var(--ink-line); }
 
@@ -509,7 +542,13 @@
 .pb-act > .ah { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
   color: var(--terra-ink); padding: 10px 16px 8px; border-bottom: 1px solid var(--rule); }
 /* the act opener: one figure, one paragraph, and the hinge into the next act */
-.pb-actsum { display: grid; grid-template-columns: minmax(0, 296px) 1fr; gap: 20px;
+/* The figure column was 296px, which on these 344-unit canvases put the box
+   labels at five CSS pixels. Widened, and the type inside the act figures
+   raised to match — they go through three shared sizes in actDiagrams.tsx, so
+   that is one edit rather than thirteen redrawings. Not stacked like a step
+   figure: an act summary is a row in a list somebody is scanning, and a
+   full-width drawing per act would make the contents page scroll for ever. */
+.pb-actsum { display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 20px;
   padding: 16px; background: var(--paper); border-bottom: 1px solid var(--rule); }
 @media (max-width: 720px) { .pb-actsum { grid-template-columns: 1fr; } }
 .pb-actsum .fig svg { width: 100%; height: auto; display: block;

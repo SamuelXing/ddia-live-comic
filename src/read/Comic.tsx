@@ -73,10 +73,18 @@ function ThinkPrompt({ t }: { t: NonNullable<Step['think']> }) {
 /** One comic panel. Exported because the papers book (src/papers) renders its
  *  chapters with the same panel anatomy — one implementation, two mastheads. */
 export function Panel({ step }: { step: Step }) {
-  const wide = step.span === 2 || !!step.diagram
+  /* Every panel is full width now — see .gn-page in comic.css. Kept as a
+     variable rather than inlined because `span` is still meaningful data on a
+     Step and removing it from the type would touch every chapter. */
+  const wide = true
+  void step.span
   const accent = step.accent && step.accent !== 'ink' ? ' ' + step.accent : ''
   const body = (
-    <>
+    /* .gn-prose caps the measure. A panel is ~1000px wide and body text is
+       15.5px, which is 120 characters a line without it — and capping the
+       paragraphs individually would also squeeze the callout and the code
+       block, which want the full width. */
+    <div className="gn-prose">
       {step.body?.map((p, i) => <p key={i}>{rich(p)}</p>)}
       {step.code && <CodeBlock code={step.code} />}
       {step.callout && (
@@ -85,7 +93,7 @@ export function Panel({ step }: { step: Step }) {
           <span className="t">{rich(step.callout.text)}</span>
         </div>
       )}
-    </>
+    </div>
   )
   return (
     <article className={'gn-panel box lift' + accent + (wide ? ' gn-span2' : '')} data-obs>
@@ -163,7 +171,7 @@ export default function ComicView({ comic }: { comic: Comic }) {
 
       <SiteNav />
 
-      <div className="gn-sheet">
+      <div className="gn-sheet reading">
         <header className="gn-mast box" data-obs>
           <div className="gn-kicker">Inspired by DDIA, 1st ed. · {comic.chapter}</div>
           <h1>{comic.title}</h1>

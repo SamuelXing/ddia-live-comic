@@ -62,13 +62,13 @@ function B({
         y={sub ? y + h / 2 - 1 : y + h / 2 + 2.6}
         textAnchor="middle"
         fontFamily={MONO}
-        fontSize="7"
+        fontSize="9.5"
         fill={c.s}
       >
         {label}
       </text>
       {sub && (
-        <text x={cx} y={y + h / 2 + 9} textAnchor="middle" fontFamily={MONO} fontSize="5.8" fill={c.s}>
+        <text x={cx} y={y + h / 2 + 9} textAnchor="middle" fontFamily={MONO} fontSize="7.6" fill={c.s}>
           {sub}
         </text>
       )}
@@ -125,7 +125,7 @@ function C({
   x,
   y,
   tone = 'past',
-  size = 6.5,
+  size = 8.2,
   mid,
   end,
   children,
@@ -161,7 +161,7 @@ function ActPrologue() {
       role="img"
       aria-label="A single box labelled one machine, sitting on one disk — the shape of a database before the web."
     >
-      <C x={14} y={16} size={7}>
+      <C x={14} y={16} size={9}>
         the answer, for about thirty years
       </C>
       <B x={72} y={30} w={200} h={54} tone="new" label="ONE MACHINE" sub="SQL · B-trees · transactions" />
@@ -183,10 +183,10 @@ function ActI() {
       role="img"
       aria-label="MapReduce and Bigtable sit on GFS, with Chubby above Bigtable — a pyramid in which every component has one master."
     >
-      <C x={14} y={22} size={7}>
+      <C x={14} y={22} size={9}>
         one substrate, two very
       </C>
-      <C x={14} y={33} size={7}>
+      <C x={14} y={36} size={9}>
         different clients
       </C>
 
@@ -232,10 +232,10 @@ function ActII() {
       <B x={64} y={54} w={40} h={14} label="" />
       <B x={16} y={76} w={88} h={14} label="GFS" />
       <line x1={12} y1={26} x2={108} y2={94} stroke={TERRA} strokeWidth="2" />
-      <C x={16} y={110} size={6}>
+      <C x={16} y={110} size={7.8}>
         Act I: a master
       </C>
-      <C x={16} y={120} size={6}>
+      <C x={16} y={121} size={7.8}>
         at the top of everything
       </C>
 
@@ -262,7 +262,7 @@ function ActII() {
       {/* the dead one */}
       <line x1={nodes[2].x - 6} y1={nodes[2].y - 6} x2={nodes[2].x + 6} y2={nodes[2].y + 6} stroke={TERRA} strokeWidth="1.8" />
       <line x1={nodes[2].x + 6} y1={nodes[2].y - 6} x2={nodes[2].x - 6} y2={nodes[2].y + 6} stroke={TERRA} strokeWidth="1.8" />
-      <C x={cx} y={cy + 3} mid size={6.5}>
+      <C x={cx} y={cy + 3} mid size={8.2}>
         no master
       </C>
 
@@ -282,7 +282,7 @@ function ActIII() {
       role="img"
       aria-label="Bigtable, Dynamo and Cassandra resting on a newly drawn layer labelled agreement."
     >
-      <C x={14} y={14} size={6.5}>
+      <C x={14} y={14} size={8.2}>
         everything you have read so far
       </C>
       <B x={14} y={22} w={96} h={26} label="Bigtable" />
@@ -298,7 +298,7 @@ function ActIII() {
       <C x={172} y={148} mid tone="pain">
         Chubby was already standing on this back in Act I
       </C>
-      <C x={172} y={164} mid size={6}>
+      <C x={172} y={164} mid size={7.8}>
         a flashback — this floor is older than everything above it
       </C>
     </svg>
@@ -357,10 +357,10 @@ function ActV() {
       <B x={22} y={88} w={300} h={30} tone="new" label="THE LOG" sub="append only · ordered · never edited" />
 
       <L x1={22} y1={132} x2={322} y2={132} />
-      <C x={22} y={144} size={6}>
+      <C x={22} y={144} size={7.8}>
         offset 0
       </C>
-      <C x={322} y={144} end size={6}>
+      <C x={322} y={144} end size={7.8}>
         now
       </C>
 
@@ -380,7 +380,7 @@ function ActVI() {
       role="img"
       aria-label="One table forking into a row-oriented layout for serving and a column-oriented layout for analysis."
     >
-      <C x={172} y={14} mid size={6.5}>
+      <C x={172} y={14} mid size={8.2}>
         one table, two questions
       </C>
       <rect x={136} y={20} width={72} height={36} fill="#fff" stroke={MUTED} strokeWidth="1" />
@@ -398,7 +398,7 @@ function ActVI() {
       <C x={172} y={152} mid tone="pain">
         same bytes, ninety degrees apart — so you keep both
       </C>
-      <C x={172} y={168} mid size={6}>
+      <C x={172} y={168} mid size={7.8}>
         and a pipeline in between, forever
       </C>
     </svg>
@@ -421,7 +421,7 @@ function ActEpilogue() {
       role="img"
       aria-label="The leaderless ring of Act Two, with a leader per shard, heat-based splitting and a control plane added back onto it."
     >
-      <C x={cx} y={18} mid size={6.5}>
+      <C x={cx} y={18} mid size={8.2}>
         the ring of Act II
       </C>
       {nodes.map((n, i) => {
@@ -467,11 +467,11 @@ export function SeasonShapes() {
       role="img"
       aria-label="The eight shapes the season has drawn, side by side and small: one box, a pyramid, a ring, a floor beneath, a storey above, a log on its side, a fork, and the ring with its organs grown back. A dashed loop runs from the last back to the first."
     >
-      <C x={12} y={18} size={6.5}>
+      <C x={12} y={18} size={8.2}>
         the same world, redrawn eight times
       </C>
       {roman.map((r, i) => (
-        <text key={r} x={cell(i) + 16} y={38} textAnchor="middle" fontFamily={MONO} fontSize="6" fill={MUTED}>
+        <text key={r} x={cell(i) + 16} y={38} textAnchor="middle" fontFamily={MONO} fontSize="8" fill={MUTED}>
           {r}
         </text>
       ))}
@@ -568,8 +568,8 @@ export function SeasonShapes() {
       <C x={12} y={142}>
         so these are not eight answers to eight questions
       </C>
-      <C x={12} y={158} size={6.2}>
-        they are seven answers to one, and the question is which guarantee to sell
+      <C x={12} y={158} size={8}>
+        seven answers to one question: which guarantee to sell
       </C>
     </svg>
   )
@@ -604,11 +604,11 @@ function ActS2I() {
         </g>
       ))}
       <rect x={12} y={58} width={300} height={12} fill={T.pain.f} stroke={TERRA} strokeWidth={1.2} />
-      <C x={162} y={67} mid tone="pain" size={6}>
+      <C x={162} y={67} mid tone="pain" size={7.8}>
         every pass goes back to disk
       </C>
       <A x1={312} y1={90} x2={16} y2={90} tone="pain" dash />
-      <C x={162} y={104} mid tone="pain" size={6}>
+      <C x={162} y={104} mid tone="pain" size={7.8}>
         and tomorrow it starts from nothing again
       </C>
 
@@ -616,10 +616,10 @@ function ActS2I() {
         keep the middle in memory
       </C>
       <rect x={12} y={136} width={300} height={16} fill={T.new.f} stroke={DENIM} strokeWidth={1.8} />
-      <C x={162} y={147} mid tone="new" size={6}>
+      <C x={162} y={147} mid tone="new" size={7.8}>
         and remember how to rebuild it instead of copying it
       </C>
-      <C x={12} y={170} size={6}>
+      <C x={12} y={170} size={7.8}>
         the answer arrives in minutes, and a dead machine still costs nothing
       </C>
     </svg>
@@ -647,10 +647,10 @@ function ActS2II() {
       </C>
       <line x1={x0} y1={y1} x2={x0} y2={y0} stroke={MUTED} strokeWidth={1} />
       <line x1={x0} y1={y0} x2={x1 + 40} y2={y0} stroke={MUTED} strokeWidth={1} />
-      <C x={12} y={y1 - 6} size={5.8}>
+      <C x={12} y={y1 - 6} size={7.6}>
         when you heard about it
       </C>
-      <C x={x1 + 44} y={y0 + 12} end size={5.8}>
+      <C x={x1 + 44} y={y0 + 12} end size={7.6}>
         when it happened
       </C>
 
@@ -659,30 +659,30 @@ function ActS2II() {
       {pt(132, 88, 'past')}
       {pt(178, 66, 'past')}
       {pt(214, 50, 'past')}
-      <C x={228} y={80} size={5.8}>
+      <C x={228} y={92} size={7.6}>
         most arrive
       </C>
-      <C x={228} y={90} size={5.8}>
+      <C x={228} y={103} size={7.6}>
         about when
       </C>
-      <C x={228} y={100} size={5.8}>
+      <C x={228} y={114} size={7.6}>
         they happened
       </C>
 
       {pt(110, 44, 'pain')}
       <A x1={110} y1={104} x2={110} y2={52} tone="pain" dash />
-      <C x={116} y={40} tone="pain" size={5.8}>
+      <C x={116} y={40} tone="pain" size={7.6}>
         this one was in a tunnel
       </C>
 
       <line x1={x0} y1={62} x2={x1 + 40} y2={62} stroke={DENIM} strokeWidth={1.4} />
-      <C x={x1 + 44} y={60} end tone="new" size={5.8}>
+      <C x={x1 + 44} y={73} end tone="new" size={7.6}>
         you already answered
       </C>
-      <C x={12} y={158} tone="pain" size={6.2}>
+      <C x={12} y={158} tone="pain" size={8}>
         it belongs in a total you published two hours ago
       </C>
-      <C x={12} y={172} size={6}>
+      <C x={12} y={172} size={7.8}>
         so: how long do you wait, and what do you owe the people you told
       </C>
     </svg>
@@ -705,12 +705,12 @@ function ActS2III() {
       {[0, 1, 2].map((i) => (
         <A key={i} x1={84} y1={32 + i * 8} x2={126} y2={32 + i * 8} tone="pain" />
       ))}
-      <B x={128} y={26} w={92} h={28} tone="pain" label="the same query" sub="run again. and again." />
+      <B x={128} y={26} w={104} h={28} tone="pain" label="the same query" sub="run again, and again" />
       {[0, 1, 2].map((i) => (
         <A key={i} x1={222} y1={32 + i * 8} x2={262} y2={32 + i * 8} tone="pain" />
       ))}
-      <B x={264} y={26} w={66} h={28} label="an answer" sub="seconds old" />
-      <C x={12} y={70} tone="pain" size={6}>
+      <B x={252} y={26} w={78} h={28} label="an answer" sub="seconds old" />
+      <C x={12} y={70} tone="pain" size={7.8}>
         all of that work happened because somebody looked
       </C>
 
@@ -723,11 +723,11 @@ function ActS2III() {
       <A x1={84} y1={127} x2={126} y2={127} tone="new" />
       <B x={128} y={114} w={92} h={26} tone="new" label="update in place" sub="only what moved" />
       <A x1={222} y1={127} x2={262} y2={127} tone="new" />
-      <B x={264} y={114} w={66} h={26} tone="new" label="already there" />
-      <C x={12} y={158} size={6}>
+      <B x={244} y={114} w={86} h={26} tone="new" label="already there" />
+      <C x={12} y={158} size={7.8}>
         now a read is a lookup, and nobody pays for the ten thousandth one
       </C>
-      <C x={12} y={172} tone="pain" size={6}>
+      <C x={12} y={172} tone="pain" size={7.8}>
         the price is that the state has to be kept, and kept correct
       </C>
     </svg>
@@ -746,23 +746,23 @@ function ActS2IV() {
       <C x={12} y={16}>
         same document, no signal
       </C>
-      <B x={22} y={30} w={104} h={34} label="a laptop on a train" sub="writing anyway" />
-      <B x={218} y={30} w={104} h={34} label="a phone in a café" sub="writing anyway" />
+      <B x={14} y={30} w={120} h={34} label="a laptop on a train" sub="writing anyway" />
+      <B x={210} y={30} w={120} h={34} label="a phone in a café" sub="writing anyway" />
       <line x1={130} y1={47} x2={214} y2={47} stroke={TERRA} strokeWidth={1.2} strokeDasharray="4 4" />
       <line x1={165} y1={38} x2={179} y2={56} stroke={TERRA} strokeWidth={1.8} />
       <line x1={179} y1={38} x2={165} y2={56} stroke={TERRA} strokeWidth={1.8} />
-      <C x={172} y={74} mid tone="pain" size={6}>
+      <C x={172} y={74} mid tone="pain" size={7.8}>
         no quorum to reach, no leader to ask
       </C>
-      <C x={172} y={86} mid tone="pain" size={6}>
+      <C x={172} y={86} mid tone="pain" size={7.8}>
         and both writes are already committed
       </C>
 
       <A x1={74} y1={100} x2={150} y2={124} tone="new" />
       <A x1={270} y1={100} x2={194} y2={124} tone="new" />
       <B x={116} y={126} w={112} h={30} tone="new" label="they merge" sub="and nobody chose" />
-      <C x={12} y={172} size={6}>
-        pick types whose merge is forced, and convergence stops being a judgement call
+      <C x={12} y={172} size={7.8}>
+        merge is forced by the type — nobody has to judge
       </C>
     </svg>
   )
@@ -802,13 +802,13 @@ function ActS2Epi() {
         that is a database
       </C>
       <L x1={12} y1={110} x2={332} y2={110} />
-      <C x={12} y={128} size={6.2}>
+      <C x={12} y={128} size={8}>
         one ending says put a single storage layer under all of it again
       </C>
-      <C x={12} y={144} size={6.2}>
+      <C x={12} y={144} size={8}>
         the other says it was never meant to be one box in the first place
       </C>
-      <C x={12} y={166} tone="pain" size={6}>
+      <C x={12} y={166} tone="pain" size={7.8}>
         both are live arguments, and this book does not get to settle them
       </C>
     </svg>
