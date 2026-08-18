@@ -4599,7 +4599,7 @@ export function BTreeReachDiagram() {
   ]
   return (
     <svg
-      viewBox="0 0 344 196"
+      viewBox="0 0 344 182"
       role="img"
       aria-label="With 120 entries in a page, a single page indexes 120 keys, two levels index 14,640, three levels index 1,771,560, and four levels index 214,358,880. Four levels is four seeks, so any key in a two-hundred-million-key index is four disc accesses away, and fewer once the upper levels are cached."
     >
@@ -4628,11 +4628,15 @@ export function BTreeReachDiagram() {
         )
       })}
 
-      <line x1="14" y1="166" x2="330" y2="166" stroke={MUTED} strokeWidth="0.8" />
-      <text x="14" y="182" fontFamily={MONO} fontSize="6.4" fill={INK}>
+      {/* The rule used to sit at 166, twenty-nine units below the last bar,
+          which drew as a band of nothing across the middle of the figure. It
+          is fifteen now — enough to separate the table from the conclusion it
+          leads to, and not enough to read as a missing row. */}
+      <line x1="14" y1="152" x2="330" y2="152" stroke={MUTED} strokeWidth="0.8" />
+      <text x="14" y="168" fontFamily={MONO} fontSize="6.4" fill={INK}>
         four levels is four seeks — a fifth of a second, for any of them
       </text>
-      <text x="14" y="194" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
+      <text x="14" y="180" fontFamily={MONO} fontSize="6.2" fill={DENIM}>
         and the upper levels stay in memory, so in practice it is one or two
       </text>
     </svg>
@@ -4640,7 +4644,13 @@ export function BTreeReachDiagram() {
 }
 
 /** Ch 0 — Codd's own example, and the reason the relational model is about
- *  people rather than about sets. Parts and projects can be filed as a
+ *  people rather than about sets.
+ *
+ *  viewBox is 204 rather than 200 because the last caption's baseline sits at
+ *  198 and its descenders finished two tenths of a unit outside the frame,
+ *  where an <svg> clips them. The geometry lint tolerates 0.6 units of slop —
+ *  it has to, since getBBox rounds — so nothing complained, and a "p" lost its
+ *  tail at every size the page draws this at. Parts and projects can be filed as a
  *  hierarchy five different ways; every one is defensible, and every program
  *  ever written is married to whichever one somebody picked. */
 export function FiveStructuresDiagram() {
@@ -4662,7 +4672,7 @@ export function FiveStructuresDiagram() {
   )
   return (
     <svg
-      viewBox="0 0 344 200"
+      viewBox="0 0 344 204"
       role="img"
       aria-label="The same information about parts and projects can be filed as a hierarchy in five different ways — projects under parts, parts under projects, and three arrangements where they are peers. Each is defensible, and every application program is written against whichever one was chosen. The relational answer is to store parts, projects and the commitment between them as three flat relations and let the query say what it wants."
     >

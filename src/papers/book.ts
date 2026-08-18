@@ -341,7 +341,7 @@ export const SEASONS: Season[] = [
   {
     n: 1,
     label: 'Season 1 · Where Data Lives',
-    dek: 'Seventeen papers on where the bytes sit, how many copies of them exist, and who is allowed to decide what happened. It starts with a company that cannot fit its data on one machine and ends with one that could not fit its database in its engineers’ heads — and in between, the same move over and over: **hit a wall, give up a guarantee to get past it, then spend a decade buying it back in a currency you can afford.**',
+    dek: 'Where the bytes sit, how many copies of them exist, and who is allowed to decide what happened. It opens in 1970, when one machine was enough and the argument was about whether a program should have to know how its data is filed; then the web arrives and does not fit. It ends with a company that could not fit its database in its engineers’ heads — and in between, the same move over and over: **hit a wall, give up a guarantee to get past it, then spend a decade buying it back in a currency you can afford.**',
     acts: SEASON_1_ACTS,
   },
   {

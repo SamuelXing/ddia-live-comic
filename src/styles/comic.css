@@ -70,6 +70,13 @@
   margin: 14px 0 0; position: relative; }
 .gn-mast .gn-attrib a { color: var(--denim-ink); text-underline-offset: 2px; }
 
+/* The format line under a season dek: how to read the book, not what it is
+   about. Set below the dek so it reads as a note rather than as a second
+   headline, and capped narrower than the dek so the two do not look like one
+   run-on paragraph. */
+.gn-mast .pb-howto { font-size: 14px; line-height: 1.55; color: var(--ink-2); max-width: 60ch;
+  margin: 14px 0 0; padding-left: 12px; border-left: 3px solid var(--denim); position: relative; }
+
 .gn-tags { display: flex; gap: 8px; margin-top: 20px; position: relative; flex-wrap: wrap; }
 .gn-tag { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
   border: 2px solid var(--ink-line); padding: 3px 10px; background: var(--paper); font-weight: 500; }
@@ -490,8 +497,14 @@
    under ten pixels. */
 .gn-wild-fig { margin: 10px 0 14px; max-width: 600px; }
 .gn-deeper-fig { margin: 10px 0 12px; max-width: 600px; }
+/* The padding is the fix, and it was missing here while .gn-diagram svg had
+   10px all along. A drawing whose lowest ink sits a third of a unit above its
+   viewBox is fine inside a padded frame and touches the border without one —
+   which is what the B-tree reach figure looked like in its fold-out, text
+   jammed against the box. Same frame, same breathing room, wherever a figure
+   is drawn. */
 .gn-wild-fig svg, .gn-deeper-fig svg { display: block; width: 100%; height: auto;
-  background: var(--paper-2); border: 1.5px solid var(--ink-line); }
+  background: var(--paper-2); border: 1.5px solid var(--ink-line); padding: 10px; }
 
 /* "The call" — a decision framework */
 .gn-tradeoffs { margin-top: 2px; border: 2px solid var(--ink-line); box-shadow: 3px 3px 0 var(--denim); background: var(--paper-2); }
