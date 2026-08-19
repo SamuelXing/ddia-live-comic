@@ -13,29 +13,26 @@ guessed at. Everything else here has been brought back in line with what shipped
 
 ## Next up
 
-Roughly the order I would do them in. The three long menus further down — app sims,
-paper-driven components, the composer — are the longer game, and the sequencing note
-at the end of this section says why they are not first.
+Two things here are waiting on a decision — the cost calculator and which book starts
+next — and the one thing that is not waiting on anything is telling anyone the book
+exists. The three long menus further down — app sims, paper-driven components, the composer — are the
+longer game, and the sequencing note at the end of this section says why they are
+not first.
 
-**The comprehension track, the calculator-correctness track, the sims' engine fork,
-sharing and the launch checklist are all done** (#30, #32–#48, #50–#61). What is left
-here is the cost calculator, the papers book's remaining chapters, and one rejected
-experiment kept as a warning.
+**The papers book is finished**, which changes what this section is for. It used to
+be a writing queue. What is left is the cost calculator, one rejected experiment
+kept as a warning, and the question of which book starts next — which is the one
+that actually needs answering.
 
-### The papers book — writing it
+### The papers book — finished, and what it cost to say so
 
-Three chapters live of eighteen (GFS, MapReduce, Bigtable — #60, #61, and the
-Bigtable chapter that proved the format). The season map has been on the page since
-day one, so the shape is public and the gaps are visible; the counter that says how
-far along it is derives itself now, after **four** hand-typed tallies in this repo
-went stale.
+**31 chapters, both seasons, 30 papers plus a prologue that reads three more.**
+Season 1 is where data lives, Season 2 is what happens when it stops sitting still.
+The last chapter shipped at #81 and the review round closed it at #84; the progress
+counter derives itself and now says *both seasons finished*, because "0 still to write" is the sort of line a reader assumes is a bug
+and "complete" claims something nobody has decided.
 
-Next unit is **Ch 4, Chubby**, which closes Act I — and closes it on the right note,
-since Act I's whole method is *appoint someone and notice when they stop answering*,
-and Chubby is where that gets a name. After that the book crosses into Act II and
-the argument changes: Amazon refuses the master that Act I was built on.
-
-Two things learned writing Ch 1 and Ch 2, worth not re-deriving:
+Four things learned across it, worth not re-deriving:
 
 - **A half-chapter is a real unit and should look like one.** Ch 2 is two decisions,
   five steps, nine minutes, no animated trace — because the thing worth animating in
@@ -44,6 +41,38 @@ Two things learned writing Ch 1 and Ch 2, worth not re-deriving:
   own shape does not.
 - **Never draw a figure the other book already draws.** Cross-link instead. The two
   books share a skin and a vocabulary precisely so this is cheap.
+- **A book ending in a disagreement has to hold both sides.** Ch 29 and Ch 30 start
+  from the same observation and reach opposite conclusions, and the close says so
+  rather than picking — the two chapters read better as a diagnostic than as a
+  choice, and re-arguing them on the close page would have wasted both.
+- **The review round had to be two passes, not one.** They ask different questions
+  and merging them means doing neither properly. The de-AI pass (#80) asks whether
+  the prose sounds written; the adversarial pass (#84) attacks what it asserts. Each
+  found things the other structurally could not.
+
+### The two review passes, and what only a person could catch
+
+Recorded because the method transfers to every book on the shelf below.
+
+**The de-AI pass (#80)** is evidence-driven: `voice.test.ts` compares chapters
+against each other rather than against a standard, because a tell that only exists
+at book scale is invisible in a diff. It found twenty-one chapters opening their
+designer block with the same bare count and ordinal list, four consecutive finales
+on the same beat, one sentence appearing verbatim in two acts. The trap on the way
+out is worth keeping: replacing "Three decisions. The first is…" with "The opening
+question is…" in eleven chapters is the same architecture with a new label, which
+is exactly what the house rule bans — so the guard forbids *leading* with a
+positional phrase rather than setting a threshold, because a threshold would have
+papered over the difference between a label and a claim.
+
+**The adversarial pass (#84)** downloaded all 41 primary PDFs and checked the book
+against them rather than against memory: 429 numbers, 27 multiplier claims, 181
+prose cross-references, 31 citations, 110 quotations, 141 links. Eight things did
+not survive. The worst was structural rather than numeric — Chapter 23 asserted six
+times that Chapter 7 covered Chandy-Lamport, and Chapter 7 is Lamport 1978, which
+never mentions it. **Three of the eight are now guarded and the big one cannot be**,
+because catching it needs a model of what each chapter contains. That is the
+argument for doing this by hand on any book that ships from here.
 
 ### A third calculator: cost
 
@@ -125,25 +154,33 @@ two weakest surfaces are the experimental sims and comic comprehension, and both
 about how the depth that already exists *lands*. So: sharpen before building. The
 composer stays the exception, because it is the synthesis rather than more of the same.
 
+**What the finished papers book changes about this.** The argument above was written
+when one book was mid-flight and everything else had to wait behind it. Nothing is
+mid-flight now, so the queue is no longer self-evident and the next move is a choice
+rather than a continuation — which is exactly the decision flagged at the top of this
+file and at the foot of the shelf below. **It has not been made, and this file should
+not pretend otherwise.**
+
 ### Loose ends
 
-- **`/ddia/read`'s attribution sits below the fold.** The kicker above it says
-  *"inspired by DDIA, 1st edition"* — the vaguest available phrasing, and the one
-  that reads most like it is avoiding the question — while *unofficial* and *not
-  affiliated* appear only in the footer. That page is the one a link points at.
+- **The book is finished and nobody knows.** Every remaining item here is
+  building; none of it is telling anyone. That is now the largest gap on the list,
+  and it is a different kind of work from the rest of this file.
 - **`calc-basic-view`** is the one branch still on the remote — the basic-view
   experiment above, kept because the code and its 26 tests are there if it is ever
   wanted. The three merged branches this line used to list are gone.
 
 ---
 
-## The shelf beyond Season 1
+## The shelf beyond the papers book
 
 The site is a library now, so this is the list of books, not features. All of these
 are prospectuses — nothing below is started, and the gate they were waiting on has
-passed: the format is proven, three chapters of book two are live, and the machinery
-(`DesignIt`, `ChapterView`, `TracePlayer`, the geometry lint, the card renderer) is
-shared rather than per-book.
+long since passed: the format is proven across two finished books, and the machinery
+(`DesignIt`, `ChapterView`, `TracePlayer`, the geometry lint, the card renderer, the
+voice and cross-reference guards) is shared rather than per-book. **A third book now
+inherits more than the second one did**, which is an argument for starting one and
+also the reason to be careful about starting three.
 
 **The library-wide theme, stated once so each book can stop restating it:
 hardware physics forces design.** Sequential beats random, the memory hierarchy is a
@@ -323,6 +360,35 @@ few SVGs. The GPU book needs a new interactive surface built first. That is not 
 enthusiastic afternoon and discovering the cost in chapter two.
 
 ## Shipped
+
+- ✅ **Season 2, and the book finished** (#62–#79, #81, #84). Thirteen chapters from
+  Spark to the unbundling essay, an epilogue whose two chapters disagree on purpose,
+  a close that holds both, and **Chapter 0 last** — the prologue, written after the
+  rest, because a chapter about the three ideas every later chapter spends is easier
+  to write once you know which ones they were. Four structural calls worth keeping:
+  the staleness ladder is the season's spine, Borg went to the Kubernetes book rather
+  than here, CRDTs got one chapter rather than an act, and both epilogues shipped on
+  probation and earned their place.
+- ✅ **Every figure in the book was rendering at about six pixels** (#82, #83). One CSS
+  rule: the figure sat in a column capped at 340px against a 344-unit canvas, so a
+  5-unit label rendered at roughly its own number in pixels. **81 figures out of 81**
+  had type under nine pixels. The geometry lint had been driving a real browser over
+  all 50 pages for months and could not see it, because it measures the drawing in
+  its own coordinates where the layout is perfect at any size — the canvas has no
+  idea how wide the page will draw it. `TYPE-TOO-SMALL` compares each label's font
+  size against the scale the page actually gave its canvas; restoring the old column
+  produces 929 violations. The same rule from the other side left **29 empty grid
+  cells** beside half-width panels. Then #83 fixed what #82 caused: at full panel
+  width the figures' own labels came out at 16.4px against 15.5px body text — a
+  caption shouting over the sentence explaining it — so they are capped at 660, which
+  is about where the prose measure stops, and the figure now follows the opening
+  paragraph instead of arriving after the argument it was meant to carry.
+- ✅ **Say whose book it is before the reader has to scroll** (#85). `/ddia/read` led
+  with *"inspired by DDIA, 1st edition"* and kept *unofficial* and *not affiliated*
+  twelve cards down. The comic pages were worse and are the same route: they render
+  no SiteFooter at all, so a kicker reading "Inspired by" was very nearly the whole
+  of it, on the page a shared link is most likely to open. The guard tests
+  **position, not presence** — presence was already true and was not enough.
 
 - ✅ **The calculator's presets toured two of its six columns** (#50). Sam noticed that
   everything seemed to land on wide-column. Measured: three of five presets did, the other
