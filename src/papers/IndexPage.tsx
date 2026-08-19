@@ -82,6 +82,18 @@ export default function PapersIndexPage({ season: seasonN }: { season: number })
           <div className="gn-kicker">{season.label}</div>
           <h1>{BOOK.title}</h1>
           <p className="dek">{rich(season.dek)}</p>
+          {/* What the page never said. Both season deks describe the SUBJECT,
+              which is the one thing a reader arriving from a link about
+              distributed systems papers can already guess. The format is the
+              part that is not obvious and is the whole reason to read here
+              rather than the PDFs — and it was invisible until you opened a
+              chapter and found a widget asking you a question. One sentence,
+              in the masthead, because a stranger decides on this screen. */}
+          <p className="pb-howto">
+            Each chapter hands you the paper’s real constraints first and asks what you would build — with the
+            wrong-looking answers and why each one dies — and only then shows you what the authors did. Every paper is
+            linked at the foot of its chapter.
+          </p>
         </header>
 
         <nav className="pb-tabs" aria-label="Which season">

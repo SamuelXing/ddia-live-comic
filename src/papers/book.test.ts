@@ -233,3 +233,37 @@ describe('the book in seasons', () => {
     expect(nums).toEqual(nums.map((_, i) => nums[0] + i))
   })
 })
+
+describe('the season deks do not carry a hand-typed tally', () => {
+  /* Season 1's dek opened "Seventeen papers on where the bytes sit" and stayed
+     that way when Chapter 0 went in at the head of the season — a chapter that
+     reads three more papers. So the first sentence on /papers undercounted the
+     season, and the sentence after it said the season starts with a company
+     that cannot fit its data on one machine, while the Prologue sat visibly
+     underneath it opening in 1970.
+
+     That is the sixth hand-typed count in this repo to go stale: three in the
+     progress labels, one in the read index, one in the roadmap, this one. The
+     counts that survive are the ones derived from the data — progressLabel()
+     and remainingLabel() — and the lesson has been learned expensively enough
+     to be worth a test rather than a resolution.
+
+     A number that is genuinely about the SUBJECT is fine and this does not
+     touch it: Season 2's dek can say a system waits 200 milliseconds. What is
+     banned is counting the book's own contents in prose, because the contents
+     change and the prose does not. */
+  const COUNT_OF_CONTENTS =
+    /\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|\d+)[\s-]+(papers?|chapters?|acts?)\b/i
+
+  it('has deks to check', () => {
+    expect(SEASONS.length).toBeGreaterThan(1)
+    for (const s of SEASONS) expect(s.dek.length).toBeGreaterThan(80)
+  })
+
+  it('never counts its own chapters or papers in a season dek', () => {
+    const counting = SEASONS.filter((s) => COUNT_OF_CONTENTS.test(s.dek)).map(
+      (s) => `${s.label}: “${COUNT_OF_CONTENTS.exec(s.dek)![0]}”`,
+    )
+    expect(counting).toEqual([])
+  })
+})
