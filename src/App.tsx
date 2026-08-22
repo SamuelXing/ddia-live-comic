@@ -26,6 +26,7 @@ const ReadIndexPage = lazy(() => import('./read/IndexPage'))
 const ReadPage = lazy(() => import('./read/ReadPage'))
 const PapersIndexPage = lazy(() => import('./papers/IndexPage'))
 const PaperPage = lazy(() => import('./papers/PaperPage'))
+const K8sIndexPage = lazy(() => import('./k8s/IndexPage'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 /** Shown while a route chunk loads. It draws the real nav so the page frame
@@ -109,6 +110,11 @@ export default function App() {
           <Route path="/papers/season/1" element={<Navigate to="/papers" replace />} />
           <Route path="/papers/season/2" element={<PapersIndexPage season={2} />} />
           <Route path="/papers/:slug" element={<PaperPage />} />
+
+          {/* Book C — Kubernetes. Contents only for now; the chapter
+              route arrives with the first chapter rather than before it, so
+              there is no /k8s/<slug> that 404s from a link somebody shared. */}
+          <Route path="/k8s" element={<K8sIndexPage />} />
 
           {/* Shared tools. Two tabs, each a real route so it can be linked. */}
           <Route path="/calculator" element={<Navigate to="/calculator/capacity" replace />} />
