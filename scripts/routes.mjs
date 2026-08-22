@@ -89,6 +89,11 @@ export const ROUTES = {
     title: 'The Papers That Broke the Database',
     desc: 'Follow the history of distributed systems, and dig deep into the papers that made it.',
   },
+  // Book C — contents only; the chapter routes arrive with the chapters.
+  '/k8s': {
+    title: 'Nobody Is In Charge',
+    desc: 'Kubernetes, read as a set of decisions with published reasons — including the ones its authors regret.',
+  },
   '/papers/prologue': {
     title: 'One Machine Was Enough',
     desc: 'Three ideas from around 1970 the rest of the book spends without introducing: describe rather than navigate, index wide enough to beat the disc, and all-or-nothing.',

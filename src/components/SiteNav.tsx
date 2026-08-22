@@ -39,9 +39,11 @@ export default function SiteNav() {
     ? 'ddia'
     : path.startsWith('/papers')
       ? 'papers'
-      : path.startsWith('/calculator')
-        ? 'calc'
-        : 'shelf'
+      : path.startsWith('/k8s')
+        ? 'k8s'
+        : path.startsWith('/calculator')
+          ? 'calc'
+          : 'shelf'
   /* only once you are *below* a section index — on the index itself the brand
      is already the way up */
   const ddiaBack = DDIA_SECTIONS.find((s) => path.startsWith(s.at + '/'))
@@ -63,6 +65,12 @@ export default function SiteNav() {
           <Link className="gn-brand" to="/papers">
             <b>The Papers</b>
             <span className="tl">, that broke the database</span>
+          </Link>
+        )}
+        {section === 'k8s' && (
+          <Link className="gn-brand" to="/k8s">
+            <b>Kubernetes</b>
+            <span className="tl">, nobody is in charge</span>
           </Link>
         )}
         {section === 'calc' && (
