@@ -765,3 +765,8 @@ a.pb-row.pb-line:hover .tt em { color: var(--ink); }
   .k8-toc li { grid-template-columns: 52px minmax(0, 1fr); }
   .k8-toc .reads { grid-column: 2; text-align: left; }
 }
+/* An interlude has no number, so its row would otherwise open on an empty
+   62px column and read as a chapter whose number failed to render. A dash in
+   the number slot, dimmer than a real one, says "deliberately not numbered". */
+.k8-toc li.interlude .no { opacity: .45; }
+.k8-toc li.interlude .t { font-style: italic; }

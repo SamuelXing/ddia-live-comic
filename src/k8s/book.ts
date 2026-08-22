@@ -42,6 +42,14 @@ export const BOOK = {
 export interface TocEntry {
   no: string
   title: string
+  /**
+   * A half-chapter with no paper and no component behind it — it sits between
+   * two acts and compares them to something outside the book. Book B used the
+   * same device for the RUM triangle and CAP. Interludes are not numbered,
+   * because numbering them would make "Chapter 7" mean two things depending on
+   * whether the reader counts them.
+   */
+  interlude?: boolean
   /** what the chapter reads: a paper, an API object, a component's source */
   reads: string
   /** present once the chapter is live */
@@ -51,7 +59,7 @@ export interface TocEntry {
 export interface TocAct {
   act: string
   /** Which mode this act runs in — printed, because the book changes gear. */
-  mode: 'papers' | 'api' | 'source'
+  mode: 'papers' | 'api' | 'source' | 'tool'
   summary: string
   entries: TocEntry[]
 }
@@ -73,6 +81,24 @@ export const TOC: TocAct[] = [
       { no: 'Ch 3', title: 'Names Are Not a Data Model', reads: 'Borg · EuroSys 2015' },
       { no: 'Ch 4', title: 'Two Schedulers, One Cluster', reads: 'Omega · EuroSys 2013' },
       { no: 'Ch 5', title: 'The Things They Say To Avoid', reads: 'Borg, Omega, and Kubernetes · §Things to avoid' },
+    ],
+  },
+  {
+    act: 'Interlude',
+    /* Not 'api'. It renders the label on screen, and this act reads neither a
+       paper nor Kubernetes — it reads a different tool entirely. Mislabelling
+       it "reads the API" is the exact thing this field was added to stop, and
+       it was mislabelled for one commit until the render was looked at. */
+    mode: 'tool',
+    summary:
+      'Act I argues that a loop beats a plan, and inside a book that only reads Kubernetes that argument cannot lose. So here is the same idea built the other way round, by people who were not wrong.',
+    entries: [
+      {
+        no: '—',
+        title: 'Interlude: The Other Reconciler',
+        reads: 'Terraform · plan and apply',
+        interlude: true,
+      },
     ],
   },
   {
@@ -109,7 +135,10 @@ export const TOC: TocAct[] = [
 
 /** Counted, never typed. Six hand-written tallies in this repo have gone stale. */
 export const progress = () => {
-  const chapters = TOC.flatMap((a) => a.entries)
+  /* Interludes are pages and are deliberately not chapters — the same rule as
+     book B, where counting them made "4 of 18" drift away from a contents page
+     that plainly numbers eighteen. */
+  const chapters = TOC.flatMap((a) => a.entries).filter((e) => !e.interlude)
   return { live: chapters.filter((e) => e.slug).length, total: chapters.length }
 }
 
@@ -122,4 +151,5 @@ export const MODE_LABEL: Record<TocAct['mode'], string> = {
   papers: 'reads a paper',
   api: 'reads the API',
   source: 'reads the source',
+  tool: 'reads another tool',
 }

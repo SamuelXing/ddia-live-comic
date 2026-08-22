@@ -54,7 +54,7 @@ export default function K8sIndexPage() {
               </div>
               <ul className="k8-toc">
                 {act.entries.map((e) => (
-                  <li key={e.no} className={e.slug ? 'live' : 'soon'}>
+                  <li key={e.no + e.title} className={(e.slug ? 'live' : 'soon') + (e.interlude ? ' interlude' : '')}>
                     <span className="no">{e.no}</span>
                     {e.slug ? (
                       <Link to={'/k8s/' + e.slug}>{e.title}</Link>

@@ -9,7 +9,9 @@ import { BOOK, TOC, progress, progressLabel, MODE_LABEL } from './book'
 
 describe('the Kubernetes book map', () => {
   it('numbers its chapters straight through, with no gaps or repeats', () => {
-    const nos = TOC.flatMap((a) => a.entries).map((e) => Number(/^Ch (\d+)$/.exec(e.no)![1]))
+    const nos = TOC.flatMap((a) => a.entries)
+      .filter((e) => !e.interlude)
+      .map((e) => Number(/^Ch (\d+)$/.exec(e.no)![1]))
     expect(nos).toEqual(nos.map((_, i) => i + 1))
   })
 
@@ -36,10 +38,26 @@ describe('the Kubernetes book map', () => {
     expect(TOC.filter((a) => a.mode === 'papers').map((a) => a.act)).toEqual(['Act I · The Answer Keys'])
   })
 
+  it('never numbers an interlude', () => {
+    /* If an interlude ever gets a "Ch N", the numbering test above starts
+       passing for the wrong reason and "Chapter 7" means two things depending
+       on whether the reader counts half-chapters. Book B hit this exact
+       ambiguity and solved it the same way. */
+    const numbered = TOC.flatMap((a) => a.entries).filter((e) => e.interlude && /^Ch \d+$/.test(e.no))
+    expect(numbered).toEqual([])
+  })
+
   it('derives the progress label rather than stating it', () => {
+    /* Both halves skip interludes, and this test asserting otherwise is how
+       the rule got noticed: an interlude is a page, not a chapter, so counting
+       it makes the label drift away from a contents page that numbers
+       fourteen. Book B has the identical carve-out and the identical comment,
+       because somebody later reads this as an off-by-one and helpfully
+       "fixes" it. */
+    const chapters = TOC.flatMap((a) => a.entries).filter((e) => !e.interlude)
     const { live, total } = progress()
-    expect(total).toBe(TOC.flatMap((a) => a.entries).length)
-    expect(live).toBe(TOC.flatMap((a) => a.entries).filter((e) => e.slug).length)
+    expect(total).toBe(chapters.length)
+    expect(live).toBe(chapters.filter((e) => e.slug).length)
     // the label must contain a number that came from the count, not from a person
     expect(progressLabel()).toContain(String(live === 0 ? total : live))
   })
@@ -59,5 +77,22 @@ describe('the Kubernetes book map', () => {
   it('has a title and a dek that say what the book is', () => {
     expect(BOOK.title.length).toBeGreaterThan(4)
     expect(BOOK.dek.length).toBeGreaterThan(60)
+  })
+})
+
+describe('the mode label is a claim about sources, so it has to be true', () => {
+  it('gives every mode in use a label', () => {
+    /* The interlude shipped as mode "api" for one commit and rendered "READS
+       THE API" over a row that reads Terraform — caught by looking at the page
+       rather than by any test, because a wrong-but-valid enum value typechecks
+       perfectly. This at least stops a mode with no label at all. */
+    for (const a of TOC) expect(MODE_LABEL[a.mode], `${a.act}: mode "${a.mode}" has no label`).toBeTruthy()
+  })
+
+  it('does not claim an act reads Kubernetes when it reads something else', () => {
+    const outside = TOC.flatMap((a) => a.entries.map((e) => ({ act: a.act, mode: a.mode, reads: e.reads })))
+      .filter((r) => /terraform|pulumi|ansible|cloudformation/i.test(r.reads))
+    expect(outside.length).toBeGreaterThan(0)
+    for (const r of outside) expect(r.mode, `${r.act} reads ${r.reads}`).toBe('tool')
   })
 })
