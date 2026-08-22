@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SiteNav from '../components/SiteNav'
 import { BOOK, SEASONS, progressLabel, progressOf, remainingLabel, seasonPath } from '../papers/book'
+import { BOOK as K8S, progressLabel as k8sProgress } from '../k8s/book'
 
 /* ============================================================
    The bookshelf — the front door of systemscomic.com.
@@ -52,6 +53,17 @@ const LIVE_BOOKS: ShelfBook[] = [
       const [n, subject] = s.label.split(' · ')
       return { n, subject, count: `${progressOf(s).live} chapters`, to: seasonPath(s.n) }
     }),
+  },
+  /* Listed with nothing written, which is the same call book B made: the map
+     goes up first so the shape is arguable while it is still cheap to change,
+     and so the holes are visible rather than implied. The label says exactly
+     where it stands rather than dressing a contents page as a book. */
+  {
+    to: '/k8s',
+    kicker: 'Book three · just started',
+    title: K8S.title,
+    dek: K8S.dek,
+    meta: k8sProgress(),
   },
 ]
 

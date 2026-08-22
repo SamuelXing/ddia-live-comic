@@ -747,3 +747,21 @@ a.pb-row.pb-line:hover .tt em { color: var(--ink); }
   .bs-seasons .row { grid-template-columns: auto 1fr; row-gap: 2px; }
   .bs-seasons .sc { grid-column: 2; }
 }
+
+/* ---- Book C contents ------------------------------------------------------
+   A chapter list where most rows are holes, so an unwritten row has to read as
+   planned rather than as broken. The number and what it reads stay at full
+   strength; only the title dims, because the title is the part that does not
+   exist yet. */
+.k8-toc { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 2px; }
+.k8-toc li { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 12px; align-items: baseline;
+  padding: 7px 8px; border-top: 1px solid var(--ink-line-soft, rgba(26,26,26,.14)); }
+.k8-toc li:first-child { border-top: 0; }
+.k8-toc .no { font-family: var(--gn-mono); font-size: 11px; letter-spacing: .04em; color: var(--denim-ink); }
+.k8-toc a { font-weight: 600; }
+.k8-toc .t { color: var(--ink-2); opacity: .72; }
+.k8-toc .reads { font-family: var(--gn-mono); font-size: 10.5px; color: var(--ink-2); opacity: .7; text-align: right; }
+@media (max-width: 620px) {
+  .k8-toc li { grid-template-columns: 52px minmax(0, 1fr); }
+  .k8-toc .reads { grid-column: 2; text-align: left; }
+}
